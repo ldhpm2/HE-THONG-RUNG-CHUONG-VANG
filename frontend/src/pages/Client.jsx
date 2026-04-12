@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { socket } from '../socket';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LogIn, Clock, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
-import 'katex/dist/katex.min.css';
-import { InlineMath, BlockMath } from 'react-katex';
+
 
 export default function Client() {
   const [sbd, setSbd] = useState('');
