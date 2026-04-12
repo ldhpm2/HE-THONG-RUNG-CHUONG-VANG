@@ -247,9 +247,9 @@ export default function Stage() {
                </div>
              </div>
              
-              {/* Danh sách thí sinh dạng bảng gọn (SBD & Tên) */}
-              <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-                <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 content-start">
+              {/* Danh sách thí sinh dạng bảng gọn (SBD & Tên) - 3 cột */}
+              <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar">
+                <div className="grid grid-cols-3 gap-x-2 gap-y-1 content-start">
                   {studentsList.length > 0 ? studentsList.map((st, i) => {
                     // Lấy tên (từ cuối cùng)
                     const nameParts = (st.hoTen || '').trim().split(' ');
@@ -260,28 +260,28 @@ export default function Stage() {
                         key={st.sbd}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        transition={{ delay: i * 0.005 }}
-                        className={`flex items-center gap-2 p-1.5 rounded-lg border transition-all duration-500 ${
+                        transition={{ delay: i * 0.003 }}
+                        className={`flex items-center gap-1.5 p-1 rounded-lg border transition-all duration-500 ${
                           st.status === 'active' 
-                            ? 'bg-green-500/10 text-green-400 border-green-500/30' 
-                            : 'bg-red-500/5 text-red-500 border-red-500/20 opacity-40'
-                        } ${phase === 'locked' && st.status==='active' && st.hasAnswered ? 'ring-1 ring-yellow-400 bg-yellow-400/10' : ''}`}
+                            ? 'bg-green-500/10 text-green-400 border-green-500/20 shadow-[0_0_10px_rgba(34,197,94,0.02)]' 
+                            : 'bg-red-500/5 text-red-500 border-red-500/10 opacity-30 shadow-none'
+                        } ${phase === 'locked' && st.status==='active' && st.hasAnswered ? 'ring-1 ring-yellow-400 bg-yellow-400/5' : ''}`}
                       >
-                        <div className={`w-8 h-8 shrink-0 rounded flex items-center justify-center font-black text-xs border ${
+                        <div className={`w-7 h-7 shrink-0 rounded flex items-center justify-center font-black text-[10px] border ${
                           st.status === 'active' ? 'bg-green-500 text-slate-900 border-green-400' : 'bg-red-900/40 text-red-500 border-red-800'
                         }`}>
                           {st.sbd}
                         </div>
                         <div className="flex-1 min-w-0 overflow-hidden">
-                          <p className="font-bold truncate text-sm uppercase tracking-tighter text-white">{firstName}</p>
+                          <p className="font-bold truncate text-[11px] uppercase tracking-tighter text-white/90">{firstName}</p>
                         </div>
                         {st.status === 'active' && st.hasAnswered && phase !== 'idle' && (
-                          <div className="w-1.5 h-1.5 shrink-0 rounded-full bg-yellow-400"></div>
+                          <div className="w-1 h-1 shrink-0 rounded-full bg-yellow-400"></div>
                         )}
                       </motion.div>
                     );
                   }) : (
-                    <div className="p-4 text-center text-slate-500 italic text-sm">Chưa có thí sinh</div>
+                    <div className="p-4 text-center text-slate-500 italic text-[10px]">Chưa có thí sinh</div>
                   )}
                 </div>
               </div>
