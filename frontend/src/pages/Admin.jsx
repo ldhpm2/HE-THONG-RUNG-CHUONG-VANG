@@ -145,6 +145,8 @@ export default function Admin() {
      });
   };
 
+  const setWelcome = () => socket.emit('admin:set_welcome');
+
   const clearStudents = () => {
     if(!window.confirm('CẢNH BÁO: Hành động này sẽ XÓA SẠCH danh sách thí sinh và reset trạng thái game. Bạn có chắc chắn?')) return;
     socket.emit('admin:clear_students', (res) => {
@@ -388,7 +390,10 @@ export default function Admin() {
               <span className="text-xs px-3 py-1 bg-slate-700 rounded-full">Phase: <span className="text-white font-bold">{gameState.phase}</span></span>
            </h3>
            
-           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <button onClick={setWelcome} className="bg-slate-700 hover:bg-slate-600 text-white py-4 rounded-xl flex flex-col items-center justify-center font-bold transition active:scale-95 shadow-lg border-2 border-slate-600 border-dashed">
+                <Activity className="mb-2 text-yellow-400"/> 0. Bắt đầu
+              </button>
               <button onClick={pushQuestion} className="bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl flex flex-col items-center justify-center font-semibold transition active:scale-95 shadow-lg">
                 <Presentation className="mb-2"/> 1. Hiện Câu Hỏi
               </button>

@@ -104,26 +104,55 @@ export default function Stage() {
           {/* MAIN STAGE (LEFT PANEL - 3/4) */}
           <div className="w-3/4 flex flex-col items-center justify-center relative min-h-0">
              <AnimatePresence mode="wait">
-                {phase === 'idle' ? (
-                   <motion.div 
-                     key="idle" 
-                     initial={{ opacity: 0, scale: 0.8 }} 
-                     animate={{ opacity: 1, scale: 1 }} 
-                     exit={{ opacity: 0, scale: 0.8 }}
-                     className="max-w-4xl text-center flex flex-col items-center"
-                   >
-                       <div className="flex gap-12 items-center justify-center mb-8">
-                          <div className="w-64 h-64 border-8 border-yellow-500 rounded-full flex items-center justify-center bg-slate-800 animate-pulse shadow-[0_0_80px_rgba(234,179,8,0.2)]">
-                              <span className="text-8xl">🔔</span>
-                          </div>
-                          <div className="bg-white p-6 rounded-3xl shadow-2xl border-4 border-yellow-400">
-                            <QRCodeSVG value={window.location.origin} size={200} />
-                            <p className="text-slate-900 font-bold mt-4 text-xl">Quét mã để thi đấu</p>
-                          </div>
-                       </div>
-                       <h2 className="text-4xl text-slate-400 font-light mt-6 tracking-widest uppercase">Hãy Tập Trung Khoảnh Khắc Bắt Đầu</h2>
-                       <p className="text-yellow-500 mt-4 text-2xl font-mono">{window.location.origin}</p>
-                   </motion.div>
+                 {phase === 'idle' ? (
+                    <motion.div 
+                      key="idle" 
+                      initial={{ opacity: 0 }} 
+                      animate={{ opacity: 1 }} 
+                      exit={{ opacity: 0 }}
+                      className="w-full h-full flex flex-col items-center justify-center p-8"
+                    >
+                        <div className="flex gap-16 items-center justify-center mb-12">
+                           {/* Bell Icon Area */}
+                           <div className="w-64 h-64 border-2 border-yellow-600/30 rounded-full flex items-center justify-center bg-slate-900/40 relative shadow-[0_0_100px_rgba(234,179,8,0.05)]">
+                               <div className="w-56 h-56 border-4 border-yellow-500/80 rounded-full flex items-center justify-center bg-gradient-to-b from-slate-800 to-slate-900 shadow-inner">
+                                  <motion.span 
+                                    animate={{ rotate: [0, -10, 10, -10, 10, 0] }}
+                                    transition={{ repeat: Infinity, duration: 3, delay: 1 }}
+                                    className="text-8xl drop-shadow-[0_10px_20px_rgba(0,0,0,0.5)]"
+                                  >
+                                    🔔
+                                  </motion.span>
+                               </div>
+                               {/* Decorative rings */}
+                               <div className="absolute inset-0 border border-yellow-500/20 rounded-full scale-110"></div>
+                               <div className="absolute inset-0 border border-yellow-500/10 rounded-full scale-125"></div>
+                           </div>
+
+                           {/* QR Code Area */}
+                           <div className="bg-white p-5 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] border-[6px] border-yellow-500 flex flex-col items-center transform hover:scale-105 transition-transform duration-500">
+                             <div className="bg-white p-2 rounded-xl">
+                                <QRCodeSVG value={window.location.origin} size={200} />
+                             </div>
+                             <div className="mt-3 w-full text-center">
+                                <p className="text-slate-900 font-black text-xl uppercase tracking-tighter">Quét mã để thi đấu</p>
+                             </div>
+                           </div>
+                        </div>
+
+                        <div className="text-center space-y-4">
+                           <h2 className="text-[clamp(2rem,5vh,4.5rem)] font-light tracking-[0.15em] text-slate-400 uppercase">
+                              Hãy Tập Trung <span className="text-slate-200 font-medium">Khoảnh Khắc</span> <span className="text-white font-black">Bắt Đầu</span>
+                           </h2>
+                           <motion.p 
+                             animate={{ opacity: [0.4, 1, 0.4] }}
+                             transition={{ repeat: Infinity, duration: 2 }}
+                             className="text-yellow-500 text-2xl font-mono tracking-[0.2em]"
+                           >
+                             {window.location.origin}
+                           </motion.p>
+                        </div>
+                    </motion.div>
                 ) : (
                    <motion.div 
                      key="question" 

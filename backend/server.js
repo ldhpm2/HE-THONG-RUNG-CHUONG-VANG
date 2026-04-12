@@ -98,6 +98,13 @@ io.on('connection', (socket) => {
     broadcastState();
   });
 
+  socket.on('admin:set_welcome', () => {
+    if (socket.id !== adminSocketId) return;
+    gamePhase = 'idle';
+    currentQuestion = null;
+    broadcastState();
+  });
+
   socket.on('admin:push_question', (data) => {
     if (socket.id !== adminSocketId) return;
     currentQuestion = { 
