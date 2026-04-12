@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
+const path = require('path');
 
 const app = express();
 app.use(cors());
@@ -324,4 +325,14 @@ io.on('connection', (socket) => {
       }
     }
   });
+});
+
+// --- PHỤC VỤ FRONTEND TĨNH ---
+// Khi chạy trên Render, thư mục frontend/dist sẽ chứa code đã build
+const distPath = path.join(__dirname, '../frontend/dist');
+app.use(express.static(distPath));
+
+// Xử lý tất cả các route khác (Admin, Stage, Client) và trả về index.html
+app.get('*', (req, res) => {
+  res.sendFile(path.join(distPath, 'index.html'));
 });

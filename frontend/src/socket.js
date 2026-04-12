@@ -2,7 +2,9 @@ import { io } from 'socket.io-client';
 
 // Kết nối tới server node.js ở port 4000
 // Khi deploy thật, thay URL này bằng biến môi trường (VD: import.meta.env.VITE_SERVER_URL)
-const SOCKET_URL = 'http://localhost:4000';
+const SOCKET_URL = window.location.hostname === 'localhost' 
+  ? 'http://localhost:4000' 
+  : window.location.origin;
 
 export const socket = io(SOCKET_URL, {
   autoConnect: true,
