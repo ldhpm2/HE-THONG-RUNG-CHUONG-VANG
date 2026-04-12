@@ -7,8 +7,8 @@ import { QRCodeSVG } from 'qrcode.react';
 import { MathJax } from 'better-react-mathjax';
 
 export default function Admin() {
-  const [isAdminLogged, setIsAdminLogged] = useState(false);
-  const [password, setPassword] = useState('');
+  const [isAdminLogged, setIsAdminLogged] = useState(() => localStorage.getItem('admin_logged') === 'true');
+  const [password, setPassword] = useState(() => localStorage.getItem('admin_password') || '');
   
   const [gameState, setGameState] = useState({
     phase: 'idle',
@@ -16,8 +16,14 @@ export default function Admin() {
     students: {}
   });
 
-  const [questionsList, setQuestionsList] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(-1);
+  const [questionsList, setQuestionsList] = useState(() => {
+    const saved = localStorage.getItem('admin_questions');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [currentIndex, setCurrentIndex] = useState(() => {
+    const saved = localStorage.getItem('admin_curr_idx');
+    return saved ? parseInt(saved) : -1;
+  });
   const [questionDraft, setQuestionDraft] = useState({
     content: '',
     type: 'mcq', // mcq, short
@@ -33,6 +39,23 @@ export default function Admin() {
   });
 
   useEffect(() => {
+    const handleConnect = () => {
+      // Tự động login lại khi socket kết nối (hoặc kết nối lại)
+      const savedPass = localStorage.getItem('admin_password');
+      if (savedPass) {
+        socket.emit('admin:login', { password: savedPass }, (res) => {
+          if (res.success) {
+            setIsAdminLogged(true);
+            console.log('[Admin] Auto-login successful on connect');
+          }
+        });
+      }
+    };
+
+    socket.on('connect', handleConnect);
+    // Gọi ngay lần đầu nếu đã kết nối
+    if (socket.connected) handleConnect();
+
     socket.on('admin_state_update', (data) => {
       setGameState({
         phase: data.gamePhase,
@@ -42,15 +65,24 @@ export default function Admin() {
     });
 
     return () => {
+      socket.off('connect', handleConnect);
       socket.off('admin_state_update');
     };
   }, []);
+
+  // Lưu trữ câu hỏi vào localStorage khi có thay đổi
+  useEffect(() => {
+    localStorage.setItem('admin_questions', JSON.stringify(questionsList));
+    localStorage.setItem('admin_curr_idx', currentIndex.toString());
+  }, [questionsList, currentIndex]);
 
   const handleLogin = (e) => {
     e.preventDefault();
     socket.emit('admin:login', { password }, (res) => {
       if (res.success) {
         setIsAdminLogged(true);
+        localStorage.setItem('admin_logged', 'true');
+        localStorage.setItem('admin_password', password);
       } else {
         alert(res.message);
       }
