@@ -16,66 +16,95 @@ export default function Stage() {
 
   const [timeLeft, setTimeLeft] = useState(0);
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
-
-  // Web Audio API context
   const audioCtxRef = useRef(null);
+  const timerEndRef = useRef(null);   // timestamp (ms) khi hết giờ
+  const rafRef = useRef(null);         // requestAnimationFrame id
+  const scheduledTicksRef = useRef([]); // danh sách AudioBufferSourceNode đã lên lịch
 
-  // Helper: tạo âm thanh tick mỗi giây
-  const playTick = () => {
+  // Tieng TICK co hoc - khop 1 lan/giay voi dong ho
+  const playTick = (urgent = false) => {
     try {
       const ctx = audioCtxRef.current;
       if (!ctx) return;
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      o.connect(g); g.connect(ctx.destination);
-      o.type = 'sine';
-      o.frequency.setValueAtTime(880, ctx.currentTime);
-      g.gain.setValueAtTime(0.3, ctx.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
-      o.start(ctx.currentTime);
-      o.stop(ctx.currentTime + 0.08);
+      const t = ctx.currentTime;
+      const dur = 0.025;
+      const buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * dur), ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < data.length; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (data.length * 0.3));
+      }
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      const bpf = ctx.createBiquadFilter();
+      bpf.type = 'bandpass';
+      bpf.frequency.value = urgent ? 3000 : 1800;
+      bpf.Q.value = 2;
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(urgent ? 2.5 : 1.5, t);
+      src.connect(bpf); bpf.connect(gain); gain.connect(ctx.destination);
+      src.start(t); src.stop(t + dur);
+      const osc = ctx.createOscillator();
+      const oscGain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = urgent ? 1200 : 800;
+      oscGain.gain.setValueAtTime(0.2, t);
+      oscGain.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
+      osc.connect(oscGain); oscGain.connect(ctx.destination);
+      osc.start(t); osc.stop(t + 0.07);
     } catch(e) {}
   };
 
-  // Helper: tiếng cồng hết giờ
+  // Tieng CONG het gio - tram am, vang doi 3 dot
   const playGong = () => {
     try {
       const ctx = audioCtxRef.current;
       if (!ctx) return;
-      [220, 277, 330].forEach((freq, i) => {
+      const t = ctx.currentTime;
+      [0, 0.55, 1.1].forEach((delay, wave) => {
+        const baseFreq = 140 - wave * 8;
         const o = ctx.createOscillator();
         const g = ctx.createGain();
-        o.connect(g); g.connect(ctx.destination);
         o.type = 'sine';
-        o.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.05);
-        g.gain.setValueAtTime(0.5, ctx.currentTime + i * 0.05);
-        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.05 + 1.5);
-        o.start(ctx.currentTime + i * 0.05);
-        o.stop(ctx.currentTime + i * 0.05 + 1.5);
+        o.frequency.setValueAtTime(baseFreq, t + delay);
+        o.frequency.exponentialRampToValueAtTime(baseFreq * 0.85, t + delay + 2);
+        g.gain.setValueAtTime(0, t + delay);
+        g.gain.linearRampToValueAtTime(0.8, t + delay + 0.03);
+        g.gain.exponentialRampToValueAtTime(0.001, t + delay + 2.5);
+        o.connect(g); g.connect(ctx.destination);
+        o.start(t + delay); o.stop(t + delay + 2.5);
+        const o2 = ctx.createOscillator();
+        const g2 = ctx.createGain();
+        o2.type = 'sine';
+        o2.frequency.value = baseFreq * 2.76;
+        g2.gain.setValueAtTime(0, t + delay);
+        g2.gain.linearRampToValueAtTime(0.35, t + delay + 0.03);
+        g2.gain.exponentialRampToValueAtTime(0.001, t + delay + 1.5);
+        o2.connect(g2); g2.connect(ctx.destination);
+        o2.start(t + delay); o2.stop(t + delay + 1.5);
       });
     } catch(e) {}
   };
 
-  // Helper: âm thanh đúng đáp án
+  // Am thanh DUNG DAP AN - vui ve chuc mung
   const playCorrect = () => {
     try {
       const ctx = audioCtxRef.current;
       if (!ctx) return;
-      [523, 659, 784, 1047].forEach((freq, i) => {
+      const t = ctx.currentTime;
+      [523, 659, 784, 1047, 1319].forEach((freq, i) => {
         const o = ctx.createOscillator();
         const g = ctx.createGain();
+        o.type = 'triangle';
+        o.frequency.setValueAtTime(freq, t + i * 0.11);
+        g.gain.setValueAtTime(0, t + i * 0.11);
+        g.gain.linearRampToValueAtTime(0.5, t + i * 0.11 + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.11 + 0.45);
         o.connect(g); g.connect(ctx.destination);
-        o.type = 'sine';
-        o.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.12);
-        g.gain.setValueAtTime(0.4, ctx.currentTime + i * 0.12);
-        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.12 + 0.3);
-        o.start(ctx.currentTime + i * 0.12);
-        o.stop(ctx.currentTime + i * 0.12 + 0.3);
+        o.start(t + i * 0.11); o.stop(t + i * 0.11 + 0.45);
       });
     } catch(e) {}
   };
 
-  // Kích hoạt AudioContext khi người dùng bấm enable
   const handleEnableAudio = () => {
     if (!audioCtxRef.current) {
       audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
@@ -86,36 +115,122 @@ export default function Stage() {
     setIsAudioEnabled(!isAudioEnabled);
   };
 
-  // Tick mỗi giây khi đang đếm ngược
-  const tickIntervalRef = useRef(null);
+  // ── Hàm lên lịch toàn bộ tick trước bằng Web Audio precision ──────────────
+  const scheduleAllTicks = (durationSec, urgent5sec) => {
+    const ctx = audioCtxRef.current;
+    if (!ctx) return;
+    // Hủy các tick cũ nếu có
+    scheduledTicksRef.current.forEach(s => { try { s.stop(); } catch(_) {} });
+    scheduledTicksRef.current = [];
 
-  useEffect(() => {
-    const { phase } = gameState;
-    if (isAudioEnabled && phase === 'timer_running' && timeLeft > 0) {
-      playTick();
+    const now = ctx.currentTime;
+    for (let i = 0; i < durationSec; i++) {
+      const tOffset = i;           // mỗi tick cách nhau đúng 1 giây
+      const isUrgent = (durationSec - i) <= urgent5sec;
+      const t = now + tOffset;
+      const dur = 0.025;
+      const buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * dur), ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let j = 0; j < data.length; j++) {
+        data[j] = (Math.random() * 2 - 1) * Math.exp(-j / (data.length * 0.3));
+      }
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      const bpf = ctx.createBiquadFilter();
+      bpf.type = 'bandpass';
+      bpf.frequency.value = isUrgent ? 3000 : 1800;
+      bpf.Q.value = 2;
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(isUrgent ? 2.5 : 1.5, t);
+      src.connect(bpf); bpf.connect(gain); gain.connect(ctx.destination);
+      src.start(t); src.stop(t + dur);
+      scheduledTicksRef.current.push(src);
+
+      const osc = ctx.createOscillator();
+      const oscGain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = isUrgent ? 1200 : 800;
+      oscGain.gain.setValueAtTime(0.2, t);
+      oscGain.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
+      osc.connect(oscGain); oscGain.connect(ctx.destination);
+      osc.start(t); osc.stop(t + 0.07);
+      scheduledTicksRef.current.push(osc);
     }
-  }, [timeLeft, isAudioEnabled]);
 
-  // Gong khi hết giờ
-  useEffect(() => {
-    if (isAudioEnabled && gameState.phase === 'timer_running' && timeLeft === 0) {
-      playGong();
-    }
-  }, [timeLeft, gameState.phase, isAudioEnabled]);
+    // Lên lịch tiếng cồng ngay sau tick cuối cùng
+    const gongT = now + durationSec;
+    [0, 0.55, 1.1].forEach((delay, wave) => {
+      const baseFreq = 140 - wave * 8;
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(baseFreq, gongT + delay);
+      o.frequency.exponentialRampToValueAtTime(baseFreq * 0.85, gongT + delay + 2);
+      g.gain.setValueAtTime(0, gongT + delay);
+      g.gain.linearRampToValueAtTime(0.8, gongT + delay + 0.03);
+      g.gain.exponentialRampToValueAtTime(0.001, gongT + delay + 2.5);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(gongT + delay); o.stop(gongT + delay + 2.5);
+      scheduledTicksRef.current.push(o);
+      const o2 = ctx.createOscillator();
+      const g2 = ctx.createGain();
+      o2.type = 'sine';
+      o2.frequency.value = baseFreq * 2.76;
+      g2.gain.setValueAtTime(0, gongT + delay);
+      g2.gain.linearRampToValueAtTime(0.35, gongT + delay + 0.03);
+      g2.gain.exponentialRampToValueAtTime(0.001, gongT + delay + 1.5);
+      o2.connect(g2); g2.connect(ctx.destination);
+      o2.start(gongT + delay); o2.stop(gongT + delay + 1.5);
+      scheduledTicksRef.current.push(o2);
+    });
+  };
 
-  // Đúng đáp án
+  // ── Hủy tất cả âm thanh đang lên lịch ────────────────────────────────────
+  const cancelAllTicks = () => {
+    scheduledTicksRef.current.forEach(s => { try { s.stop(); } catch(_) {} });
+    scheduledTicksRef.current = [];
+  };
+
+  // Dung dap an
   useEffect(() => {
     if (isAudioEnabled && gameState.phase === 'answer_revealed') {
+      cancelAllTicks();
       playCorrect();
     }
   }, [gameState.phase, isAudioEnabled]);
+
+  // ── RAF-based countdown: tính từ timestamp để tránh drift setInterval ────
+  useEffect(() => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    if (gameState.phase !== 'timer_running' || !timerEndRef.current) return;
+
+    const tick = () => {
+      const remaining = Math.max(0, Math.ceil((timerEndRef.current - Date.now()) / 1000));
+      setTimeLeft(remaining);
+      if (remaining > 0) {
+        rafRef.current = requestAnimationFrame(tick);
+      }
+    };
+    rafRef.current = requestAnimationFrame(tick);
+
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+  }, [gameState.phase]);
 
   useEffect(() => {
     socket.on('game_state_update', (data) => {
        setGameState(prevState => {
          // Nếu vừa bắt đầu timer
-         if(data.gamePhase === 'timer_running' && prevState.phase === 'question_sent') {
-            setTimeLeft(data.currentQuestion?.time || 15);
+         if (data.gamePhase === 'timer_running' && prevState.phase !== 'timer_running') {
+            const duration = data.currentQuestion?.time || 15;
+            timerEndRef.current = Date.now() + duration * 1000;
+            setTimeLeft(duration);
+            // Lên lịch toàn bộ âm thanh ngay lập tức
+            if (isAudioEnabled) scheduleAllTicks(duration, 5);
+         }
+         // Nếu timer bị khóa/kết thúc → hủy tick
+         if (data.gamePhase === 'locked' || data.gamePhase === 'idle' || data.gamePhase === 'question_sent') {
+            timerEndRef.current = null;
+            cancelAllTicks();
          }
          return {
            phase: data.gamePhase,
@@ -125,18 +240,12 @@ export default function Stage() {
        });
     });
 
-    const timer = setInterval(() => {
-       setTimeLeft(prev => {
-         if (prev <= 1) return 0;
-         return prev - 1;
-       });
-    }, 1000);
-
     return () => {
       socket.off('game_state_update');
-      clearInterval(timer);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      cancelAllTicks();
     };
-  }, []);
+  }, [isAudioEnabled]);
 
   const studentsList = Object.values(gameState.students).sort((a,b) => String(a.sbd).localeCompare(String(b.sbd)));
   const { phase, question } = gameState;
