@@ -247,34 +247,40 @@ export default function Stage() {
                </div>
              </div>
              
+              {/* Danh sách thí sinh dạng bảng gọn (SBD & Tên) */}
               <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-                <div className="flex flex-col gap-2">
-                  {studentsList.length > 0 ? studentsList.map((st, i) => (
-                    <motion.div
-                      key={st.sbd}
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.01 }}
-                      className={`flex items-center gap-3 p-2 rounded-xl border transition-all duration-500 ${
-                        st.status === 'active' 
-                          ? 'bg-green-500/10 text-green-400 border-green-500/30' 
-                          : 'bg-red-500/5 text-red-500 border-red-500/20 opacity-50'
-                      } ${phase === 'locked' && st.status==='active' && st.hasAnswered ? 'ring-2 ring-yellow-400 bg-yellow-400/10' : ''}`}
-                    >
-                      <div className={`w-10 h-10 shrink-0 rounded-lg flex items-center justify-center font-black text-sm border-2 ${
-                        st.status === 'active' ? 'bg-green-500 text-slate-900 border-green-400' : 'bg-red-900/40 text-red-500 border-red-800'
-                      }`}>
-                        {st.sbd}
-                      </div>
-                      <div className="flex-1 min-w-0 flex flex-col justify-center">
-                        <p className="font-bold truncate text-[clamp(0.7rem,1.8vh,0.85rem)] leading-tight text-white">{st.hoTen}</p>
-                        <p className="text-[9px] opacity-60 uppercase tracking-widest font-bold truncate mt-0.5">{st.lop || 'Thí sinh'}</p>
-                      </div>
-                      {st.status === 'active' && st.hasAnswered && phase !== 'idle' && (
-                        <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 2 }} className="w-2 h-2 shrink-0 rounded-full bg-yellow-400 shadow-[0_0_10px_rgba(250,204,21,0.8)]"></motion.div>
-                      )}
-                    </motion.div>
-                  )) : (
+                <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 content-start">
+                  {studentsList.length > 0 ? studentsList.map((st, i) => {
+                    // Lấy tên (từ cuối cùng)
+                    const nameParts = (st.hoTen || '').trim().split(' ');
+                    const firstName = nameParts.length > 0 ? nameParts[nameParts.length - 1] : '';
+
+                    return (
+                      <motion.div
+                        key={st.sbd}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: i * 0.005 }}
+                        className={`flex items-center gap-2 p-1.5 rounded-lg border transition-all duration-500 ${
+                          st.status === 'active' 
+                            ? 'bg-green-500/10 text-green-400 border-green-500/30' 
+                            : 'bg-red-500/5 text-red-500 border-red-500/20 opacity-40'
+                        } ${phase === 'locked' && st.status==='active' && st.hasAnswered ? 'ring-1 ring-yellow-400 bg-yellow-400/10' : ''}`}
+                      >
+                        <div className={`w-8 h-8 shrink-0 rounded flex items-center justify-center font-black text-xs border ${
+                          st.status === 'active' ? 'bg-green-500 text-slate-900 border-green-400' : 'bg-red-900/40 text-red-500 border-red-800'
+                        }`}>
+                          {st.sbd}
+                        </div>
+                        <div className="flex-1 min-w-0 overflow-hidden">
+                          <p className="font-bold truncate text-sm uppercase tracking-tighter text-white">{firstName}</p>
+                        </div>
+                        {st.status === 'active' && st.hasAnswered && phase !== 'idle' && (
+                          <div className="w-1.5 h-1.5 shrink-0 rounded-full bg-yellow-400"></div>
+                        )}
+                      </motion.div>
+                    );
+                  }) : (
                     <div className="p-4 text-center text-slate-500 italic text-sm">Chưa có thí sinh</div>
                   )}
                 </div>
