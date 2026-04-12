@@ -247,7 +247,18 @@ export default function Stage() {
        });
     });
 
-    socket.on('camera:status_update', (data) => {
+    });
+
+    return () => {
+      socket.off('game_state_update');
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      cancelAllTicks();
+    };
+  }, [isAudioEnabled]);
+
+  // --- DEDICATED CAMERA LISTENERS (Independent of Audio) ---
+  useEffect(() => {
+    const handleStatus = (data) => {
       setIsCameraActive(data.active);
       if (!data.active) {
         setRemoteStream(null);
@@ -257,46 +268,51 @@ export default function Stage() {
           pcRef.current = null;
         }
       }
-    });
+    };
 
-    socket.on('camera:frame_from_admin', (data) => {
+    const handleFrame = (data) => {
       setLastFrame(data);
-    });
+    };
 
-    socket.on('camera:signal_from_admin', async (data) => {
-      if (!pcRef.current) {
-        const pc = new RTCPeerConnection({
-          iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-        });
-        pcRef.current = pc;
-        pc.ontrack = (event) => {
-          setRemoteStream(event.streams[0]);
-        };
-        pc.onicecandidate = (event) => {
-          if (event.candidate) {
-            socket.emit('stage:camera_signal', { candidate: event.candidate });
-          }
-        };
+    const handleSignal = async (data) => {
+      try {
+        if (!pcRef.current) {
+          const pc = new RTCPeerConnection({
+            iceServers: [
+              { urls: 'stun:stun.l.google.com:19302' },
+              { urls: 'stun:stun1.l.google.com:19302' }
+            ]
+          });
+          pcRef.current = pc;
+          pc.ontrack = (event) => setRemoteStream(event.streams[0]);
+          pc.onicecandidate = (event) => {
+            if (event.candidate) socket.emit('stage:camera_signal', { candidate: event.candidate });
+          };
+        }
+
+        if (data.sdp) {
+          await pcRef.current.setRemoteDescription(new RTCSessionDescription(data.sdp));
+          const answer = await pcRef.current.createAnswer();
+          await pcRef.current.setLocalDescription(answer);
+          socket.emit('stage:camera_signal', { sdp: answer });
+        } else if (data.candidate) {
+          await pcRef.current.addIceCandidate(new RTCIceCandidate(data.candidate));
+        }
+      } catch (err) {
+        console.error("WebRTC Error:", err);
       }
-      if (data.sdp) {
-        await pcRef.current.setRemoteDescription(new RTCSessionDescription(data.sdp));
-        const answer = await pcRef.current.createAnswer();
-        await pcRef.current.setLocalDescription(answer);
-        socket.emit('stage:camera_signal', { sdp: answer });
-      } else if (data.candidate) {
-        await pcRef.current.addIceCandidate(new RTCIceCandidate(data.candidate));
-      }
-    });
+    };
+
+    socket.on('camera:status_update', handleStatus);
+    socket.on('camera:frame_from_admin', handleFrame);
+    socket.on('camera:signal_from_admin', handleSignal);
 
     return () => {
-      socket.off('game_state_update');
-      socket.off('camera:status_update');
-      socket.off('camera:frame_from_admin');
-      socket.off('camera:signal_from_admin');
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      cancelAllTicks();
+      socket.off('camera:status_update', handleStatus);
+      socket.off('camera:frame_from_admin', handleFrame);
+      socket.off('camera:signal_from_admin', handleSignal);
     };
-  }, [isAudioEnabled]);
+  }, []);
 
   useEffect(() => {
     if (isCameraActive && remoteVideoRef.current && remoteStream) {
