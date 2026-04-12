@@ -575,18 +575,18 @@ export default function Stage() {
              
               {/* Danh sách thí sinh dạng lưới 6 cột (Chỉ hiện SBD) */}
               <div className="flex-1 overflow-y-auto pr-0.5 custom-scrollbar">
-                <div className="grid grid-cols-5 gap-1.5 content-start font-sans">
+                <div className="grid grid-cols-6 gap-1 content-start font-sans">
                   {studentsList.length > 0 ? studentsList.map((st, i) => (
                     <motion.div
                       key={st.sbd}
                       initial={{ scale: 0.5, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
                       transition={{ delay: i * 0.002 }}
-                      className={`aspect-square rounded-md flex items-center justify-center font-black text-[22px] md:text-[28px] border-2 transition-all duration-500 ${
+                      className={`aspect-square rounded-md flex items-center justify-center font-black text-[18px] md:text-[22px] border-2 transition-all duration-500 ${
                         st.status === 'active' 
                           ? 'bg-green-500 text-slate-900 border-green-400 shadow-[0_4px_10px_rgba(34,197,94,0.3)]' 
                           : 'bg-red-900/40 text-red-500 border-red-800 opacity-40 shadow-none'
-                      } ${phase === 'locked' && st.status==='active' && st.hasAnswered ? 'ring-4 ring-yellow-400 scale-110 z-10' : ''}`}
+                      } ${phase === 'locked' && st.status==='active' && st.hasAnswered ? 'ring-2 ring-yellow-400 scale-110 z-10' : ''}`}
                     >
                       {st.sbd}
                       {st.status === 'active' && st.hasAnswered && phase !== 'idle' && (
