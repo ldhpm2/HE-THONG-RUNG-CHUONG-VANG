@@ -89,7 +89,6 @@ export default function Client() {
 
   const handleSelectAnswer = (ans) => {
     if (gameState.phase !== 'timer_running' && gameState.phase !== 'question_sent') return;
-    if (submitted) return;
     
     socket.emit('student:submit_answer', { answer: ans }, (res) => {
         if (res.success) {
@@ -103,7 +102,7 @@ export default function Client() {
 
   const handleSubmitText = (e) => {
     e.preventDefault();
-    if (gameState.phase !== 'timer_running' || submitted || !localAnswer) return;
+    if (gameState.phase !== 'timer_running' || !localAnswer) return;
     socket.emit('student:submit_answer', { answer: localAnswer }, (res) => {
         if (res.success) setSubmitted(true);
     });
