@@ -45,6 +45,8 @@ export default function Admin() {
   const localStreamRef = useRef(null);
   const pcRef = useRef(null);
   const localVideoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const frameIntervalRef = useRef(null);
 
   useEffect(() => {
     const handleConnect = () => {
@@ -104,6 +106,10 @@ export default function Admin() {
       pcRef.current.close();
       pcRef.current = null;
     }
+    if (frameIntervalRef.current) {
+      clearInterval(frameIntervalRef.current);
+      frameIntervalRef.current = null;
+    }
     setIsCameraActive(false);
     socket.emit('admin:camera_status', { active: false });
   };
@@ -139,6 +145,22 @@ export default function Admin() {
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
       socket.emit('admin:camera_signal', { sdp: offer });
+
+      // Start Frame Relay (Fallback for non-secure contexts)
+      frameIntervalRef.current = setInterval(() => {
+        if (localVideoRef.current && canvasRef.current) {
+          const canvas = canvasRef.current;
+          const video = localVideoRef.current;
+          if (video.videoWidth > 0) {
+            canvas.width = 320; // Low res for bandwidth
+            canvas.height = (video.videoHeight / video.videoWidth) * 320;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const data = canvas.toDataURL('image/webp', 0.5); // WebP 50% quality
+            socket.emit('admin:camera_frame', data);
+          }
+        }
+      }, 100); // 10 FPS
 
     } catch (err) {
       alert('Không thể mở camera: ' + err.message);
@@ -657,6 +679,7 @@ export default function Admin() {
                     <span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span> Live Camera Preview
                  </p>
                  <video ref={localVideoRef} autoPlay muted playsInline className="w-full h-40 object-cover rounded" />
+                 <canvas ref={canvasRef} className="hidden" />
               </div>
            )}
                       <div className="mt-6 border-t border-slate-700 pt-6 space-y-3">

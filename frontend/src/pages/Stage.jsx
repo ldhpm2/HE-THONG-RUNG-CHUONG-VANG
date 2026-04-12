@@ -17,6 +17,7 @@ export default function Stage() {
 
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [remoteStream, setRemoteStream] = useState(null);
+  const [lastFrame, setLastFrame] = useState(null);
   const pcRef = useRef(null);
   const remoteVideoRef = useRef(null);
 
@@ -250,11 +251,16 @@ export default function Stage() {
       setIsCameraActive(data.active);
       if (!data.active) {
         setRemoteStream(null);
+        setLastFrame(null);
         if (pcRef.current) {
           pcRef.current.close();
           pcRef.current = null;
         }
       }
+    });
+
+    socket.on('camera:frame_from_admin', (data) => {
+      setLastFrame(data);
     });
 
     socket.on('camera:signal_from_admin', async (data) => {
@@ -285,6 +291,7 @@ export default function Stage() {
     return () => {
       socket.off('game_state_update');
       socket.off('camera:status_update');
+      socket.off('camera:frame_from_admin');
       socket.off('camera:signal_from_admin');
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       cancelAllTicks();
@@ -601,13 +608,21 @@ export default function Stage() {
             exit={{ opacity: 0, scale: 0.9 }}
             className="fixed inset-0 z-[200] bg-black flex items-center justify-center"
           >
-             <video 
-               ref={remoteVideoRef} 
-               autoPlay 
-               muted
-               playsInline 
-               className="w-full h-full object-contain"
-             />
+             {remoteStream ? (
+               <video 
+                 ref={remoteVideoRef} 
+                 autoPlay 
+                 muted
+                 playsInline 
+                 className="w-full h-full object-contain"
+               />
+             ) : (
+               <img 
+                 src={lastFrame} 
+                 alt="Admin Live Feed" 
+                 className="w-full h-full object-contain" 
+               />
+             )}
              <div className="absolute top-8 left-8 flex items-center gap-4 bg-red-600 px-6 py-2 rounded-full shadow-2xl animate-pulse">
                 <Camera className="text-white" size={24}/>
                 <span className="text-white font-black uppercase tracking-widest text-xl">TRỰC TIẾP TỪ BAN TỔ CHỨC</span>

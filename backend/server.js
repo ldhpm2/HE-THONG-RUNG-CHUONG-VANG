@@ -269,6 +269,11 @@ io.on('connection', (socket) => {
     io.emit('camera:status_update', data);
   });
 
+  socket.on('admin:camera_frame', (data) => {
+    if (socket.id !== adminSocketId) return;
+    socket.broadcast.emit('camera:frame_from_admin', data);
+  });
+
   // --- CLIENT EVENTS ---
   socket.on('student:login', (data, callback) => {
     const { sbd, pin } = data;
