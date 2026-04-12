@@ -4,8 +4,7 @@ import { parseExcelStudentList, parseExcelQuestions } from '../utils/excelParser
 import { parseWordQuestions } from '../utils/wordParser';
 import { Upload, Play, Square, Presentation, Eye, UserX, Activity, HeartHandshake, Trash2, XCircle } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
-import { BlockMath, InlineMath } from 'react-katex';
-import 'katex/dist/katex.min.css';
+import { MathJax } from 'better-react-mathjax';
 
 export default function Admin() {
   const [isAdminLogged, setIsAdminLogged] = useState(false);
@@ -171,25 +170,22 @@ export default function Admin() {
 
     // Khôi phục các ký tự thoát bị trình duyệt hiểu nhầm (VD: \v trong \vec, \f trong \forall)
     const restoreLatex = (str) => {
+      if (typeof str !== 'string') return str;
       return str.replace(/\f/g, '\\f').replace(/\v/g, '\\v');
     };
 
-    // Tự động nhận diện công thức: Nếu có dấu \ (lệnh LaTeX) nhưng thiếu dấu $, tự động bao quanh $
-    let processedText = text;
-    if (!text.includes('$') && text.includes('\\')) {
-       processedText = `$${text}$`;
+    let processedText = restoreLatex(text);
+
+    // Tự động nhận diện công thức: Nếu có dấu \ nhưng thiếu dấu $, tự động bao quanh $
+    if (!processedText.includes('$') && processedText.includes('\\')) {
+       processedText = `$${processedText}$`;
     }
 
-    const parts = processedText.split(/(\$\$[\s\S]*?\$\$|\$[\s\S]*?\$)/g);
-    return parts.map((part, index) => {
-      if (part.startsWith('$$') && part.endsWith('$$')) {
-        return <BlockMath key={index} math={restoreLatex(part.slice(2, -2))} throwOnError={false} errorColor="#ef4444" />;
-      } else if (part.startsWith('$') && part.endsWith('$')) {
-        return <InlineMath key={index} math={restoreLatex(part.slice(1, -1))} throwOnError={false} errorColor="#ef4444" />;
-      } else {
-        return <span key={index}>{part}</span>;
-      }
-    });
+    return (
+      <MathJax dynamic>
+        <span className="whitespace-pre-wrap">{processedText}</span>
+      </MathJax>
+    );
   };
 
   if (!isAdminLogged) {

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { socket } from '../socket';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BlockMath, InlineMath } from 'react-katex';
+import { MathJax } from 'better-react-mathjax';
 import { QRCodeSVG } from 'qrcode.react';
-import 'katex/dist/katex.min.css';
+
 
 export default function Stage() {
   const [gameState, setGameState] = useState({
@@ -50,37 +50,22 @@ export default function Stage() {
     
     // Khôi phục các ký tự thoát bị trình duyệt hiểu nhầm (VD: \v trong \vec, \f trong \forall)
     const restoreLatex = (str) => {
+      if (typeof str !== 'string') return str;
       return str.replace(/\f/g, '\\f').replace(/\v/g, '\\v');
     };
 
-    // Tự động nhận diện công thức: Nếu có dấu \ (lệnh LaTeX) nhưng thiếu dấu $, tự động bao quanh $
-    let processedText = text;
-    if (!text.includes('$') && text.includes('\\')) {
-       processedText = `$${text}$`;
+    let processedText = restoreLatex(text);
+
+    // Tự động nhận diện công thức: Nếu có dấu \ nhưng thiếu dấu $, tự động bao quanh $
+    if (!processedText.includes('$') && processedText.includes('\\')) {
+       processedText = `$${processedText}$`;
     }
 
-    const parts = processedText.split(/(\$\$[\s\S]*?\$\$|\$[\s\S]*?\$)/g);
-    return parts.map((part, index) => {
-      if (part.startsWith('$$') && part.endsWith('$$')) {
-        return <BlockMath key={index} math={restoreLatex(part.slice(2, -2))} throwOnError={false} errorColor="#ef4444" />;
-      } else if (part.startsWith('$') && part.endsWith('$')) {
-        return <InlineMath key={index} math={restoreLatex(part.slice(1, -1))} throwOnError={false} errorColor="#ef4444" />;
-      } else {
-        // Tô màu đỏ cho chữ "Câu X." ở đầu câu hỏi
-        if (index === 0) {
-           const match = part.match(/^(Câu\s+\d+[\.\:]\s*)([\s\S]*)$/i);
-           if (match) {
-              return (
-                 <span key={index}>
-                    <span className="text-red-500 font-black">{match[1]}</span>
-                    <span>{match[2]}</span>
-                 </span>
-              );
-           }
-        }
-        return <span key={index}>{part}</span>;
-      }
-    });
+    return (
+      <MathJax dynamic>
+        <span className="whitespace-pre-wrap">{processedText}</span>
+      </MathJax>
+    );
   };
 
   // Tính toán kích thước chữ nội dung câu hỏi (Sử dụng clamp để tự động thích ứng)
