@@ -28,7 +28,7 @@ export default function Admin() {
     correct: 'A',
     mediaType: 'none', // none, image, video, audio
     mediaUrl: '',
-    time: 15
+    time: 30
   });
 
   useEffect(() => {
@@ -112,7 +112,7 @@ export default function Admin() {
       correct: 'A',
       mediaType: 'none',
       mediaUrl: '',
-      time: 15
+      time: 30
     });
   };
 
@@ -338,15 +338,15 @@ export default function Admin() {
                        <button onClick={() => {
                           const fullQ = {...q, options: ['A','B','C','D']};
                           setQuestionDraft(fullQ);
-                       }} className="text-sm font-semibold bg-slate-700 hover:bg-slate-600 text-white py-2 px-3 rounded-lg flex-[0.8]">
-                          Sửa
+                          socket.emit('admin:push_question', { question: fullQ, isRescue: false });
+                       }} className="text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white py-2 px-2 rounded-lg flex-[1.5] flex items-center justify-center shadow-md whitespace-nowrap">
+                          <Presentation className="w-3 h-3 mr-1"/> Chiếu Luôn
                        </button>
                        <button onClick={() => {
-                          if (window.confirm(`Xóa Câu ${q.id} khỏi danh sách?`)) {
-                             setQuestionsList(prev => prev.filter((_, idx) => idx !== i));
-                          }
-                       }} className="text-sm font-semibold bg-red-900/50 hover:bg-red-800 text-red-200 py-2 px-3 rounded-lg border border-red-800 flex items-center justify-center">
-                          <Trash2 className="w-4 h-4"/>
+                          const fullQ = {...q, options: ['A','B','C','D']};
+                          setQuestionDraft(fullQ);
+                       }} className="text-sm font-semibold bg-slate-700 hover:bg-slate-600 text-white py-2 px-3 rounded-lg flex-[0.8]">
+                          Sửa
                        </button>
                        <button onClick={() => {
                           const fullQ = {...q, options: ['A','B','C','D']};
@@ -363,11 +363,11 @@ export default function Admin() {
                           Cho Khán Giả
                        </button>
                        <button onClick={() => {
-                          const fullQ = {...q, options: ['A','B','C','D']};
-                          setQuestionDraft(fullQ);
-                          socket.emit('admin:push_question', { question: fullQ, isRescue: false });
-                       }} className="text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white py-2 px-2 rounded-lg flex-[1.2] flex items-center justify-center shadow-md whitespace-nowrap">
-                          <Presentation className="w-3 h-3 mr-1"/> Chiếu Luôn
+                          if (window.confirm(`Xóa Câu ${q.id} khỏi danh sách?`)) {
+                             setQuestionsList(prev => prev.filter((_, idx) => idx !== i));
+                          }
+                       }} className="text-sm font-semibold bg-red-900/50 hover:bg-red-800 text-red-200 py-2 px-3 rounded-lg border border-red-800 flex items-center justify-center">
+                          <Trash2 className="w-4 h-4"/>
                        </button>
                     </div>
                  </div>
