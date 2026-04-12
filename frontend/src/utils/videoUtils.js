@@ -25,7 +25,7 @@ export const isYouTubeURL = (url) => {
  * @param {Object} options - Playback options (autoplay, mute, loop).
  * @returns {string|null} - The embed URL or null.
  */
-export const getYouTubeEmbedURL = (url, { autoplay = 1, mute = 0, loop = 1 } = {}) => {
+export const getYouTubeEmbedURL = (url, { autoplay = 1, mute = 1, loop = 1 } = {}) => {
   const videoId = getYouTubeID(url);
   if (!videoId) return null;
   
