@@ -122,6 +122,16 @@ export default function Admin() {
       } else {
         questions = await parseExcelQuestions(file);
       }
+      
+      // Post-process: Auto-detect media types
+      questions = questions.map(q => {
+        const currentQuestion = { ...q };
+        if (isYouTubeURL(currentQuestion.mediaUrl)) {
+          currentQuestion.mediaType = 'video';
+        }
+        return currentQuestion;
+      });
+
       if (questions.length === 0) return alert('File không có dữ liệu câu hỏi hợp lệ');
       setQuestionsList(questions);
       if (questions.length > 0) {
@@ -454,12 +464,8 @@ export default function Admin() {
                   />
                 </div>
                 {questionDraft.mediaType === 'video' && isYouTubeURL(questionDraft.mediaUrl) && (
-                  <div className="mt-2 aspect-video w-full rounded-lg overflow-hidden border border-slate-700 bg-black">
-                    <iframe 
-                      src={getYouTubeEmbedURL(questionDraft.mediaUrl, { autoplay: 0 })} 
-                      className="w-full h-full" 
-                      title="YouTube preview"
-                    />
+                  <div className="mt-2 p-2 bg-slate-900/50 rounded border border-slate-700 text-xs text-yellow-500 font-mono break-all italic">
+                    YT detected: {questionDraft.mediaUrl}
                   </div>
                 )}
               </div>

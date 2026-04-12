@@ -433,7 +433,6 @@ export default function Stage() {
                            {/* 2. Media Renderer - Flexible and Shrinkable */}
                            {question.mediaType !== 'none' && question.mediaUrl && (
                               <div className="flex-1 min-h-0 w-full mb-4 rounded-2xl overflow-hidden border border-slate-700 bg-black/40 flex items-center justify-center relative">
-                                 {question.mediaType === 'image' && <img src={question.mediaUrl} alt="media" className="max-h-full max-w-full object-contain shadow-2xl" />}
                                  {question.mediaType === 'video' && (
                                     isYouTubeURL(question.mediaUrl) ? (
                                       <iframe 
@@ -447,6 +446,7 @@ export default function Stage() {
                                       <video src={question.mediaUrl} autoPlay loop muted playsInline className="max-h-full max-w-full object-contain" />
                                     )
                                  )}
+                                 {question.mediaType === 'image' && <img src={question.mediaUrl} alt="media" className="max-h-full max-w-full object-contain shadow-2xl" />}
                                  {question.mediaType === 'audio' && (
                                    <div className="flex flex-col items-center gap-4">
                                      <div className="p-8 bg-slate-900 rounded-full border-4 border-slate-700 animate-pulse">

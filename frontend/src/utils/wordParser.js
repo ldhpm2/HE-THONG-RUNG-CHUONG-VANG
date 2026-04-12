@@ -1,4 +1,5 @@
 import mammoth from 'mammoth';
+import { isYouTubeURL } from './videoUtils';
 
 // Hàm làm sạch chuỗi: xử lý các ký tự điều khiển ẩn và ký tự thoát lỗi khi copy-paste
 const sanitizeString = (str) => {
@@ -79,6 +80,11 @@ export const parseWordQuestions = async (file) => {
              if (foundImg && currentQuestion.mediaType === 'none') {
                 currentQuestion.mediaUrl = foundImg;
                 currentQuestion.mediaType = 'image';
+             }
+             
+             // Tự động nhận diện YouTube
+             if (isYouTubeURL(currentQuestion.mediaUrl)) {
+                currentQuestion.mediaType = 'video';
              }
 
              const optionMatch = text.match(/^([A-D])[\.\:]\s*(.*)/i);

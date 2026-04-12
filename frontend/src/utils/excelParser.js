@@ -1,4 +1,5 @@
 import * as XLSX from 'xlsx';
+import { isYouTubeURL } from './videoUtils';
 
 // Hàm làm sạch chuỗi: xử lý các ký tự điều khiển ẩn và ký tự thoát lỗi khi copy-paste
 const sanitizeString = (str) => {
@@ -70,7 +71,7 @@ export const parseExcelQuestions = (file) => {
           if (type.includes('trắc nghiệm')) type = 'mcq';
           if (type.includes('tự luận')) type = 'short';
 
-          return {
+          const res = {
             id: index + 1,
             type: type,
             content: sanitizeString(nRow['CÂU HỎI'] || nRow['NỘI DUNG'] || nRow['NỘI DUNG CÂU HỎI'] || nRow['QUESTION'] || ''),
@@ -83,6 +84,12 @@ export const parseExcelQuestions = (file) => {
             mediaType: (nRow['LOẠI MEDIA'] || nRow['MEDIA TYPE'] || 'none').toString().toLowerCase().trim(),
             mediaUrl: sanitizeString(nRow['URL MEDIA'] || nRow['LINK MEDIA'] || '')
           };
+          
+          if (isYouTubeURL(res.mediaUrl)) {
+             res.mediaType = 'video';
+          }
+          
+          return res;
         }).filter(q => q.content !== ''); 
 
         resolve(questions);
