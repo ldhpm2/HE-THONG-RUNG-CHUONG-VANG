@@ -375,7 +375,7 @@ export default function Stage() {
               transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
             />
             <h1 className="text-2xl md:text-3xl lg:text-5xl font-black italic tracking-tighter uppercase text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 via-yellow-400 to-yellow-600 drop-shadow-[0_2px_15px_rgba(250,204,21,0.5)]">
-              RUNG CHUÔNG VÀNG
+              RUNG CHUÔNG VÀNG <span className="text-[10px] opacity-20">v6</span>
             </h1>
             <motion.img 
               src={logoBell} 
