@@ -333,6 +333,6 @@ const distPath = path.join(__dirname, '../frontend/dist');
 app.use(express.static(distPath));
 
 // Xử lý tất cả các route khác (Admin, Stage, Client) và trả về index.html
-app.get('*', (req, res) => {
+app.get('/*path', (req, res) => {
   res.sendFile(path.join(distPath, 'index.html'));
 });
