@@ -17,10 +17,10 @@ export default function Stage() {
   const [timeLeft, setTimeLeft] = useState(0);
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
 
-  // Audio Refs
-  const tickTockRef = useRef(new Audio('https://raw.githubusercontent.com/Anshul-Vashist/Quiz-Sound-Effects/main/15_second_timer.mp3'));
-  const gongRef = useRef(new Audio('https://raw.githubusercontent.com/Anshul-Vashist/Quiz-Sound-Effects/main/gong.mp3'));
-  const correctRef = useRef(new Audio('https://raw.githubusercontent.com/Anshul-Vashist/Quiz-Sound-Effects/main/correct_answer.mp3'));
+  // Audio Refs - initialized lazily to avoid crashes
+  const tickTockRef = useRef(null);
+  const gongRef = useRef(null);
+  const correctRef = useRef(null);
 
   useEffect(() => {
     socket.on('game_state_update', (data) => {
@@ -54,24 +54,44 @@ export default function Stage() {
   useEffect(() => {
     if (!isAudioEnabled) return;
 
+    const { phase, timeLeft: tl } = { phase: gameState.phase, timeLeft };
+
+    // Init audio objects on first use (lazy, safe)
+    if (!tickTockRef.current) {
+      try {
+        tickTockRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3');
+        gongRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2580/2580-preview.mp3');
+        correctRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2020/2020-preview.mp3');
+      } catch(e) {
+        console.log('Audio init error:', e);
+        return;
+      }
+    }
+
     if (phase === 'timer_running') {
-      tickTockRef.current.currentTime = 0;
-      tickTockRef.current.loop = true;
-      tickTockRef.current.play().catch(e => console.log('Audio error:', e));
+      if (tickTockRef.current) {
+        tickTockRef.current.currentTime = 0;
+        tickTockRef.current.loop = true;
+        tickTockRef.current.play().catch(e => console.log('Tick audio error:', e));
+      }
     } else {
-      tickTockRef.current.pause();
+      if (tickTockRef.current) tickTockRef.current.pause();
     }
 
     if (phase === 'timer_running' && timeLeft === 0) {
-      gongRef.current.currentTime = 0;
-      gongRef.current.play().catch(e => console.log('Audio error:', e));
+      if (gongRef.current) {
+        gongRef.current.currentTime = 0;
+        gongRef.current.play().catch(e => console.log('Gong audio error:', e));
+      }
     }
 
     if (phase === 'answer_revealed') {
-      correctRef.current.currentTime = 0;
-      correctRef.current.play().catch(e => console.log('Audio error:', e));
+      if (correctRef.current) {
+        correctRef.current.currentTime = 0;
+        correctRef.current.play().catch(e => console.log('Correct audio error:', e));
+      }
     }
-  }, [phase, timeLeft, isAudioEnabled]);
+  }, [gameState.phase, timeLeft, isAudioEnabled]);
 
   const studentsList = Object.values(gameState.students).sort((a,b) => String(a.sbd).localeCompare(String(b.sbd)));
   const { phase, question } = gameState;
