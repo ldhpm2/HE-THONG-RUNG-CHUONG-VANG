@@ -346,21 +346,21 @@ export default function Stage() {
     );
   };
 
-  // Tính toán kích thước chữ nội dung câu hỏi (Sử dụng clamp để tự động thích ứng)
+  // Tính toán kích thước chữ nội dung câu hỏi (Sử dụng clamp để tự động thích ứng - Đã tăng size)
   const getDynamicFontSize = (textLength) => {
-    if (!textLength) return 'text-[clamp(1.5rem,4vh,3.5rem)]';
-    if (textLength <= 150) return 'text-[clamp(1.2rem,4.5vh,3.8rem)] leading-[1.1]';
-    if (textLength <= 300) return 'text-[clamp(1.1rem,3.8vh,3rem)] leading-[1.2]';
-    if (textLength <= 500) return 'text-[clamp(1rem,3.2vh,2.2rem)] leading-snug';
-    return 'text-[clamp(0.8rem,2.5vh,1.8rem)] leading-snug';
+    if (!textLength) return 'text-[clamp(1.8rem,5vh,4rem)]';
+    if (textLength <= 150) return 'text-[clamp(1.5rem,5.5vh,4.2rem)] leading-[1.1] font-black';
+    if (textLength <= 300) return 'text-[clamp(1.3rem,4.5vh,3.5rem)] leading-[1.2] font-extrabold';
+    if (textLength <= 500) return 'text-[clamp(1.2rem,3.8vh,2.8rem)] leading-snug';
+    return 'text-[clamp(1rem,3vh,2.2rem)] leading-snug';
   };
 
-  // Tính toán kích thước chữ phương án
+  // Tính toán kích thước chữ phương án (Đã tăng size)
   const getDynamicOptionSize = (textLength) => {
-    if (!textLength) return 'text-[clamp(0.8rem,2.5vh,1.8rem)]';
-    if (textLength <= 40) return 'text-[clamp(1rem,3.2vh,2.2rem)] leading-tight';
-    if (textLength <= 90) return 'text-[clamp(0.9rem,2.8vh,1.6rem)] leading-snug';
-    return 'text-[clamp(0.7rem,2.2vh,1.3rem)] leading-snug';
+    if (!textLength) return 'text-[clamp(1rem,3vh,2rem)]';
+    if (textLength <= 40) return 'text-[clamp(1.5rem,4vh,2.8rem)] leading-tight font-bold';
+    if (textLength <= 90) return 'text-[clamp(1.2rem,3.5vh,2.2rem)] leading-snug';
+    return 'text-[clamp(1rem,2.8vh,1.8rem)] leading-snug';
   };
 
   return (
@@ -473,12 +473,12 @@ export default function Stage() {
                        {/* Status Badge (Top Left Corner Inside) */}
                        <div className="absolute top-4 left-6 z-30">
                           {question?.isRescue && (
-                            <div className="bg-purple-600 text-white px-5 py-1.5 rounded-full font-bold shadow-lg border-2 border-purple-400 animate-pulse uppercase tracking-widest text-lg">
+                            <div className="bg-purple-600 text-white px-6 py-2 rounded-full font-black shadow-lg border-2 border-purple-400 animate-pulse uppercase tracking-widest text-xl">
                               Vòng Cứu Trợ
                             </div>
                           )}
                           {question?.isAudience && (
-                            <div className="bg-orange-600 text-white px-5 py-1.5 rounded-full font-bold shadow-lg border-2 border-orange-400 animate-bounce uppercase tracking-widest text-lg">
+                            <div className="bg-orange-600 text-white px-6 py-2 rounded-full font-black shadow-lg border-2 border-orange-400 animate-bounce uppercase tracking-widest text-xl">
                               Câu Hỏi Khán Giả
                             </div>
                           )}
@@ -542,7 +542,7 @@ export default function Stage() {
                                         'bg-slate-700/50 border-slate-600 text-slate-300'
                                       }`}
                                    >
-                                      <span className="text-3xl text-yellow-500 font-black leading-none">{opt}</span>
+                                      <span className="text-5xl md:text-6xl text-yellow-500 font-black leading-none mb-1">{opt}</span>
                                       {question[`option${opt}`] && (
                                         <span className={`mt-0.5 text-center text-white whitespace-pre-wrap ${getDynamicOptionSize(question[`option${opt}`]?.length)}`}>
                                           {renderMixedText(question[`option${opt}`])}
@@ -577,18 +577,18 @@ export default function Stage() {
              
               {/* Danh sách thí sinh dạng lưới 6 cột (Chỉ hiện SBD) */}
               <div className="flex-1 overflow-y-auto pr-0.5 custom-scrollbar">
-                <div className="grid grid-cols-6 gap-1 content-start font-sans">
+                <div className="grid grid-cols-5 gap-1.5 content-start font-sans">
                   {studentsList.length > 0 ? studentsList.map((st, i) => (
                     <motion.div
                       key={st.sbd}
                       initial={{ scale: 0.5, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
                       transition={{ delay: i * 0.002 }}
-                      className={`aspect-square rounded-md flex items-center justify-center font-black text-[18px] md:text-[22px] border-2 transition-all duration-500 ${
+                      className={`aspect-square rounded-md flex items-center justify-center font-black text-[22px] md:text-[28px] border-2 transition-all duration-500 ${
                         st.status === 'active' 
                           ? 'bg-green-500 text-slate-900 border-green-400 shadow-[0_4px_10px_rgba(34,197,94,0.3)]' 
                           : 'bg-red-900/40 text-red-500 border-red-800 opacity-40 shadow-none'
-                      } ${phase === 'locked' && st.status==='active' && st.hasAnswered ? 'ring-2 ring-yellow-400 scale-110 z-10' : ''}`}
+                      } ${phase === 'locked' && st.status==='active' && st.hasAnswered ? 'ring-4 ring-yellow-400 scale-110 z-10' : ''}`}
                     >
                       {st.sbd}
                       {st.status === 'active' && st.hasAnswered && phase !== 'idle' && (
