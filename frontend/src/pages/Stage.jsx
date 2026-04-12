@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { socket } from '../socket';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MathJax } from 'better-react-mathjax';
+import logoBell from '../assets/logo_bell.png';
 import { QRCodeSVG } from 'qrcode.react';
 
 
@@ -98,13 +99,36 @@ export default function Stage() {
           RUNG CHUÔNG VÀNG
         </motion.h1>
       </div>
-
       <div className="flex-1 flex flex-row p-4 pt-16 gap-6 relative overflow-hidden">
           
           {/* MAIN STAGE (LEFT PANEL - 3/4) */}
           <div className="w-3/4 flex flex-col items-center justify-center relative min-h-0">
              <AnimatePresence mode="wait">
-                 {phase === 'idle' ? (
+      {/* MAIN HEADER */}
+      <header className="absolute top-0 left-0 w-full flex items-center justify-center py-4 bg-slate-900/80 shadow-[0_4px_30px_rgba(0,0,0,0.5)] border-b border-slate-800 z-50 backdrop-blur-md">
+         <div className="flex items-center gap-6">
+            <motion.img 
+              src={logoBell} 
+              alt="Logo Chuông Vàng" 
+              className="w-16 h-16 drop-shadow-[0_0_15px_rgba(250,204,21,0.6)]"
+              animate={{ rotate: [0, -10, 10, -10, 10, 0] }}
+              transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+            />
+            <h1 className="text-4xl md:text-5xl font-black italic tracking-tighter uppercase text-transparent bg-clip-text bg-gradient-to-b from-yellow-100 via-yellow-400 to-yellow-600 drop-shadow-[0_2px_15px_rgba(250,204,21,0.4)]">
+              RUNG CHUÔNG VÀNG
+            </h1>
+            <motion.img 
+              src={logoBell} 
+              alt="Logo Chuông Vàng" 
+              className="w-16 h-16 drop-shadow-[0_0_15px_rgba(250,204,21,0.6)] hidden md:block"
+              animate={{ rotate: [0, 10, -10, 10, -10, 0] }}
+              transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+            />
+         </div>
+      </header>
+
+      {/* IDLE / WELCOME SCREEN */}
+      {phase === 'idle' ? (
                     <motion.div 
                       key="idle" 
                       initial={{ opacity: 0 }} 
