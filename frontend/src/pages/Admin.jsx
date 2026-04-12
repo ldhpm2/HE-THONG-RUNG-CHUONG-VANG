@@ -146,26 +146,41 @@ export default function Admin() {
       await pc.setLocalDescription(offer);
       socket.emit('admin:camera_signal', { sdp: offer });
 
-      // Start Frame Relay (Fallback for non-secure contexts)
+      await pc.setLocalDescription(offer);
+      socket.emit('admin:camera_signal', { sdp: offer });
+    } catch (err) {
+      alert('Không thể mở camera: ' + err.message);
+    }
+  };
+
+  // Dedicated Effect for Frame Relay to ensure refs are ready
+  useEffect(() => {
+    if (isCameraActive && localStreamRef.current) {
+      console.log("[Admin] Starting Frame Relay...");
       frameIntervalRef.current = setInterval(() => {
         if (localVideoRef.current && canvasRef.current) {
           const canvas = canvasRef.current;
           const video = localVideoRef.current;
           if (video.videoWidth > 0) {
-            canvas.width = 320; // Low res for bandwidth
-            canvas.height = (video.videoHeight / video.videoWidth) * 320;
+            canvas.width = 300; 
+            canvas.height = (video.videoHeight / video.videoWidth) * 300;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const data = canvas.toDataURL('image/webp', 0.5); // WebP 50% quality
+            const data = canvas.toDataURL('image/jpeg', 0.5); 
             socket.emit('admin:camera_frame', data);
           }
         }
-      }, 100); // 10 FPS
-
-    } catch (err) {
-      alert('Không thể mở camera: ' + err.message);
+      }, 200); // 5 FPS
+    } else {
+      if (frameIntervalRef.current) {
+        clearInterval(frameIntervalRef.current);
+        frameIntervalRef.current = null;
+      }
     }
-  };
+    return () => {
+      if (frameIntervalRef.current) clearInterval(frameIntervalRef.current);
+    };
+  }, [isCameraActive]);
 
   const toggleCamera = () => {
     if (isCameraActive) stopCamera();
