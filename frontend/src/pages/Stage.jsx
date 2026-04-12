@@ -639,13 +639,6 @@ export default function Stage() {
                  className="w-full h-full object-contain" 
                />
              )}
-
-             {/* DEBUG INFO - Dòng gỡ lỗi nhỏ ở góc dưới */}
-             <div className="absolute bottom-6 left-8 text-[10px] text-white/40 font-mono z-[210] flex gap-4 bg-black/20 px-2 py-1 rounded">
-                <span>Cam: {isCameraActive ? 'ON' : 'OFF'}</span>
-                <span>Video: {remoteStream ? 'WAITING' : 'OFF'}</span>
-                <span>Frame: {lastFrame ? 'RECIEVED' : 'NONE'}</span>
-             </div>
              
              <div className="absolute top-8 left-8 flex items-center gap-4 bg-red-600 px-6 py-2 rounded-full shadow-2xl animate-pulse">
                 <Camera className="text-white" size={24}/>

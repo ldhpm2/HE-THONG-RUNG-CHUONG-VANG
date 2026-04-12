@@ -153,7 +153,6 @@ export default function Admin() {
   // Dedicated Effect for Frame Relay to ensure refs are ready
   useEffect(() => {
     if (isCameraActive && localStreamRef.current) {
-      console.log("[Admin] Starting Frame Relay...");
       frameIntervalRef.current = setInterval(() => {
         if (localVideoRef.current && canvasRef.current) {
           const canvas = canvasRef.current;
