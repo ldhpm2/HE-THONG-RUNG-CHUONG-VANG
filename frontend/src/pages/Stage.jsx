@@ -5,6 +5,7 @@ import { MathJax } from 'better-react-mathjax';
 import logoBell from '../assets/logo_bell.png';
 import { QRCodeSVG } from 'qrcode.react';
 import { Volume2, VolumeX } from 'lucide-react';
+import { isYouTubeURL, getYouTubeEmbedURL } from '../utils/videoUtils';
 
 
 export default function Stage() {
@@ -433,8 +434,27 @@ export default function Stage() {
                            {question.mediaType !== 'none' && question.mediaUrl && (
                               <div className="flex-1 min-h-0 w-full mb-4 rounded-2xl overflow-hidden border border-slate-700 bg-black/40 flex items-center justify-center relative">
                                  {question.mediaType === 'image' && <img src={question.mediaUrl} alt="media" className="max-h-full max-w-full object-contain shadow-2xl" />}
-                                 {question.mediaType === 'video' && <video src={question.mediaUrl} autoPlay loop muted className="max-h-full max-w-full object-contain" />}
-                                 {question.mediaType === 'audio' && <div className="p-8 bg-slate-900 rounded-full border-4 border-slate-700 animate-pulse"><span className="text-4xl">🎵</span></div>}
+                                 {question.mediaType === 'video' && (
+                                    isYouTubeURL(question.mediaUrl) ? (
+                                      <iframe 
+                                        src={getYouTubeEmbedURL(question.mediaUrl)} 
+                                        className="w-full h-full border-0" 
+                                        allow="autoplay; encrypted-media; picture-in-picture" 
+                                        allowFullScreen
+                                        title="YouTube video"
+                                      />
+                                    ) : (
+                                      <video src={question.mediaUrl} autoPlay loop muted playsInline className="max-h-full max-w-full object-contain" />
+                                    )
+                                 )}
+                                 {question.mediaType === 'audio' && (
+                                   <div className="flex flex-col items-center gap-4">
+                                     <div className="p-8 bg-slate-900 rounded-full border-4 border-slate-700 animate-pulse">
+                                       <span className="text-6xl">🎵</span>
+                                     </div>
+                                     <audio src={question.mediaUrl} autoPlay controls className="opacity-50 hover:opacity-100 transition-opacity" />
+                                   </div>
+                                 )}
                               </div>
                            )}
  

@@ -5,6 +5,7 @@ import { parseWordQuestions } from '../utils/wordParser';
 import { Upload, Play, Square, Presentation, Eye, UserX, Activity, HeartHandshake, Trash2, XCircle, ChevronLeft, ChevronRight, Save, Plus, RotateCcw, FileDown } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { MathJax } from 'better-react-mathjax';
+import { isYouTubeURL, getYouTubeEmbedURL } from '../utils/videoUtils';
 
 export default function Admin() {
   const [isAdminLogged, setIsAdminLogged] = useState(() => localStorage.getItem('admin_logged') === 'true');
@@ -164,6 +165,15 @@ export default function Admin() {
     setQuestionsList(updatedList);
     setEditingIndex(null);
     alert(`Đã cập nhật Câu ${questionDraft.id} thành công!`);
+  };
+
+  const handleMediaUrlChange = (value) => {
+    let newDraft = { ...questionDraft, mediaUrl: value };
+    // Tự động nhận diện YouTube
+    if (isYouTubeURL(value)) {
+      newDraft.mediaType = 'video';
+    }
+    setQuestionDraft(newDraft);
   };
 
   const navQuestion = (dir) => {
@@ -434,9 +444,25 @@ export default function Admin() {
                    <option value="video">Video</option>
                    <option value="audio">Audio</option>
                  </select>
-                 <input type="text" value={questionDraft.mediaUrl} onChange={e => setQuestionDraft({...questionDraft, mediaUrl: e.target.value})} placeholder="URL của file media (tuỳ chọn)" className="w-2/3 bg-slate-900 border border-slate-700 p-2 rounded text-white" disabled={questionDraft.mediaType === 'none'}/>
-               </div>
-             </div>
+                  <input 
+                    type="text" 
+                    value={questionDraft.mediaUrl} 
+                    onChange={e => handleMediaUrlChange(e.target.value)} 
+                    placeholder="URL của file media hoặc YouTube link" 
+                    className="w-2/3 bg-slate-900 border border-slate-700 p-2 rounded text-white" 
+                    disabled={questionDraft.mediaType === 'none'}
+                  />
+                </div>
+                {questionDraft.mediaType === 'video' && isYouTubeURL(questionDraft.mediaUrl) && (
+                  <div className="mt-2 aspect-video w-full rounded-lg overflow-hidden border border-slate-700 bg-black">
+                    <iframe 
+                      src={getYouTubeEmbedURL(questionDraft.mediaUrl, { autoplay: 0 })} 
+                      className="w-full h-full" 
+                      title="YouTube preview"
+                    />
+                  </div>
+                )}
+              </div>
 
           </div>
         </div>
