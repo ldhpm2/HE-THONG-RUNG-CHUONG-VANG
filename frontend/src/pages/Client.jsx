@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { socket } from '../socket';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LogIn, Clock, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
+import { MathJax } from 'better-react-mathjax';
 
 
 export default function Client() {
@@ -106,6 +107,23 @@ export default function Client() {
     socket.emit('student:submit_answer', { answer: localAnswer }, (res) => {
         if (res.success) setSubmitted(true);
     });
+  };
+
+  const renderMixedText = (text) => {
+    if (!text) return null;
+    const restoreLatex = (str) => {
+      if (typeof str !== 'string') return str;
+      return str.replace(/\f/g, '\\f').replace(/\v/g, '\\v');
+    };
+    let processedText = restoreLatex(text);
+    if (!processedText.includes('$') && processedText.includes('\\')) {
+       processedText = `$${processedText}$`;
+    }
+    return (
+      <MathJax dynamic>
+        <span className="whitespace-pre-wrap">{processedText}</span>
+      </MathJax>
+    );
   };
 
   if (!isLogged) {
@@ -240,23 +258,40 @@ export default function Client() {
                  {gameState.phase === 'timer_running' && <motion.div initial={{ width: '100%' }} animate={{ width: '0%' }} transition={{ duration: gameState.question.time, ease: 'linear' }} className="h-full bg-yellow-500" />}
               </div>
               
-              <div className="text-center mb-6">
-                <span className={`inline-block px-4 py-1 rounded-full text-sm font-bold uppercase tracking-widest ${
-                  gameState.phase === 'timer_running' ? 'bg-yellow-500/20 text-yellow-500 animate-pulse' : 
-                  gameState.phase === 'locked' ? 'bg-red-500/20 text-red-400' :
-                  gameState.phase === 'answer_revealed' ? 'bg-green-500/20 text-green-400' :
-                  'bg-blue-500/20 text-blue-400'
-                }`}>
-                  {gameState.phase === 'question_sent' && (
-                    gameState.question?.isRescue ? 'Câu Cứu Trợ' : 
-                    gameState.question?.isAudience ? 'Câu Hỏi Khán Giả' : 
-                    'Đọc Câu Hỏi'
-                  )}
-                  {gameState.phase === 'timer_running' && 'Đang Làm Bài'}
-                  {gameState.phase === 'locked' && 'Hết Giờ!'}
-                  {gameState.phase === 'answer_revealed' && 'Kết Quả'}
-                </span>
-              </div>
+                <div className="text-center mb-4">
+                  <span className={`inline-block px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest ${
+                    gameState.phase === 'timer_running' ? 'bg-yellow-500/20 text-yellow-500 animate-pulse' : 
+                    gameState.phase === 'locked' ? 'bg-red-500/20 text-red-400' :
+                    gameState.phase === 'answer_revealed' ? 'bg-green-500/20 text-green-400' :
+                    'bg-blue-500/20 text-blue-400'
+                  }`}>
+                    {gameState.phase === 'question_sent' && (
+                      gameState.question?.isRescue ? 'Câu Cứu Trợ' : 
+                      gameState.question?.isAudience ? 'Câu Hỏi Khán Giả' : 
+                      'Đọc Câu Hỏi'
+                    )}
+                    {gameState.phase === 'timer_running' && 'Đang Làm Bài'}
+                    {gameState.phase === 'locked' && 'Hết Giờ!'}
+                    {gameState.phase === 'answer_revealed' && 'Kết Quả'}
+                  </span>
+                </div>
+
+                {/* Question Text Display for Student */}
+                <div className="bg-slate-900/50 rounded-xl p-4 mb-4 border border-slate-700 max-h-[40vh] overflow-y-auto">
+                   <div className="text-lg text-slate-100 font-medium leading-relaxed">
+                      {renderMixedText(gameState.question.content)}
+                   </div>
+                   {gameState.question.type === 'mcq' && (
+                     <div className="mt-4 grid grid-cols-1 gap-2 border-t border-slate-800 pt-4">
+                       {['A', 'B', 'C', 'D'].map(opt => gameState.question[`option${opt}`] && (
+                        <div key={opt} className="text-sm text-slate-400 flex gap-2">
+                          <span className="font-bold text-yellow-500">{opt}:</span>
+                          <span>{renderMixedText(gameState.question[`option${opt}`])}</span>
+                        </div>
+                       ))}
+                     </div>
+                   )}
+                </div>
 
                {/* Interaction Area */}
                <div className="mt-auto mb-auto">

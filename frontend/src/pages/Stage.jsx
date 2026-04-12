@@ -424,15 +424,15 @@ export default function Stage() {
                        </div>
 
                        {/* Question Content Wrapper - Perfectly fits the container */}
-                       <div className="flex-1 flex flex-col min-h-0 overflow-hidden mt-8">
+                       <div className="flex-1 flex flex-col items-center justify-center min-h-0 overflow-hidden">
                            {/* 1. Text Block - Keeps its size */}
-                           <div className={`font-semibold text-slate-100 flex-shrink-0 mb-4 whitespace-pre-wrap ${getDynamicFontSize(question.content?.length)}`}>
+                           <div className={`font-semibold text-slate-100 flex-shrink-0 whitespace-pre-wrap text-center mb-2 ${getDynamicFontSize(question.content?.length)}`}>
                               {renderMixedText(question.content)}
                            </div>
  
                            {/* 2. Media Renderer - Flexible and Shrinkable */}
                            {question.mediaType !== 'none' && question.mediaUrl && (
-                              <div className="flex-1 min-h-0 w-full mb-4 rounded-2xl overflow-hidden border border-slate-700 bg-black/40 flex items-center justify-center relative">
+                              <div className="flex-shrink-0 w-full my-6 rounded-2xl overflow-hidden border border-slate-700 bg-black/40 flex items-center justify-center relative min-h-[30vh] max-h-[50vh]">
                                  {question.mediaType === 'video' && (
                                     isYouTubeURL(question.mediaUrl) ? (
                                       <iframe 
@@ -460,7 +460,7 @@ export default function Stage() {
  
                            {/* 3. Answer Options - Fixed to bottom */}
                            {question.type === 'mcq' && (
-                             <div className="flex-shrink-0 mt-auto grid grid-cols-2 gap-3 pb-2">
+                             <div className="flex-shrink-0 grid grid-cols-2 gap-3 pb-2 transition-all duration-500">
                                 {['A', 'B', 'C', 'D'].map(opt => (
                                    <div 
                                       key={opt} 
@@ -482,7 +482,7 @@ export default function Stage() {
                            )}
                            
                            {question.type === 'short' && phase === 'answer_revealed' && (
-                             <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex-shrink-0 mt-auto self-center px-12 py-4 bg-green-500 rounded-full border-4 border-green-400 shadow-[0_0_50px_rgba(34,197,94,0.6)] text-center">
+                             <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex-shrink-0 self-center mt-6 px-12 py-4 bg-green-500 rounded-full border-4 border-green-400 shadow-[0_0_50px_rgba(34,197,94,0.6)] text-center">
                                 <span className="text-sm text-green-900 font-bold uppercase tracking-widest block mb-1">Đáp án chính xác</span>
                                 <span className="text-[clamp(2.5rem,6vh,4rem)] leading-none font-black text-white">{question.correct}</span>
                              </motion.div>
