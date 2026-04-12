@@ -1,21 +1,27 @@
 import * as XLSX from 'xlsx';
 
+// Hàm làm sạch chuỗi: xử lý các ký tự điều khiển ẩn và ký tự thoát lỗi khi copy-paste
+const sanitizeString = (str) => {
+  if (typeof str !== 'string') return str;
+  return str
+    .replace(/\f/g, '\\f') // Khôi phục \f trong \forall
+    .replace(/\v/g, '\\v') // Khôi phục \v
+    .replace(/[\u200B-\u200D\uFEFF]/g, '') // Loại bỏ các ký tự zero-width ẩn
+    .trim();
+};
+
 export const parseExcelStudentList = (file) => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
 
     reader.onload = (e) => {
       try {
-        const data = e.target.result;
-        // Đọc workbook
-        const workbook = XLSX.read(data, { type: 'binary' });
-        // Lấy sheet đầu tiên
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
-        // Parse ra json
         const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
         
-        // Map lại các key cho chắc chắn (bỏ qua khoảng trắng dư và đồng bộ in hoa)
         const students = jsonData.map(row => {
           const normalizedRow = {};
           for (let key in row) {
@@ -24,12 +30,12 @@ export const parseExcelStudentList = (file) => {
           }
           
           return {
-            sbd: (normalizedRow['SBD'] || '').toString().trim(),
-            hoTen: (normalizedRow['HỌC VÀ TÊN'] || normalizedRow['HỌ TÊN'] || normalizedRow['HOTEN'] || '').toString().trim(),
-            lop: (normalizedRow['LỚP'] || normalizedRow['LOP'] || '').toString().trim(),
-            pin: (normalizedRow['MÃ PIN'] || normalizedRow['PIN'] || '').toString().trim()
+            sbd: sanitizeString(normalizedRow['SBD'] || ''),
+            hoTen: sanitizeString(normalizedRow['HỌC VÀ TÊN'] || normalizedRow['HỌ TÊN'] || normalizedRow['HOTEN'] || ''),
+            lop: sanitizeString(normalizedRow['LỚP'] || normalizedRow['LOP'] || ''),
+            pin: sanitizeString(normalizedRow['MÃ PIN'] || normalizedRow['PIN'] || '')
           };
-        }).filter(s => s.sbd !== ''); // bỏ dòng trống
+        }).filter(s => s.sbd !== '');
 
         resolve(students);
       } catch (error) {
@@ -38,7 +44,7 @@ export const parseExcelStudentList = (file) => {
     };
 
     reader.onerror = (error) => reject(error);
-    reader.readAsBinaryString(file);
+    reader.readAsArrayBuffer(file);
   });
 };
 
@@ -48,8 +54,8 @@ export const parseExcelQuestions = (file) => {
 
     reader.onload = (e) => {
       try {
-        const data = e.target.result;
-        const workbook = XLSX.read(data, { type: 'binary' });
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
         const worksheet = workbook.Sheets[workbook.SheetNames[0]];
         const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
         
@@ -67,15 +73,15 @@ export const parseExcelQuestions = (file) => {
           return {
             id: index + 1,
             type: type,
-            content: (nRow['CÂU HỎI'] || nRow['NỘI DUNG'] || nRow['NỘI DUNG CÂU HỎI'] || nRow['QUESTION'] || '').toString().trim(),
-            optionA: (nRow['A'] || nRow['PHƯƠNG ÁN A'] || nRow['ĐÁP ÁN A'] || '').toString().trim(),
-            optionB: (nRow['B'] || nRow['PHƯƠNG ÁN B'] || nRow['ĐÁP ÁN B'] || '').toString().trim(),
-            optionC: (nRow['C'] || nRow['PHƯƠNG ÁN C'] || nRow['ĐÁP ÁN C'] || '').toString().trim(),
-            optionD: (nRow['D'] || nRow['PHƯƠNG ÁN D'] || nRow['ĐÁP ÁN D'] || '').toString().trim(),
+            content: sanitizeString(nRow['CÂU HỎI'] || nRow['NỘI DUNG'] || nRow['NỘI DUNG CÂU HỎI'] || nRow['QUESTION'] || ''),
+            optionA: sanitizeString(nRow['A'] || nRow['PHƯƠNG ÁN A'] || nRow['ĐÁP ÁN A'] || ''),
+            optionB: sanitizeString(nRow['B'] || nRow['PHƯƠNG ÁN B'] || nRow['ĐÁP ÁN B'] || ''),
+            optionC: sanitizeString(nRow['C'] || nRow['PHƯƠNG ÁN C'] || nRow['ĐÁP ÁN C'] || ''),
+            optionD: sanitizeString(nRow['D'] || nRow['PHƯƠNG ÁN D'] || nRow['ĐÁP ÁN D'] || ''),
             correct: (nRow['ĐÁP ÁN ĐÚNG'] || nRow['ĐÁP ÁN'] || nRow['CORRECT'] || 'A').toString().toUpperCase().trim(),
             time: Number(nRow['THỜI GIAN'] || nRow['TIME']) || 15,
             mediaType: (nRow['LOẠI MEDIA'] || nRow['MEDIA TYPE'] || 'none').toString().toLowerCase().trim(),
-            mediaUrl: (nRow['URL MEDIA'] || nRow['LINK MEDIA'] || '').toString().trim()
+            mediaUrl: sanitizeString(nRow['URL MEDIA'] || nRow['LINK MEDIA'] || '')
           };
         }).filter(q => q.content !== ''); 
 
@@ -86,6 +92,6 @@ export const parseExcelQuestions = (file) => {
     };
 
     reader.onerror = (error) => reject(error);
-    reader.readAsBinaryString(file);
+    reader.readAsArrayBuffer(file);
   });
 };

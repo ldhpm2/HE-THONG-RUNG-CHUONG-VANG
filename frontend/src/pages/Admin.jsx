@@ -4,6 +4,8 @@ import { parseExcelStudentList, parseExcelQuestions } from '../utils/excelParser
 import { parseWordQuestions } from '../utils/wordParser';
 import { Upload, Play, Square, Presentation, Eye, UserX, Activity, HeartHandshake, Trash2, XCircle } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
+import { BlockMath, InlineMath } from 'react-katex';
+import 'katex/dist/katex.min.css';
 
 export default function Admin() {
   const [isAdminLogged, setIsAdminLogged] = useState(false);
@@ -164,6 +166,20 @@ export default function Admin() {
     });
   };
 
+  const renderMixedText = (text) => {
+    if (!text) return null;
+    const parts = text.split(/(\$\$[\s\S]*?\$\$|\$[\s\S]*?\$)/g);
+    return parts.map((part, index) => {
+      if (part.startsWith('$$') && part.endsWith('$$')) {
+        return <BlockMath key={index} math={part.slice(2, -2)} throwOnError={false} errorColor="#ef4444" />;
+      } else if (part.startsWith('$') && part.endsWith('$')) {
+        return <InlineMath key={index} math={part.slice(1, -1)} throwOnError={false} errorColor="#ef4444" />;
+      } else {
+        return <span key={index}>{part}</span>;
+      }
+    });
+  };
+
   if (!isAdminLogged) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-slate-900">
@@ -307,7 +323,9 @@ export default function Admin() {
                        <span className="font-bold text-yellow-500 text-lg">Câu {q.id}</span>
                        <span className="text-xs text-slate-400 bg-slate-800 px-2 py-1 rounded">{q.time}s | Đ/A: {q.correct}</span>
                     </div>
-                    <p className="text-sm text-slate-300 font-medium mb-1">{q.content}</p>
+                    <div className="text-sm text-slate-300 font-medium mb-1">
+                       {renderMixedText(q.content)}
+                    </div>
                     <div className="flex gap-2 mt-auto pt-2">
                        <button onClick={() => {
                           const fullQ = {...q, options: ['A','B','C','D']};

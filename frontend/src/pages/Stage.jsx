@@ -50,9 +50,9 @@ export default function Stage() {
     const parts = text.split(/(\$\$[\s\S]*?\$\$|\$[\s\S]*?\$)/g);
     return parts.map((part, index) => {
       if (part.startsWith('$$') && part.endsWith('$$')) {
-        return <BlockMath key={index} math={part.slice(2, -2)} />;
+        return <BlockMath key={index} math={part.slice(2, -2)} throwOnError={false} errorColor="#ef4444" />;
       } else if (part.startsWith('$') && part.endsWith('$')) {
-        return <InlineMath key={index} math={part.slice(1, -1)} />;
+        return <InlineMath key={index} math={part.slice(1, -1)} throwOnError={false} errorColor="#ef4444" />;
       } else {
         // Tô màu đỏ cho chữ "Câu X." ở đầu câu hỏi
         if (index === 0) {
