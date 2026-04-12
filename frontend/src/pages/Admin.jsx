@@ -115,6 +115,9 @@ export default function Admin() {
       let questions = [];
       if (file.name.endsWith('.docx')) {
         questions = await parseWordQuestions(file);
+      } else if (file.name.endsWith('.json')) {
+        const text = await file.text();
+        questions = JSON.parse(text);
       } else {
         questions = await parseExcelQuestions(file);
       }
@@ -124,12 +127,23 @@ export default function Admin() {
         setCurrentIndex(0);
         setQuestionDraft(questions[0]);
       }
-      alert(`Đã tải lên ${questions.length} câu hỏi thành công vào bộ nhớ Draft!`);
+      alert(`Đã nạp ${questions.length} câu hỏi thành công!`);
       e.target.value = '';
     } catch(err) {
-      alert('Lỗi đọc file Câu hỏi: ' + err.message);
+      alert('Lỗi nạp file: ' + err.message);
       e.target.value = '';
     }
+  };
+
+  const exportQuestions = () => {
+    if (questionsList.length === 0) return alert('Không có câu hỏi để lưu!');
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(questionsList, null, 2));
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", `bo-de-rung-chuong-vang-${new Date().toLocaleDateString()}.json`);
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
   };
 
   const handleAddManualQuestion = () => {
@@ -317,9 +331,13 @@ export default function Admin() {
                   Reset/Xóa Trắng
                </button>
             </div>
+            <div className="flex gap-2 mb-2">
+               <button onClick={exportQuestions} className="text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white px-3 py-1.5 rounded cursor-pointer transition shadow-md whitespace-nowrap">
+                  Xuất File (Backup)
+               </button>
                <label className="text-xs font-bold bg-green-600 hover:bg-green-500 text-white px-3 py-1.5 rounded cursor-pointer transition shadow-md whitespace-nowrap">
-                  Nạp DS (Excel/Word)
-                  <input type="file" accept=".xlsx, .xls, .docx" onChange={handleQuestionUpload} className="hidden" />
+                  Nạp DS (Excel/Word/JSON)
+                  <input type="file" accept=".xlsx, .xls, .docx, .json" onChange={handleQuestionUpload} className="hidden" />
                </label>
             </div>
           </div>
