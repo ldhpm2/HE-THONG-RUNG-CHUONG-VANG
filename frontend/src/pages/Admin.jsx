@@ -342,6 +342,8 @@ export default function Admin() {
             </div>
           </div>
 
+        </div>
+
           {/* Navigation Bar */}
           {questionsList.length > 0 && (
              <div className="flex items-center justify-between bg-slate-900/50 p-3 rounded-xl mb-4 border border-slate-700/50">
