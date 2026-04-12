@@ -142,7 +142,7 @@ export default function Stage() {
 
                         <div className="text-center space-y-4">
                            <h2 className="text-[clamp(1.5rem,4vh,3.5rem)] font-black tracking-[0.25em] text-white uppercase drop-shadow-lg">
-                              Hãy Tập Trung Khoảnh Khắc Bắt Đầu
+                              Hãy Tập Trung Khoảnh Khắc <br /> Bắt Đầu
                            </h2>
                            <motion.p 
                              animate={{ opacity: [0.4, 1, 0.4] }}
