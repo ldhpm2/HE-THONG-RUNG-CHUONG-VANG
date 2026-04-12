@@ -238,8 +238,8 @@ export default function Stage() {
           </div>
 
           {/* LƯỚI THÍ SINH (RIGHT PANEL - 1/4) */}
-          <div className="w-1/4 flex flex-col bg-slate-900/50 rounded-3xl border border-slate-800 p-6 shadow-2xl backdrop-blur-md overflow-hidden">
-             <div className="flex justify-between items-end mb-6">
+          <div className="w-1/4 flex flex-col bg-slate-900/50 rounded-3xl border border-slate-800 p-6 shadow-2xl backdrop-blur-md overflow-hidden text-white">
+             <div className="flex justify-between items-end mb-6 flex-shrink-0">
                <h2 className="text-xl font-bold uppercase text-slate-400 tracking-wider">Sàn Thi Đấu</h2>
                <div className="flex gap-4 text-xs font-bold opacity-80">
                   <div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-green-500"></div> Đang Thi</div>
@@ -247,26 +247,38 @@ export default function Stage() {
                </div>
              </div>
              
-             {/* Grid */}
-             <div className="flex-1 grid grid-cols-10 gap-1 content-start overflow-y-auto">
-               {studentsList.length > 0 ? studentsList.map((st, i) => (
-                 <motion.div
-                   key={st.sbd}
-                   initial={{ scale: 0.5, opacity: 0 }}
-                   animate={{ scale: 1, opacity: 1 }}
-                   transition={{ delay: i * 0.01 }}
-                   className={`aspect-square rounded-sm flex items-center justify-center font-bold text-xs md:text-sm border transition-all duration-500 ${
-                     st.status === 'active' 
-                       ? 'bg-green-500 text-slate-900 border-green-400 shadow-[0_0_5px_rgba(34,197,94,0.5)]' 
-                       : 'bg-red-900/40 text-red-500 border-red-800 opacity-60'
-                   } ${phase === 'locked' && st.status==='active' && st.hasAnswered ? 'ring-2 ring-yellow-400' : ''}`}
-                 >
-                   {st.sbd}
-                 </motion.div>
-               )) : (
-                 <div className="col-span-10 flex items-center justify-center h-full text-sm text-slate-600 font-medium">Chưa có thí sinh</div>
-               )}
-             </div>
+              <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                <div className="flex flex-col gap-2">
+                  {studentsList.length > 0 ? studentsList.map((st, i) => (
+                    <motion.div
+                      key={st.sbd}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.01 }}
+                      className={`flex items-center gap-3 p-2 rounded-xl border transition-all duration-500 ${
+                        st.status === 'active' 
+                          ? 'bg-green-500/10 text-green-400 border-green-500/30' 
+                          : 'bg-red-500/5 text-red-500 border-red-500/20 opacity-50'
+                      } ${phase === 'locked' && st.status==='active' && st.hasAnswered ? 'ring-2 ring-yellow-400 bg-yellow-400/10' : ''}`}
+                    >
+                      <div className={`w-10 h-10 shrink-0 rounded-lg flex items-center justify-center font-black text-sm border-2 ${
+                        st.status === 'active' ? 'bg-green-500 text-slate-900 border-green-400' : 'bg-red-900/40 text-red-500 border-red-800'
+                      }`}>
+                        {st.sbd}
+                      </div>
+                      <div className="flex-1 min-w-0 flex flex-col justify-center">
+                        <p className="font-bold truncate text-[clamp(0.7rem,1.8vh,0.85rem)] leading-tight text-white">{st.hoTen}</p>
+                        <p className="text-[9px] opacity-60 uppercase tracking-widest font-bold truncate mt-0.5">{st.lop || 'Thí sinh'}</p>
+                      </div>
+                      {st.status === 'active' && st.hasAnswered && phase !== 'idle' && (
+                        <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 2 }} className="w-2 h-2 shrink-0 rounded-full bg-yellow-400 shadow-[0_0_10px_rgba(250,204,21,0.8)]"></motion.div>
+                      )}
+                    </motion.div>
+                  )) : (
+                    <div className="p-4 text-center text-slate-500 italic text-sm">Chưa có thí sinh</div>
+                  )}
+                </div>
+              </div>
           </div>
       </div>
       
