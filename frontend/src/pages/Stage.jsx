@@ -17,10 +17,98 @@ export default function Stage() {
   const [timeLeft, setTimeLeft] = useState(0);
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
 
-  // Audio Refs - initialized lazily to avoid crashes
-  const tickTockRef = useRef(null);
-  const gongRef = useRef(null);
-  const correctRef = useRef(null);
+  // Web Audio API context
+  const audioCtxRef = useRef(null);
+
+  // Helper: tạo âm thanh tick mỗi giây
+  const playTick = () => {
+    try {
+      const ctx = audioCtxRef.current;
+      if (!ctx) return;
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.type = 'sine';
+      o.frequency.setValueAtTime(880, ctx.currentTime);
+      g.gain.setValueAtTime(0.3, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+      o.start(ctx.currentTime);
+      o.stop(ctx.currentTime + 0.08);
+    } catch(e) {}
+  };
+
+  // Helper: tiếng cồng hết giờ
+  const playGong = () => {
+    try {
+      const ctx = audioCtxRef.current;
+      if (!ctx) return;
+      [220, 277, 330].forEach((freq, i) => {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.type = 'sine';
+        o.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.05);
+        g.gain.setValueAtTime(0.5, ctx.currentTime + i * 0.05);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.05 + 1.5);
+        o.start(ctx.currentTime + i * 0.05);
+        o.stop(ctx.currentTime + i * 0.05 + 1.5);
+      });
+    } catch(e) {}
+  };
+
+  // Helper: âm thanh đúng đáp án
+  const playCorrect = () => {
+    try {
+      const ctx = audioCtxRef.current;
+      if (!ctx) return;
+      [523, 659, 784, 1047].forEach((freq, i) => {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.type = 'sine';
+        o.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.12);
+        g.gain.setValueAtTime(0.4, ctx.currentTime + i * 0.12);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.12 + 0.3);
+        o.start(ctx.currentTime + i * 0.12);
+        o.stop(ctx.currentTime + i * 0.12 + 0.3);
+      });
+    } catch(e) {}
+  };
+
+  // Kích hoạt AudioContext khi người dùng bấm enable
+  const handleEnableAudio = () => {
+    if (!audioCtxRef.current) {
+      audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtxRef.current.state === 'suspended') {
+      audioCtxRef.current.resume();
+    }
+    setIsAudioEnabled(!isAudioEnabled);
+  };
+
+  // Tick mỗi giây khi đang đếm ngược
+  const tickIntervalRef = useRef(null);
+
+  useEffect(() => {
+    const { phase } = gameState;
+    if (isAudioEnabled && phase === 'timer_running' && timeLeft > 0) {
+      playTick();
+    }
+  }, [timeLeft, isAudioEnabled]);
+
+  // Gong khi hết giờ
+  useEffect(() => {
+    if (isAudioEnabled && gameState.phase === 'timer_running' && timeLeft === 0) {
+      playGong();
+    }
+  }, [timeLeft, gameState.phase, isAudioEnabled]);
+
+  // Đúng đáp án
+  useEffect(() => {
+    if (isAudioEnabled && gameState.phase === 'answer_revealed') {
+      playCorrect();
+    }
+  }, [gameState.phase, isAudioEnabled]);
 
   useEffect(() => {
     socket.on('game_state_update', (data) => {
@@ -49,49 +137,6 @@ export default function Stage() {
       clearInterval(timer);
     };
   }, []);
-
-  // Sync Audio with Phase and TimeLeft
-  useEffect(() => {
-    if (!isAudioEnabled) return;
-
-    const { phase, timeLeft: tl } = { phase: gameState.phase, timeLeft };
-
-    // Init audio objects on first use (lazy, safe)
-    if (!tickTockRef.current) {
-      try {
-        tickTockRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3');
-        gongRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2580/2580-preview.mp3');
-        correctRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2020/2020-preview.mp3');
-      } catch(e) {
-        console.log('Audio init error:', e);
-        return;
-      }
-    }
-
-    if (phase === 'timer_running') {
-      if (tickTockRef.current) {
-        tickTockRef.current.currentTime = 0;
-        tickTockRef.current.loop = true;
-        tickTockRef.current.play().catch(e => console.log('Tick audio error:', e));
-      }
-    } else {
-      if (tickTockRef.current) tickTockRef.current.pause();
-    }
-
-    if (phase === 'timer_running' && timeLeft === 0) {
-      if (gongRef.current) {
-        gongRef.current.currentTime = 0;
-        gongRef.current.play().catch(e => console.log('Gong audio error:', e));
-      }
-    }
-
-    if (phase === 'answer_revealed') {
-      if (correctRef.current) {
-        correctRef.current.currentTime = 0;
-        correctRef.current.play().catch(e => console.log('Correct audio error:', e));
-      }
-    }
-  }, [gameState.phase, timeLeft, isAudioEnabled]);
 
   const studentsList = Object.values(gameState.students).sort((a,b) => String(a.sbd).localeCompare(String(b.sbd)));
   const { phase, question } = gameState;
@@ -214,7 +259,7 @@ export default function Stage() {
                                 <motion.button
                                   whileHover={{ scale: 1.05 }}
                                   whileTap={{ scale: 0.95 }}
-                                  onClick={() => setIsAudioEnabled(!isAudioEnabled)}
+                                  onClick={handleEnableAudio}
                                   className={`flex items-center gap-4 px-10 py-5 rounded-full font-black text-2xl uppercase tracking-widest shadow-[0_0_30px_rgba(234,179,8,0.3)] transition-all duration-500 border-b-8 ${
                                     isAudioEnabled 
                                       ? 'bg-green-600 hover:bg-green-500 border-green-800 text-white' 
