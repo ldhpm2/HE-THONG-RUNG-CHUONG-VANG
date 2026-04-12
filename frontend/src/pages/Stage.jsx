@@ -238,18 +238,18 @@ export default function Stage() {
           </div>
 
           {/* LƯỚI THÍ SINH (RIGHT PANEL - 1/4) */}
-          <div className="w-1/4 flex flex-col bg-slate-900/50 rounded-3xl border border-slate-800 p-6 shadow-2xl backdrop-blur-md overflow-hidden text-white">
-             <div className="flex justify-between items-end mb-6 flex-shrink-0">
-               <h2 className="text-xl font-bold uppercase text-slate-400 tracking-wider">Sàn Thi Đấu</h2>
-               <div className="flex gap-4 text-xs font-bold opacity-80">
-                  <div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-green-500"></div> Đang Thi</div>
-                  <div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-red-600"></div> Loại</div>
+          <div className="w-1/4 flex flex-col bg-slate-900/50 rounded-2xl border border-slate-800 p-3 shadow-2xl backdrop-blur-md overflow-hidden text-white">
+             <div className="flex flex-col mb-4 flex-shrink-0">
+               <h2 className="text-lg font-bold uppercase text-slate-400 tracking-wider mb-2">Sàn Thi Đấu</h2>
+               <div className="flex justify-between text-[10px] font-bold opacity-70 border-b border-slate-800 pb-2">
+                  <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm bg-green-500"></div> Đang Thi</div>
+                  <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm bg-red-600"></div> Loại</div>
                </div>
              </div>
              
-              {/* Danh sách thí sinh dạng bảng gọn (SBD & Tên) - 3 cột */}
-              <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar">
-                <div className="grid grid-cols-3 gap-x-2 gap-y-1 content-start">
+              {/* Danh sách thí sinh dạng bảng gọn (SBD & Tên) - 3 cột tối ưu */}
+              <div className="flex-1 overflow-y-auto pr-0.5 custom-scrollbar">
+                <div className="grid grid-cols-3 gap-x-1 gap-y-1 content-start font-sans">
                   {studentsList.length > 0 ? studentsList.map((st, i) => {
                     // Lấy tên (từ cuối cùng)
                     const nameParts = (st.hoTen || '').trim().split(' ');
@@ -260,28 +260,28 @@ export default function Stage() {
                         key={st.sbd}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        transition={{ delay: i * 0.003 }}
-                        className={`flex items-center gap-1.5 p-1 rounded-lg border transition-all duration-500 ${
+                        transition={{ delay: i * 0.002 }}
+                        className={`flex items-center gap-1 p-0.5 rounded border transition-all duration-500 ${
                           st.status === 'active' 
-                            ? 'bg-green-500/10 text-green-400 border-green-500/20 shadow-[0_0_10px_rgba(34,197,94,0.02)]' 
+                            ? 'bg-green-500/10 text-green-400 border-green-500/10' 
                             : 'bg-red-500/5 text-red-500 border-red-500/10 opacity-30 shadow-none'
-                        } ${phase === 'locked' && st.status==='active' && st.hasAnswered ? 'ring-1 ring-yellow-400 bg-yellow-400/5' : ''}`}
+                        } ${phase === 'locked' && st.status==='active' && st.hasAnswered ? 'ring-1 ring-yellow-400/50 bg-yellow-400/5' : ''}`}
                       >
-                        <div className={`w-7 h-7 shrink-0 rounded flex items-center justify-center font-black text-[10px] border ${
+                        <div className={`w-6 h-6 shrink-0 rounded-sm flex items-center justify-center font-black text-[9px] border ${
                           st.status === 'active' ? 'bg-green-500 text-slate-900 border-green-400' : 'bg-red-900/40 text-red-500 border-red-800'
                         }`}>
                           {st.sbd}
                         </div>
-                        <div className="flex-1 min-w-0 overflow-hidden">
-                          <p className="font-bold truncate text-[11px] uppercase tracking-tighter text-white/90">{firstName}</p>
+                        <div className="flex-1 min-w-0 overflow-hidden leading-tight">
+                          <p className="font-bold truncate text-[10px] uppercase tracking-tighter text-white/90">{firstName}</p>
                         </div>
                         {st.status === 'active' && st.hasAnswered && phase !== 'idle' && (
-                          <div className="w-1 h-1 shrink-0 rounded-full bg-yellow-400"></div>
+                          <div className="w-1 h-1 shrink-0 rounded-full bg-yellow-400 shadow-[0_0_5px_rgba(250,204,21,0.5)]"></div>
                         )}
                       </motion.div>
                     );
                   }) : (
-                    <div className="p-4 text-center text-slate-500 italic text-[10px]">Chưa có thí sinh</div>
+                    <div className="p-4 text-center text-slate-600 italic text-[9px]">Trống</div>
                   )}
                 </div>
               </div>
