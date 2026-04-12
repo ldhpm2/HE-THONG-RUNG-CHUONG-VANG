@@ -494,15 +494,19 @@ export default function Stage() {
                        </div>
 
                        {/* Question Content Wrapper - Priority Based Layout */}
-                       <div className="flex-1 flex flex-col items-center justify-center min-h-0 overflow-hidden gap-4 mt-12 px-2">
-                           {/* 1. Text Block - Priority 1 (Justified alignment for professional look) */}
-                           <div className={`font-semibold text-slate-100 flex-shrink-0 whitespace-pre-wrap text-justify [text-align-last:center] max-w-[95%] px-6 ${getDynamicFontSize(question.content?.length)}`}>
+                       <div className="flex-1 flex flex-col items-center justify-start min-h-0 overflow-hidden gap-3 mt-12 px-2">
+                           {/* 1. Text Block - thu nhỏ khi có media để nhường chỗ cho ảnh */}
+                           <div className={`font-semibold text-slate-100 flex-shrink-0 whitespace-pre-wrap text-justify [text-align-last:center] max-w-[95%] px-6 ${
+                             (question.mediaType !== 'none' && question.mediaUrl)
+                               ? 'text-[clamp(1rem,2.8vh,2rem)] leading-snug'
+                               : getDynamicFontSize(question.content?.length)
+                           }`}>
                               {renderMixedText(question.content)}
                            </div>
  
-                           {/* 2. Media Renderer - Priority 2 (Flexible: takes remaining space, shrinks if needed) */}
+                           {/* 2. Media Renderer - min-h-[40vh] để ảnh luôn đủ lớn */}
                            {question.mediaType !== 'none' && question.mediaUrl && (
-                              <div className="flex-1 min-h-0 w-full rounded-2xl overflow-hidden border border-slate-700 bg-black/40 flex items-center justify-center relative">
+                              <div className="flex-1 min-h-[40vh] w-full rounded-2xl overflow-hidden border border-slate-700 bg-black/40 flex items-center justify-center relative">
                                  {question.mediaType === 'video' && (
                                     isYouTubeURL(question.mediaUrl) ? (
                                       <iframe 
@@ -513,10 +517,10 @@ export default function Stage() {
                                         title="YouTube video"
                                       />
                                     ) : (
-                                      <video src={question.mediaUrl} autoPlay loop muted playsInline className="max-h-full max-w-full object-contain" />
+                                      <video src={question.mediaUrl} autoPlay loop muted playsInline className="h-full w-full object-contain" />
                                     )
                                  )}
-                                 {question.mediaType === 'image' && <img src={question.mediaUrl} alt="media" className="max-h-full max-w-full object-contain shadow-2xl" />}
+                                 {question.mediaType === 'image' && <img src={question.mediaUrl} alt="media" className="h-full w-full object-contain shadow-2xl" />}
                                  {question.mediaType === 'audio' && (
                                    <div className="flex flex-col items-center gap-4">
                                      <div className="p-8 bg-slate-900 rounded-full border-4 border-slate-700 animate-pulse">
@@ -528,21 +532,29 @@ export default function Stage() {
                               </div>
                            )}
  
-                           {/* 3. Answer Options - Fixed to bottom */}
+                           {/* 3. Answer Options - thu nhỏ khi có media */}
                            {question.type === 'mcq' && (
-                             <div className="flex-shrink-0 grid grid-cols-2 gap-3 pb-2 transition-all duration-500">
+                             <div className="flex-shrink-0 grid grid-cols-2 gap-2 pb-2 transition-all duration-500 w-full">
                                 {['A', 'B', 'C', 'D'].map(opt => (
                                    <div 
                                       key={opt} 
-                                      className={`p-3 rounded-2xl border-4 flex flex-col items-center justify-center transition-all duration-1000 ${
+                                      className={`${
+                                        (question.mediaType !== 'none' && question.mediaUrl) ? 'p-2' : 'p-3'
+                                      } rounded-2xl border-4 flex flex-col items-center justify-center transition-all duration-1000 ${
                                         phase === 'answer_revealed' && question.correct === opt ? 'bg-green-500 border-green-400 text-white shadow-[0_0_40px_rgba(34,197,94,0.6)] scale-[1.03]' :
                                         phase === 'answer_revealed' ? 'bg-slate-800 border-slate-700 text-slate-600 opacity-30 font-black' :
                                         'bg-slate-700/50 border-slate-600 text-slate-300'
                                       }`}
                                    >
-                                      <span className="text-5xl md:text-6xl text-yellow-500 font-black leading-none mb-1">{opt}</span>
+                                      <span className={`${
+                                        (question.mediaType !== 'none' && question.mediaUrl) ? 'text-3xl' : 'text-5xl md:text-6xl'
+                                      } text-yellow-500 font-black leading-none mb-1`}>{opt}</span>
                                       {question[`option${opt}`] && (
-                                        <span className={`mt-0.5 text-center text-white whitespace-pre-wrap ${getDynamicOptionSize(question[`option${opt}`]?.length)}`}>
+                                        <span className={`mt-0.5 text-center text-white whitespace-pre-wrap ${
+                                          (question.mediaType !== 'none' && question.mediaUrl)
+                                            ? 'text-[clamp(0.8rem,2vh,1.4rem)]'
+                                            : getDynamicOptionSize(question[`option${opt}`]?.length)
+                                        }`}>
                                           {renderMixedText(question[`option${opt}`])}
                                         </span>
                                       )}
