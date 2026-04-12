@@ -423,16 +423,16 @@ export default function Stage() {
                           </span>
                        </div>
 
-                       {/* Question Content Wrapper - Perfectly fits the container */}
-                       <div className="flex-1 flex flex-col items-center justify-between min-h-0 overflow-hidden">
-                           {/* 1. Text Block - Keeps its size */}
-                           <div className={`font-semibold text-slate-100 flex-shrink-0 whitespace-pre-wrap text-center mb-2 ${getDynamicFontSize(question.content?.length)}`}>
+                       {/* Question Content Wrapper - Priority Based Layout */}
+                       <div className="flex-1 flex flex-col items-center justify-center min-h-0 overflow-hidden gap-4 mt-12 px-2">
+                           {/* 1. Text Block - Priority 1 (Always shrink-0 to prevent clipping) */}
+                           <div className={`font-semibold text-slate-100 flex-shrink-0 whitespace-pre-wrap text-center ${getDynamicFontSize(question.content?.length)}`}>
                               {renderMixedText(question.content)}
                            </div>
  
-                           {/* 2. Media Renderer - Flexible and Shrinkable */}
+                           {/* 2. Media Renderer - Priority 2 (Flexible: takes remaining space, shrinks if needed) */}
                            {question.mediaType !== 'none' && question.mediaUrl && (
-                              <div className="flex-1 min-h-0 w-full my-2 rounded-2xl overflow-hidden border border-slate-700 bg-black/40 flex items-center justify-center relative">
+                              <div className="flex-1 min-h-0 w-full rounded-2xl overflow-hidden border border-slate-700 bg-black/40 flex items-center justify-center relative">
                                  {question.mediaType === 'video' && (
                                     isYouTubeURL(question.mediaUrl) ? (
                                       <iframe 
