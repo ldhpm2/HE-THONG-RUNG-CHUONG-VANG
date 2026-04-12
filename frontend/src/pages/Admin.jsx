@@ -168,7 +168,14 @@ export default function Admin() {
 
   const renderMixedText = (text) => {
     if (!text) return null;
-    const parts = text.split(/(\$\$[\s\S]*?\$\$|\$[\s\S]*?\$)/g);
+
+    // Tự động nhận diện công thức: Nếu có dấu \ (lệnh LaTeX) nhưng thiếu dấu $, tự động bao quanh $
+    let processedText = text;
+    if (!text.includes('$') && text.includes('\\')) {
+       processedText = `$${text}$`;
+    }
+
+    const parts = processedText.split(/(\$\$[\s\S]*?\$\$|\$[\s\S]*?\$)/g);
     return parts.map((part, index) => {
       if (part.startsWith('$$') && part.endsWith('$$')) {
         return <BlockMath key={index} math={part.slice(2, -2)} throwOnError={false} errorColor="#ef4444" />;
