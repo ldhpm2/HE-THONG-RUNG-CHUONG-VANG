@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { socket } from '../socket';
 import { parseExcelStudentList, parseExcelQuestions } from '../utils/excelParser';
 import { parseWordQuestions } from '../utils/wordParser';
-import { Upload, Play, Square, Presentation, Eye, UserX, Activity, HeartHandshake, Trash2, XCircle } from 'lucide-react';
+import { Upload, Play, Square, Presentation, Eye, UserX, Activity, HeartHandshake, Trash2, XCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { MathJax } from 'better-react-mathjax';
 
@@ -17,6 +17,7 @@ export default function Admin() {
   });
 
   const [questionsList, setQuestionsList] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(-1);
   const [questionDraft, setQuestionDraft] = useState({
     content: '',
     type: 'mcq', // mcq, short
@@ -86,6 +87,10 @@ export default function Admin() {
       }
       if (questions.length === 0) return alert('File không có dữ liệu câu hỏi hợp lệ');
       setQuestionsList(questions);
+      if (questions.length > 0) {
+        setCurrentIndex(0);
+        setQuestionDraft(questions[0]);
+      }
       alert(`Đã tải lên ${questions.length} câu hỏi thành công vào bộ nhớ Draft!`);
       e.target.value = '';
     } catch(err) {
@@ -101,19 +106,20 @@ export default function Admin() {
        id: questionsList.length + 1
     };
     setQuestionsList([...questionsList, newQuestion]);
+    setCurrentIndex(questionsList.length); // Chuyển đến câu vừa thêm
     alert(`Đã thêm Câu ${newQuestion.id} vào danh sách!`);
     
-    // Xóa nháp để nhập câu tiếp theo
-    setQuestionDraft({
-      content: '',
-      type: 'mcq',
-      options: ['A', 'B', 'C', 'D'],
-      optionA: '', optionB: '', optionC: '', optionD: '',
-      correct: 'A',
-      mediaType: 'none',
-      mediaUrl: '',
-      time: 30
-    });
+    // Xóa nháp (tùy chọn - ở đây tôi giữ lại để admin có thể sửa nếu cần hoặc reset)
+  };
+
+  const navQuestion = (dir) => {
+    if (questionsList.length === 0) return;
+    let newIndex = currentIndex + dir;
+    if (newIndex < 0) newIndex = 0;
+    if (newIndex >= questionsList.length) newIndex = questionsList.length - 1;
+    
+    setCurrentIndex(newIndex);
+    setQuestionDraft(questionsList[newIndex]);
   };
 
   // Các thao tác điều khiển
@@ -250,10 +256,34 @@ export default function Admin() {
                </button>
                <label className="text-xs font-bold bg-green-600 hover:bg-green-500 text-white px-3 py-1.5 rounded cursor-pointer transition shadow-md whitespace-nowrap">
                   Nạp DS (Excel/Word)
-                  <input type="file" accept=".xlsx, .xls, .docx" hidden onChange={handleQuestionUpload} />
+                  <input type="file" accept=".xlsx, .xls, .docx" onChange={handleQuestionUpload} className="hidden" />
                </label>
             </div>
           </div>
+
+          {/* Navigation Bar */}
+          {questionsList.length > 0 && (
+             <div className="flex items-center justify-between bg-slate-900/50 p-3 rounded-xl mb-4 border border-slate-700/50">
+                <button 
+                  onClick={() => navQuestion(-1)} 
+                  disabled={currentIndex <= 0}
+                  className="px-4 py-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-30 rounded-lg text-white font-bold transition flex items-center gap-2"
+                >
+                   <ChevronLeft size={18}/> Lùi
+                </button>
+                <div className="text-center">
+                   <span className="block text-[10px] uppercase text-slate-500 font-bold tracking-widest">Đang chọn</span>
+                   <span className="text-white font-black">Câu {currentIndex + 1} / {questionsList.length}</span>
+                </div>
+                <button 
+                  onClick={() => navQuestion(1)} 
+                  disabled={currentIndex >= questionsList.length - 1}
+                  className="px-4 py-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-30 rounded-lg text-white font-bold transition flex items-center gap-2"
+                >
+                   Tiến <ChevronRight size={18}/>
+                </button>
+             </div>
+          )}
                     <div className="space-y-4">
              <div>
                <label className="block text-xs uppercase text-slate-500 mb-1">Loại Câu</label>
