@@ -256,15 +256,15 @@ export default function Stage() {
                       initial={{ scale: 0.5, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
                       transition={{ delay: i * 0.002 }}
-                      className={`aspect-square rounded flex items-center justify-center font-black text-[12px] border transition-all duration-500 ${
+                      className={`aspect-square rounded-md flex items-center justify-center font-black text-[18px] md:text-[22px] border-2 transition-all duration-500 ${
                         st.status === 'active' 
-                          ? 'bg-green-500 text-slate-900 border-green-400 shadow-[0_0_10px_rgba(34,197,94,0.1)]' 
+                          ? 'bg-green-500 text-slate-900 border-green-400 shadow-[0_4px_10px_rgba(34,197,94,0.3)]' 
                           : 'bg-red-900/40 text-red-500 border-red-800 opacity-40 shadow-none'
-                      } ${phase === 'locked' && st.status==='active' && st.hasAnswered ? 'ring-2 ring-yellow-400' : ''}`}
+                      } ${phase === 'locked' && st.status==='active' && st.hasAnswered ? 'ring-2 ring-yellow-400 scale-110 z-10' : ''}`}
                     >
                       {st.sbd}
                       {st.status === 'active' && st.hasAnswered && phase !== 'idle' && (
-                        <div className="absolute top-0 right-0 w-1.5 h-1.5 bg-yellow-400 rounded-full translate-x-1/3 -translate-y-1/3 shadow-[0_0_5px_rgba(250,204,21,0.8)]"></div>
+                        <div className="absolute top-0 right-0 w-2.5 h-2.5 bg-yellow-400 rounded-full translate-x-1/3 -translate-y-1/3 shadow-[0_0_8px_rgba(250,204,21,1)] border border-slate-900"></div>
                       )}
                     </motion.div>
                   )) : (
