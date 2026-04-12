@@ -24,6 +24,7 @@ export default function Admin() {
     const saved = localStorage.getItem('admin_curr_idx');
     return saved ? parseInt(saved) : -1;
   });
+  const [editingIndex, setEditingIndex] = useState(null);
   const [questionDraft, setQuestionDraft] = useState({
     content: '',
     type: 'mcq', // mcq, short
@@ -140,8 +141,15 @@ export default function Admin() {
     setQuestionsList([...questionsList, newQuestion]);
     setCurrentIndex(questionsList.length); // Chuyển đến câu vừa thêm
     alert(`Đã thêm Câu ${newQuestion.id} vào danh sách!`);
-    
-    // Xóa nháp (tùy chọn - ở đây tôi giữ lại để admin có thể sửa nếu cần hoặc reset)
+  };
+
+  const handleUpdateQuestion = () => {
+    if (editingIndex === null) return;
+    const updatedList = [...questionsList];
+    updatedList[editingIndex] = { ...questionDraft };
+    setQuestionsList(updatedList);
+    setEditingIndex(null);
+    alert(`Đã cập nhật Câu ${questionDraft.id} thành công!`);
   };
 
   const navQuestion = (dir) => {
@@ -283,9 +291,32 @@ export default function Admin() {
                }} className="text-xs font-bold bg-red-900/80 hover:bg-red-800 text-white px-3 py-1.5 rounded cursor-pointer transition shadow-md flex items-center">
                   Xóa tất cả
                </button>
-               <button onClick={handleAddManualQuestion} className="text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded cursor-pointer transition shadow-md">
-                  + Thêm câu
+               <div className="flex gap-2">
+               {editingIndex !== null ? (
+                 <button onClick={handleUpdateQuestion} className="w-1/2 bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded transition shadow-md">
+                   Lưu Thay Đổi
+                 </button>
+               ) : (
+                 <button onClick={handleAddManualQuestion} className="w-1/2 bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded transition shadow-md">
+                   + Thêm câu
+                 </button>
+               )}
+               <button onClick={() => {
+                 setEditingIndex(null);
+                 setQuestionDraft({
+                   content: '',
+                   type: 'mcq',
+                   options: ['A', 'B', 'C', 'D'],
+                   optionA: '', optionB: '', optionC: '', optionD: '',
+                   correct: 'A',
+                   mediaType: 'none',
+                   mediaUrl: '',
+                   time: 30
+                 });
+               }} className="w-1/2 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 rounded transition shadow-md">
+                  Reset/Xóa Trắng
                </button>
+            </div>
                <label className="text-xs font-bold bg-green-600 hover:bg-green-500 text-white px-3 py-1.5 rounded cursor-pointer transition shadow-md whitespace-nowrap">
                   Nạp DS (Excel/Word)
                   <input type="file" accept=".xlsx, .xls, .docx" onChange={handleQuestionUpload} className="hidden" />
@@ -406,12 +437,15 @@ export default function Admin() {
                        }} className="text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white py-2 px-2 rounded-lg flex-[1.5] flex items-center justify-center shadow-md whitespace-nowrap">
                           <Presentation className="w-3 h-3 mr-1"/> Chiếu Luôn
                        </button>
-                       <button onClick={() => {
-                          const fullQ = {...q, options: ['A','B','C','D']};
-                          setQuestionDraft(fullQ);
-                       }} className="text-sm font-semibold bg-slate-700 hover:bg-slate-600 text-white py-2 px-3 rounded-lg flex-[0.8]">
-                          Sửa
-                       </button>
+                        <button onClick={() => {
+                           const fullQ = {...q, options: ['A','B','C','D']};
+                           setQuestionDraft(fullQ);
+                           setEditingIndex(i);
+                           // Cuộn lên đầu form soạn thảo
+                           window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }} className="text-sm font-semibold bg-slate-700 hover:bg-slate-600 text-white py-2 px-3 rounded-lg flex-[0.8]">
+                           Sửa
+                        </button>
                        <button onClick={() => {
                           const fullQ = {...q, options: ['A','B','C','D']};
                           setQuestionDraft(fullQ);
