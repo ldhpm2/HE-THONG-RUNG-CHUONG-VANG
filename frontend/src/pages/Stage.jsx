@@ -245,11 +245,9 @@ export default function Stage() {
            students: data.students
          };
        });
-    });
+     });
 
-    });
-
-    return () => {
+     return () => {
       socket.off('game_state_update');
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       cancelAllTicks();
