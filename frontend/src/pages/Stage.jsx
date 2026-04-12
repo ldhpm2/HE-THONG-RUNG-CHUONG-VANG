@@ -48,6 +48,11 @@ export default function Stage() {
   const renderMixedText = (text) => {
     if (!text) return null;
     
+    // Khôi phục các ký tự thoát bị trình duyệt hiểu nhầm (VD: \v trong \vec, \f trong \forall)
+    const restoreLatex = (str) => {
+      return str.replace(/\f/g, '\\f').replace(/\v/g, '\\v');
+    };
+
     // Tự động nhận diện công thức: Nếu có dấu \ (lệnh LaTeX) nhưng thiếu dấu $, tự động bao quanh $
     let processedText = text;
     if (!text.includes('$') && text.includes('\\')) {
@@ -57,9 +62,9 @@ export default function Stage() {
     const parts = processedText.split(/(\$\$[\s\S]*?\$\$|\$[\s\S]*?\$)/g);
     return parts.map((part, index) => {
       if (part.startsWith('$$') && part.endsWith('$$')) {
-        return <BlockMath key={index} math={part.slice(2, -2)} throwOnError={false} errorColor="#ef4444" />;
+        return <BlockMath key={index} math={restoreLatex(part.slice(2, -2))} throwOnError={false} errorColor="#ef4444" />;
       } else if (part.startsWith('$') && part.endsWith('$')) {
-        return <InlineMath key={index} math={part.slice(1, -1)} throwOnError={false} errorColor="#ef4444" />;
+        return <InlineMath key={index} math={restoreLatex(part.slice(1, -1))} throwOnError={false} errorColor="#ef4444" />;
       } else {
         // Tô màu đỏ cho chữ "Câu X." ở đầu câu hỏi
         if (index === 0) {
