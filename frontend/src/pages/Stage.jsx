@@ -247,41 +247,28 @@ export default function Stage() {
                </div>
              </div>
              
-              {/* Danh sách thí sinh dạng bảng gọn (SBD & Tên) - 3 cột tối ưu */}
+              {/* Danh sách thí sinh dạng lưới 6 cột (Chỉ hiện SBD) */}
               <div className="flex-1 overflow-y-auto pr-0.5 custom-scrollbar">
-                <div className="grid grid-cols-3 gap-x-1 gap-y-1 content-start font-sans">
-                  {studentsList.length > 0 ? studentsList.map((st, i) => {
-                    // Lấy tên (từ cuối cùng)
-                    const nameParts = (st.hoTen || '').trim().split(' ');
-                    const firstName = nameParts.length > 0 ? nameParts[nameParts.length - 1] : '';
-
-                    return (
-                      <motion.div
-                        key={st.sbd}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: i * 0.002 }}
-                        className={`flex items-center gap-1 p-0.5 rounded border transition-all duration-500 ${
-                          st.status === 'active' 
-                            ? 'bg-green-500/10 text-green-400 border-green-500/10' 
-                            : 'bg-red-500/5 text-red-500 border-red-500/10 opacity-30 shadow-none'
-                        } ${phase === 'locked' && st.status==='active' && st.hasAnswered ? 'ring-1 ring-yellow-400/50 bg-yellow-400/5' : ''}`}
-                      >
-                        <div className={`w-6 h-6 shrink-0 rounded-sm flex items-center justify-center font-black text-[9px] border ${
-                          st.status === 'active' ? 'bg-green-500 text-slate-900 border-green-400' : 'bg-red-900/40 text-red-500 border-red-800'
-                        }`}>
-                          {st.sbd}
-                        </div>
-                        <div className="flex-1 min-w-0 overflow-hidden leading-tight">
-                          <p className="font-bold truncate text-[10px] uppercase tracking-tighter text-white/90">{firstName}</p>
-                        </div>
-                        {st.status === 'active' && st.hasAnswered && phase !== 'idle' && (
-                          <div className="w-1 h-1 shrink-0 rounded-full bg-yellow-400 shadow-[0_0_5px_rgba(250,204,21,0.5)]"></div>
-                        )}
-                      </motion.div>
-                    );
-                  }) : (
-                    <div className="p-4 text-center text-slate-600 italic text-[9px]">Trống</div>
+                <div className="grid grid-cols-6 gap-1 content-start font-sans">
+                  {studentsList.length > 0 ? studentsList.map((st, i) => (
+                    <motion.div
+                      key={st.sbd}
+                      initial={{ scale: 0.5, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ delay: i * 0.002 }}
+                      className={`aspect-square rounded flex items-center justify-center font-black text-[12px] border transition-all duration-500 ${
+                        st.status === 'active' 
+                          ? 'bg-green-500 text-slate-900 border-green-400 shadow-[0_0_10px_rgba(34,197,94,0.1)]' 
+                          : 'bg-red-900/40 text-red-500 border-red-800 opacity-40 shadow-none'
+                      } ${phase === 'locked' && st.status==='active' && st.hasAnswered ? 'ring-2 ring-yellow-400' : ''}`}
+                    >
+                      {st.sbd}
+                      {st.status === 'active' && st.hasAnswered && phase !== 'idle' && (
+                        <div className="absolute top-0 right-0 w-1.5 h-1.5 bg-yellow-400 rounded-full translate-x-1/3 -translate-y-1/3 shadow-[0_0_5px_rgba(250,204,21,0.8)]"></div>
+                      )}
+                    </motion.div>
+                  )) : (
+                    <div className="col-span-6 p-4 text-center text-slate-600 italic text-[10px]">Trống</div>
                   )}
                 </div>
               </div>
