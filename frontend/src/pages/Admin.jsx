@@ -89,6 +89,12 @@ export default function Admin() {
     };
   }, []);
 
+  useEffect(() => {
+    if (isCameraActive && localStreamRef.current && localVideoRef.current) {
+      localVideoRef.current.srcObject = localStreamRef.current;
+    }
+  }, [isCameraActive]);
+
   const stopCamera = () => {
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach(track => track.stop());
@@ -104,10 +110,16 @@ export default function Admin() {
 
   const startCamera = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: true, 
+        audio: true 
+      }).catch(async () => {
+        // Fallback to video only if audio fails
+        return await navigator.mediaDevices.getUserMedia({ video: true });
+      });
+      
       localStreamRef.current = stream;
-      if (localVideoRef.current) localVideoRef.current.srcObject = stream;
-      setIsCameraActive(true);
+      setIsCameraActive(true); // Re-render will trigger useEffect to set srcObject
       socket.emit('admin:camera_status', { active: true });
 
       // Khoi tao WebRTC Caller

@@ -292,10 +292,10 @@ export default function Stage() {
   }, [isAudioEnabled]);
 
   useEffect(() => {
-    if (remoteVideoRef.current && remoteStream) {
+    if (isCameraActive && remoteVideoRef.current && remoteStream) {
       remoteVideoRef.current.srcObject = remoteStream;
     }
-  }, [remoteStream]);
+  }, [remoteStream, isCameraActive]);
 
   const studentsList = Object.values(gameState.students).sort((a,b) => String(a.sbd).localeCompare(String(b.sbd)));
   const { phase, question } = gameState;
@@ -604,6 +604,7 @@ export default function Stage() {
              <video 
                ref={remoteVideoRef} 
                autoPlay 
+               muted
                playsInline 
                className="w-full h-full object-contain"
              />
