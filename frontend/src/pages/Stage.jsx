@@ -89,30 +89,30 @@ export default function Stage() {
   return (
     <div className="h-screen bg-[#020617] text-white flex flex-col font-sans overflow-hidden">
       
-      {/* HEADER LOGO - SINGLE TOP BAR */}
-      <header className="absolute top-0 left-0 w-full flex items-center justify-center py-2 bg-slate-950/90 shadow-[0_4px_20px_rgba(0,0,0,0.8)] border-b border-slate-800 z-50 backdrop-blur-sm">
+      {/* HEADER LOGO - SINGLE & HIGHEST PRIORITY */}
+      <header className="fixed top-0 left-0 w-full flex items-center justify-center py-2 bg-slate-950 shadow-[0_4px_30px_rgba(0,0,0,1)] border-b border-slate-800 z-[100] backdrop-blur-md">
          <div className="flex items-center gap-4">
             <motion.img 
               src={logoBell} 
               alt="Logo Chuông Vàng" 
-              className="w-10 h-10 md:w-12 md:h-12 drop-shadow-[0_0_10px_rgba(250,204,21,0.6)]"
+              className="w-10 h-10 md:w-14 md:h-14 drop-shadow-[0_0_20px_rgba(250,204,21,0.7)]"
               animate={{ rotate: [0, -10, 10, -10, 10, 0] }}
               transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
             />
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-black italic tracking-tighter uppercase text-transparent bg-clip-text bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-600 drop-shadow-[0_2px_10px_rgba(250,204,21,0.4)]">
+            <h1 className="text-2xl md:text-3xl lg:text-5xl font-black italic tracking-tighter uppercase text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 via-yellow-400 to-yellow-600 drop-shadow-[0_2px_15px_rgba(250,204,21,0.5)]">
               RUNG CHUÔNG VÀNG
             </h1>
             <motion.img 
               src={logoBell} 
               alt="Logo Chuông Vàng" 
-              className="w-10 h-10 md:w-12 md:h-12 drop-shadow-[0_0_10px_rgba(250,204,21,0.6)]"
+              className="w-10 h-10 md:w-14 md:h-14 drop-shadow-[0_0_20px_rgba(250,204,21,0.7)]"
               animate={{ rotate: [0, 10, -10, 10, -10, 0] }}
               transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
             />
          </div>
       </header>
 
-      <div className="flex-1 flex flex-row p-4 pt-16 gap-6 relative overflow-hidden">
+      <div className="flex-1 flex flex-row p-4 pt-20 gap-6 relative overflow-hidden">
           
           {/* MAIN STAGE (LEFT PANEL - 3/4) */}
           <div className="w-3/4 flex flex-col items-center justify-center relative min-h-0">
