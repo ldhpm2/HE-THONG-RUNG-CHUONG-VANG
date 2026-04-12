@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MathJax } from 'better-react-mathjax';
 import logoBell from '../assets/logo_bell.png';
 import { QRCodeSVG } from 'qrcode.react';
-import { Volume2, VolumeX } from 'lucide-react';
+import { Volume2, VolumeX, Camera, CameraOff } from 'lucide-react';
 import { isYouTubeURL, getYouTubeEmbedURL } from '../utils/videoUtils';
 
 
@@ -14,6 +14,11 @@ export default function Stage() {
     question: null,
     students: {}
   });
+
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [remoteStream, setRemoteStream] = useState(null);
+  const pcRef = useRef(null);
+  const remoteVideoRef = useRef(null);
 
   const [timeLeft, setTimeLeft] = useState(0);
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
@@ -241,12 +246,56 @@ export default function Stage() {
        });
     });
 
+    socket.on('camera:status_update', (data) => {
+      setIsCameraActive(data.active);
+      if (!data.active) {
+        setRemoteStream(null);
+        if (pcRef.current) {
+          pcRef.current.close();
+          pcRef.current = null;
+        }
+      }
+    });
+
+    socket.on('camera:signal_from_admin', async (data) => {
+      if (!pcRef.current) {
+        const pc = new RTCPeerConnection({
+          iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+        });
+        pcRef.current = pc;
+        pc.ontrack = (event) => {
+          setRemoteStream(event.streams[0]);
+        };
+        pc.onicecandidate = (event) => {
+          if (event.candidate) {
+            socket.emit('stage:camera_signal', { candidate: event.candidate });
+          }
+        };
+      }
+      if (data.sdp) {
+        await pcRef.current.setRemoteDescription(new RTCSessionDescription(data.sdp));
+        const answer = await pcRef.current.createAnswer();
+        await pcRef.current.setLocalDescription(answer);
+        socket.emit('stage:camera_signal', { sdp: answer });
+      } else if (data.candidate) {
+        await pcRef.current.addIceCandidate(new RTCIceCandidate(data.candidate));
+      }
+    });
+
     return () => {
       socket.off('game_state_update');
+      socket.off('camera:status_update');
+      socket.off('camera:signal_from_admin');
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       cancelAllTicks();
     };
   }, [isAudioEnabled]);
+
+  useEffect(() => {
+    if (remoteVideoRef.current && remoteStream) {
+      remoteVideoRef.current.srcObject = remoteStream;
+    }
+  }, [remoteStream]);
 
   const studentsList = Object.values(gameState.students).sort((a,b) => String(a.sbd).localeCompare(String(b.sbd)));
   const { phase, question } = gameState;
@@ -542,6 +591,35 @@ export default function Stage() {
             />
          )}
       </div>
+      
+      {/* FULL SCREEN CAMERA OVERLAY */}
+      <AnimatePresence>
+        {isCameraActive && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }} 
+            animate={{ opacity: 1, scale: 1 }} 
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="fixed inset-0 z-[200] bg-black flex items-center justify-center"
+          >
+             <video 
+               ref={remoteVideoRef} 
+               autoPlay 
+               playsInline 
+               className="w-full h-full object-contain"
+             />
+             <div className="absolute top-8 left-8 flex items-center gap-4 bg-red-600 px-6 py-2 rounded-full shadow-2xl animate-pulse">
+                <Camera className="text-white" size={24}/>
+                <span className="text-white font-black uppercase tracking-widest text-xl">TRỰC TIẾP TỪ BAN TỔ CHỨC</span>
+             </div>
+             
+             {/* Decorative Corner Borders */}
+             <div className="absolute top-4 left-4 w-20 h-20 border-t-4 border-l-4 border-white/50 rounded-tl-3xl"></div>
+             <div className="absolute top-4 right-4 w-20 h-20 border-t-4 border-r-4 border-white/50 rounded-tr-3xl"></div>
+             <div className="absolute bottom-4 left-4 w-20 h-20 border-b-4 border-l-4 border-white/50 rounded-bl-3xl"></div>
+             <div className="absolute bottom-4 right-4 w-20 h-20 border-b-4 border-r-4 border-white/50 rounded-br-3xl"></div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

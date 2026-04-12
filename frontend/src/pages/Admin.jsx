@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { socket } from '../socket';
 import { parseExcelStudentList, parseExcelQuestions } from '../utils/excelParser';
 import { parseWordQuestions } from '../utils/wordParser';
-import { Upload, Play, Square, Presentation, Eye, UserX, Activity, HeartHandshake, Trash2, XCircle, ChevronLeft, ChevronRight, Save, Plus, RotateCcw, FileDown } from 'lucide-react';
+import { Upload, Play, Square, Presentation, Eye, UserX, Activity, HeartHandshake, Trash2, XCircle, ChevronLeft, ChevronRight, Save, Plus, RotateCcw, FileDown, Camera, CameraOff } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { MathJax } from 'better-react-mathjax';
 import { isYouTubeURL, getYouTubeEmbedURL } from '../utils/videoUtils';
@@ -40,6 +40,12 @@ export default function Admin() {
     time: 30
   });
 
+  // --- CAMERA STREAM STATE ---
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const localStreamRef = useRef(null);
+  const pcRef = useRef(null);
+  const localVideoRef = useRef(null);
+
   useEffect(() => {
     const handleConnect = () => {
       // Tự động login lại khi socket kết nối (hoặc kết nối lại)
@@ -66,11 +72,71 @@ export default function Admin() {
       });
     });
 
+    socket.on('camera:signal_from_stage', async (data) => {
+      if (!pcRef.current) return;
+      if (data.sdp) {
+        await pcRef.current.setRemoteDescription(new RTCSessionDescription(data.sdp));
+      } else if (data.candidate) {
+        await pcRef.current.addIceCandidate(new RTCIceCandidate(data.candidate));
+      }
+    });
+
     return () => {
       socket.off('connect', handleConnect);
       socket.off('admin_state_update');
+      socket.off('camera:signal_from_stage');
+      stopCamera();
     };
   }, []);
+
+  const stopCamera = () => {
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => track.stop());
+      localStreamRef.current = null;
+    }
+    if (pcRef.current) {
+      pcRef.current.close();
+      pcRef.current = null;
+    }
+    setIsCameraActive(false);
+    socket.emit('admin:camera_status', { active: false });
+  };
+
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      localStreamRef.current = stream;
+      if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+      setIsCameraActive(true);
+      socket.emit('admin:camera_status', { active: true });
+
+      // Khoi tao WebRTC Caller
+      const pc = new RTCPeerConnection({
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+      });
+      pcRef.current = pc;
+
+      stream.getTracks().forEach(track => pc.addTrack(track, stream));
+
+      pc.onicecandidate = (event) => {
+        if (event.candidate) {
+          socket.emit('admin:camera_signal', { candidate: event.candidate });
+        }
+      };
+
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      socket.emit('admin:camera_signal', { sdp: offer });
+
+    } catch (err) {
+      alert('Không thể mở camera: ' + err.message);
+    }
+  };
+
+  const toggleCamera = () => {
+    if (isCameraActive) stopCamera();
+    else startCamera();
+  };
 
   // Lưu trữ câu hỏi vào localStorage khi có thay đổi
   useEffect(() => {
@@ -560,7 +626,27 @@ export default function Admin() {
               <button onClick={revealAnswer} disabled={gameState.phase === 'idle' || gameState.phase === 'answer_revealed'} className="bg-green-600 hover:bg-green-500 text-white py-4 rounded-xl flex flex-col items-center justify-center font-semibold transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg">
                 <Eye className="mb-2"/> 4. Mở Đáp Án
               </button>
+              
+              {/* Camera Control - New Section */}
+              <button 
+                onClick={toggleCamera} 
+                className={`py-4 rounded-xl flex flex-col items-center justify-center font-bold transition active:scale-95 shadow-lg border-2 ${
+                  isCameraActive ? 'bg-red-600 border-red-400 text-white animate-pulse' : 'bg-slate-700 border-slate-600 text-slate-300'
+                }`}
+              >
+                {isCameraActive ? <CameraOff className="mb-2"/> : <Camera className="mb-2"/>}
+                {isCameraActive ? 'Tắt Camera' : 'Bật Camera'}
+              </button>
            </div>
+           
+           {isCameraActive && (
+              <div className="mt-4 p-2 bg-black rounded-lg border border-red-500/50">
+                 <p className="text-[10px] text-red-500 font-bold uppercase mb-1 flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span> Live Camera Preview
+                 </p>
+                 <video ref={localVideoRef} autoPlay muted playsInline className="w-full h-40 object-cover rounded" />
+              </div>
+           )}
                       <div className="mt-6 border-t border-slate-700 pt-6 space-y-3">
                <button 
                   onClick={rescueAll} 

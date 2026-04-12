@@ -252,6 +252,23 @@ io.on('connection', (socket) => {
     }
   });
 
+  // --- CAMERA STREAMING (WebRTC Relay) ---
+  socket.on('admin:camera_signal', (data) => {
+    if (socket.id !== adminSocketId) return;
+    socket.broadcast.emit('camera:signal_from_admin', data);
+  });
+
+  socket.on('stage:camera_signal', (data) => {
+    if (adminSocketId) {
+      io.to(adminSocketId).emit('camera:signal_from_stage', data);
+    }
+  });
+
+  socket.on('admin:camera_status', (data) => {
+    if (socket.id !== adminSocketId) return;
+    io.emit('camera:status_update', data);
+  });
+
   // --- CLIENT EVENTS ---
   socket.on('student:login', (data, callback) => {
     const { sbd, pin } = data;
