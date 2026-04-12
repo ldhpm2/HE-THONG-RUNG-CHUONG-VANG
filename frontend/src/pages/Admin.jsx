@@ -145,9 +145,6 @@ export default function Admin() {
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
       socket.emit('admin:camera_signal', { sdp: offer });
-
-      await pc.setLocalDescription(offer);
-      socket.emit('admin:camera_signal', { sdp: offer });
     } catch (err) {
       alert('Không thể mở camera: ' + err.message);
     }
