@@ -630,12 +630,17 @@ export default function Stage() {
                  playsInline 
                  className="w-full h-full object-contain"
                />
-             ) : (
+             ) : lastFrame ? (
                <img 
                  src={lastFrame} 
                  alt="Admin Live Feed" 
                  className="w-full h-full object-contain" 
                />
+             ) : (
+               <div className="flex flex-col items-center justify-center gap-4 text-white/50">
+                 <Camera size={48} className="animate-pulse" />
+                 <span className="text-xl font-bold tracking-widest">Đang kết nối camera...</span>
+               </div>
              )}
              
              <div className="absolute top-8 left-8 flex items-center gap-4 bg-red-600 px-6 py-2 rounded-full shadow-2xl animate-pulse">

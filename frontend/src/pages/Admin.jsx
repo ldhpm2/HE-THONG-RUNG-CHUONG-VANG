@@ -157,12 +157,12 @@ export default function Admin() {
         if (localVideoRef.current && canvasRef.current) {
           const canvas = canvasRef.current;
           const video = localVideoRef.current;
-          if (video.videoWidth > 0) {
-            canvas.width = 300; 
-            canvas.height = (video.videoHeight / video.videoWidth) * 300;
+          if (video.videoWidth > 0 && video.readyState >= 2) {
+            canvas.width = 240; 
+            canvas.height = Math.round((video.videoHeight / video.videoWidth) * 240);
             const ctx = canvas.getContext('2d');
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const data = canvas.toDataURL('image/jpeg', 0.5); 
+            const data = canvas.toDataURL('image/jpeg', 0.4); 
             socket.emit('admin:camera_frame', data);
           }
         }

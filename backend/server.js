@@ -12,7 +12,8 @@ const io = new Server(server, {
   cors: {
     origin: '*',
     methods: ['GET', 'POST']
-  }
+  },
+  maxHttpBufferSize: 5e6 // 5MB - cho phép truyền frame ảnh Base64
 });
 
 // --- GAME STATE ---
