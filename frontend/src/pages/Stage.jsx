@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { socket } from '../socket';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MathJax } from 'better-react-mathjax';
 import logoBell from '../assets/logo_bell.png';
 import { QRCodeSVG } from 'qrcode.react';
+import { Volume2, VolumeX } from 'lucide-react';
 
 
 export default function Stage() {
@@ -14,6 +15,12 @@ export default function Stage() {
   });
 
   const [timeLeft, setTimeLeft] = useState(0);
+  const [isAudioEnabled, setIsAudioEnabled] = useState(false);
+
+  // Audio Refs
+  const tickTockRef = useRef(new Audio('https://raw.githubusercontent.com/Anshul-Vashist/Quiz-Sound-Effects/main/15_second_timer.mp3'));
+  const gongRef = useRef(new Audio('https://raw.githubusercontent.com/Anshul-Vashist/Quiz-Sound-Effects/main/gong.mp3'));
+  const correctRef = useRef(new Audio('https://raw.githubusercontent.com/Anshul-Vashist/Quiz-Sound-Effects/main/correct_answer.mp3'));
 
   useEffect(() => {
     socket.on('game_state_update', (data) => {
@@ -42,6 +49,29 @@ export default function Stage() {
       clearInterval(timer);
     };
   }, []);
+
+  // Sync Audio with Phase and TimeLeft
+  useEffect(() => {
+    if (!isAudioEnabled) return;
+
+    if (phase === 'timer_running') {
+      tickTockRef.current.currentTime = 0;
+      tickTockRef.current.loop = true;
+      tickTockRef.current.play().catch(e => console.log('Audio error:', e));
+    } else {
+      tickTockRef.current.pause();
+    }
+
+    if (phase === 'timer_running' && timeLeft === 0) {
+      gongRef.current.currentTime = 0;
+      gongRef.current.play().catch(e => console.log('Audio error:', e));
+    }
+
+    if (phase === 'answer_revealed') {
+      correctRef.current.currentTime = 0;
+      correctRef.current.play().catch(e => console.log('Audio error:', e));
+    }
+  }, [phase, timeLeft, isAudioEnabled]);
 
   const studentsList = Object.values(gameState.students).sort((a,b) => String(a.sbd).localeCompare(String(b.sbd)));
   const { phase, question } = gameState;
@@ -155,17 +185,34 @@ export default function Stage() {
                            </div>
                         </div>
 
-                        <div className="text-center space-y-4">
+                        <div className="text-center space-y-8">
                            <h2 className="text-[clamp(1.5rem,4vh,3.5rem)] font-black tracking-[0.25em] text-white uppercase drop-shadow-lg">
-                              Hãy Tập Trung Khoảnh Khắc <br /> Bắt Đầu
+                               Hãy Tập Trung Khoảnh Khắc <br /> Bắt Đầu
                            </h2>
-                           <motion.p 
-                             animate={{ opacity: [0.4, 1, 0.4] }}
-                             transition={{ repeat: Infinity, duration: 2 }}
-                             className="text-yellow-500 text-xl font-mono tracking-[0.3em] opacity-80"
-                           >
-                             {window.location.origin}
-                           </motion.p>
+                           
+                           <div className="flex flex-col items-center gap-6">
+                                <motion.button
+                                  whileHover={{ scale: 1.05 }}
+                                  whileTap={{ scale: 0.95 }}
+                                  onClick={() => setIsAudioEnabled(!isAudioEnabled)}
+                                  className={`flex items-center gap-4 px-10 py-5 rounded-full font-black text-2xl uppercase tracking-widest shadow-[0_0_30px_rgba(234,179,8,0.3)] transition-all duration-500 border-b-8 ${
+                                    isAudioEnabled 
+                                      ? 'bg-green-600 hover:bg-green-500 border-green-800 text-white' 
+                                      : 'bg-yellow-500 hover:bg-yellow-400 border-yellow-700 text-slate-900 animate-pulse'
+                                  }`}
+                                >
+                                  {isAudioEnabled ? <Volume2 size={32}/> : <VolumeX size={32}/>}
+                                  {isAudioEnabled ? 'Âm thanh Đã Bật' : 'Kích hoạt Âm Thanh'}
+                                </motion.button>
+
+                                <motion.p 
+                                  animate={{ opacity: [0.4, 1, 0.4] }}
+                                  transition={{ repeat: Infinity, duration: 2 }}
+                                  className="text-yellow-500 text-xl font-mono tracking-[0.3em] opacity-80"
+                                >
+                                  {window.location.origin}
+                                </motion.p>
+                           </div>
                         </div>
                     </motion.div>
                 ) : (
