@@ -141,13 +141,13 @@ export default function Stage() {
                         </div>
 
                         <div className="text-center space-y-4">
-                           <h2 className="text-[clamp(2rem,5vh,4.5rem)] font-light tracking-[0.15em] text-slate-400 uppercase">
-                              Hãy Tập Trung <span className="text-slate-200 font-medium">Khoảnh Khắc</span> <span className="text-white font-black">Bắt Đầu</span>
+                           <h2 className="text-[clamp(1.5rem,4vh,3.5rem)] font-black tracking-[0.25em] text-white uppercase drop-shadow-lg">
+                              Hãy Tập Trung Khoảnh Khắc Bắt Đầu
                            </h2>
                            <motion.p 
                              animate={{ opacity: [0.4, 1, 0.4] }}
                              transition={{ repeat: Infinity, duration: 2 }}
-                             className="text-yellow-500 text-2xl font-mono tracking-[0.2em]"
+                             className="text-yellow-500 text-xl font-mono tracking-[0.3em] opacity-80"
                            >
                              {window.location.origin}
                            </motion.p>
