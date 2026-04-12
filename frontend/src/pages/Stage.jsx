@@ -424,7 +424,7 @@ export default function Stage() {
                        </div>
 
                        {/* Question Content Wrapper - Perfectly fits the container */}
-                       <div className="flex-1 flex flex-col items-center justify-center min-h-0 overflow-hidden">
+                       <div className="flex-1 flex flex-col items-center justify-between min-h-0 overflow-hidden">
                            {/* 1. Text Block - Keeps its size */}
                            <div className={`font-semibold text-slate-100 flex-shrink-0 whitespace-pre-wrap text-center mb-2 ${getDynamicFontSize(question.content?.length)}`}>
                               {renderMixedText(question.content)}
@@ -432,7 +432,7 @@ export default function Stage() {
  
                            {/* 2. Media Renderer - Flexible and Shrinkable */}
                            {question.mediaType !== 'none' && question.mediaUrl && (
-                              <div className="flex-shrink-0 w-full my-6 rounded-2xl overflow-hidden border border-slate-700 bg-black/40 flex items-center justify-center relative min-h-[30vh] max-h-[50vh]">
+                              <div className="flex-1 min-h-0 w-full my-2 rounded-2xl overflow-hidden border border-slate-700 bg-black/40 flex items-center justify-center relative">
                                  {question.mediaType === 'video' && (
                                     isYouTubeURL(question.mediaUrl) ? (
                                       <iframe 
