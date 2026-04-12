@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { socket } from '../socket';
 import { parseExcelStudentList, parseExcelQuestions } from '../utils/excelParser';
 import { parseWordQuestions } from '../utils/wordParser';
-import { Upload, Play, Square, Presentation, Eye, UserX, Activity, HeartHandshake, Trash2, XCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Upload, Play, Square, Presentation, Eye, UserX, Activity, HeartHandshake, Trash2, XCircle, ChevronLeft, ChevronRight, Save, Plus, RotateCcw, FileDown } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { MathJax } from 'better-react-mathjax';
 
@@ -281,8 +281,9 @@ export default function Admin() {
       <div className="w-full md:w-1/3 flex flex-col gap-6">
         
         {/* Module Upload */}
+        {/* Module Upload Thí Sinh */}
         <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
-          <h3 className="text-xl font-bold text-white mb-4 flex items-center"><Upload className="mr-2"/> Dữ Liệu</h3>
+          <h3 className="text-xl font-bold text-white mb-4 flex items-center"><Upload className="mr-2"/> Dữ Liệu Thí Sinh</h3>
           <div>
             <label className="block text-sm mb-2">Tải lên danh sách thí sinh (Excel)</label>
             <input type="file" accept=".xlsx, .xls" onChange={handleStudentUpload} className="w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer" />
@@ -295,54 +296,59 @@ export default function Admin() {
 
         {/* Soạn Câu Hỏi */}
         <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg flex-1 overflow-y-auto max-h-[650px] custom-scrollbar">
-          <div className="flex flex-wrap justify-between items-center mb-4 gap-2">
-            <h3 className="text-xl font-bold text-white flex-1 min-w-[200px]">Mô-đun Câu Hỏi (Draft)</h3>
-            <div className="flex gap-2">
-               <button onClick={() => {
-                   if(window.confirm('Bạn có chắc chắn muốn xóa TOÀN BỘ danh sách câu hỏi đã tải?')) {
-                      setQuestionsList([]);
-                   }
-               }} className="text-xs font-bold bg-red-900/80 hover:bg-red-800 text-white px-3 py-1.5 rounded cursor-pointer transition shadow-md flex items-center">
-                  Xóa tất cả
-               </button>
-               <div className="flex gap-2">
-               {editingIndex !== null ? (
-                 <button onClick={handleUpdateQuestion} className="w-1/2 bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded transition shadow-md">
-                   Lưu Thay Đổi
-                 </button>
-               ) : (
-                 <button onClick={handleAddManualQuestion} className="w-1/2 bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded transition shadow-md">
-                   + Thêm câu
-                 </button>
-               )}
-               <button onClick={() => {
-                 setEditingIndex(null);
-                 setQuestionDraft({
-                   content: '',
-                   type: 'mcq',
-                   options: ['A', 'B', 'C', 'D'],
-                   optionA: '', optionB: '', optionC: '', optionD: '',
-                   correct: 'A',
-                   mediaType: 'none',
-                   mediaUrl: '',
-                   time: 30
-                 });
-               }} className="w-1/2 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 rounded transition shadow-md">
-                  Reset/Xóa Trắng
-               </button>
-            </div>
-            <div className="flex gap-2 mb-2">
-               <button onClick={exportQuestions} className="text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white px-3 py-1.5 rounded cursor-pointer transition shadow-md whitespace-nowrap">
-                  Xuất File (Backup)
-               </button>
-               <label className="text-xs font-bold bg-green-600 hover:bg-green-500 text-white px-3 py-1.5 rounded cursor-pointer transition shadow-md whitespace-nowrap">
-                  Nạp DS (Excel/Word/JSON)
-                  <input type="file" accept=".xlsx, .xls, .docx, .json" onChange={handleQuestionUpload} className="hidden" />
-               </label>
-            </div>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-sm font-black uppercase text-slate-500 tracking-wider">Mô-đun Câu Hỏi (Draft)</h3>
+            <button 
+              onClick={() => {
+                if(window.confirm('Bạn có chắc chắn muốn xóa TOÀN BỘ danh sách câu hỏi đã tải?')) {
+                   setQuestionsList([]);
+                }
+              }} 
+              className="px-2 py-1 text-[10px] font-bold bg-red-900/30 text-red-500 hover:bg-red-900/50 rounded-md border border-red-900/30 transition flex items-center gap-1 uppercase"
+            >
+              <Trash2 size={12}/> Xóa tất cả
+            </button>
           </div>
 
-        </div>
+          <div className="grid grid-cols-2 gap-2 mb-4">
+             {editingIndex !== null ? (
+               <button onClick={handleUpdateQuestion} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-3 rounded-lg transition-all shadow-md active:scale-95 text-xs flex items-center justify-center gap-2">
+                 <Save size={14}/> Lưu Thay Đổi
+               </button>
+             ) : (
+               <button onClick={handleAddManualQuestion} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-3 rounded-lg transition-all shadow-md active:scale-95 text-xs flex items-center justify-center gap-2">
+                 <Plus size={14}/> Thêm câu mới
+               </button>
+             )}
+             <button 
+                onClick={() => {
+                  setEditingIndex(null);
+                  setQuestionDraft({
+                    content: '',
+                    type: 'mcq',
+                    options: ['A', 'B', 'C', 'D'],
+                    optionA: '', optionB: '', optionC: '', optionD: '',
+                    correct: 'A',
+                    mediaType: 'none',
+                    mediaUrl: '',
+                    time: 30
+                  });
+                }} 
+                className="bg-slate-700 hover:bg-slate-600 text-slate-100 font-bold py-2 px-3 rounded-lg transition-all shadow-md active:scale-95 text-xs flex items-center justify-center gap-2"
+              >
+                <RotateCcw size={14}/> Làm mới
+             </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 mb-4">
+             <button onClick={exportQuestions} className="bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 px-3 rounded-lg transition-all shadow-md active:scale-95 text-xs flex items-center justify-center gap-2">
+                <FileDown size={14}/> Xuất File (Backup)
+             </button>
+             <label className="bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-3 rounded-lg transition-all shadow-md active:scale-95 text-xs flex items-center justify-center gap-2 cursor-pointer">
+                <Upload size={14}/> Nạp Danh Sách
+                <input type="file" accept=".xlsx, .xls, .docx, .json" onChange={handleQuestionUpload} className="hidden" />
+             </label>
+          </div>
 
           {/* Navigation Bar */}
           {questionsList.length > 0 && (
