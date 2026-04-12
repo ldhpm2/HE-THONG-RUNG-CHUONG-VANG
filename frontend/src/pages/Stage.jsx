@@ -497,8 +497,8 @@ export default function Stage() {
 
                        {/* Question Content Wrapper - Priority Based Layout */}
                        <div className="flex-1 flex flex-col items-center justify-center min-h-0 overflow-hidden gap-4 mt-12 px-2">
-                           {/* 1. Text Block - Priority 1 (Always shrink-0 to prevent clipping) */}
-                           <div className={`font-semibold text-slate-100 flex-shrink-0 whitespace-pre-wrap text-center ${getDynamicFontSize(question.content?.length)}`}>
+                           {/* 1. Text Block - Priority 1 (Justified alignment for professional look) */}
+                           <div className={`font-semibold text-slate-100 flex-shrink-0 whitespace-pre-wrap text-justify [text-align-last:center] max-w-[95%] px-6 ${getDynamicFontSize(question.content?.length)}`}>
                               {renderMixedText(question.content)}
                            </div>
  
