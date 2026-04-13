@@ -474,7 +474,7 @@ export default function Stage() {
                     className="w-full h-full flex flex-col items-center relative overflow-hidden bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black rounded-3xl"
                   >
                     {/* Header Title for Intro */}
-                    <div className="absolute top-10 left-0 w-full z-10 flex flex-col items-center text-center">
+                    <div className="absolute top-10 left-0 w-full z-20 flex flex-col items-center text-center">
                       <h2 className="text-5xl font-black uppercase tracking-[0.2em] mb-4 text-transparent bg-clip-text bg-gradient-to-b from-yellow-100 via-yellow-400 to-yellow-600 drop-shadow-[0_5px_15px_rgba(250,204,21,0.5)]">
                         Danh Sách Thí Sinh
                       </h2>
@@ -505,8 +505,8 @@ export default function Stage() {
                             <div className="flex items-center gap-8">
                               <span className="text-5xl font-black font-mono text-yellow-500 w-24">#{s.sbd}</span>
                               <div className="flex flex-col">
-                                <span className="text-6xl font-black text-white tracking-wide uppercase">{s.name}</span>
-                                <span className="text-2xl text-yellow-400/80 uppercase tracking-widest font-bold">Lớp: {s.className || 'N/A'}</span>
+                                <span className="text-6xl font-black text-white tracking-wide uppercase">{s.hoTen}</span>
+                                <span className="text-2xl text-yellow-400/80 uppercase tracking-widest font-bold">Lớp: {s.lop || 'N/A'}</span>
                               </div>
                             </div>
                             <div className="flex flex-col items-end">
@@ -529,7 +529,7 @@ export default function Stage() {
                     
                     {/* Bottom & Top vignette to make fade effect */}
                     <div className="absolute bottom-0 left-0 w-full h-48 bg-gradient-to-t from-black via-black/80 to-transparent pointer-events-none z-10"></div>
-                    <div className="absolute top-0 left-0 w-full h-48 bg-gradient-to-b from-black via-black/80 to-transparent pointer-events-none z-10"></div>
+                    <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-black via-black/80 to-transparent pointer-events-none z-10"></div>
                   </motion.div>
                 )}
 
