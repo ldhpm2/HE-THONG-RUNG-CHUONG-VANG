@@ -503,7 +503,7 @@ export default function Stage() {
                         {studentsList.map((s, idx) => (
                           <div key={idx} className="flex items-center justify-between px-12 py-6 bg-slate-800/20 border-y border-yellow-500/10 backdrop-blur-sm rounded-xl">
                             <div className="flex items-center gap-8">
-                              <span className="text-5xl font-black font-mono text-yellow-500 w-24">#{s.sbd}</span>
+                              <span className="text-5xl font-black font-mono text-yellow-500 w-24">{s.sbd}</span>
                               <div className="flex flex-col">
                                 <span className="text-6xl font-black text-white tracking-wide uppercase">{s.hoTen}</span>
                                 <span className="text-2xl text-yellow-400/80 uppercase tracking-widest font-bold">Lớp: {s.lop || 'N/A'}</span>
@@ -511,8 +511,8 @@ export default function Stage() {
                             </div>
                             <div className="flex flex-col items-end">
                               <span className="text-xs text-slate-500 uppercase tracking-widest mb-1">Mã tham gia</span>
-                              <span className="text-4xl font-black font-mono text-slate-300 tracking-tighter bg-slate-900/50 px-6 py-2 rounded-lg border border-slate-700 shadow-inner">
-                                {s.pin}
+                              <span className="text-4xl font-black font-mono text-white tracking-tighter bg-slate-900/80 px-6 py-2 rounded-lg border border-slate-700 shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] min-w-[120px] text-center">
+                                {s.pin || '---'}
                               </span>
                             </div>
                           </div>
