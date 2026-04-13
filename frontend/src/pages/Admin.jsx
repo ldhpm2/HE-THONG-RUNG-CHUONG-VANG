@@ -1121,7 +1121,7 @@ export default function Admin() {
                 </div>
                 <div className="flex items-center px-3 py-1 bg-yellow-500/10 rounded-full border border-yellow-500/20 text-yellow-400">
                   <div className="w-1.5 h-1.5 rounded-full bg-yellow-400 mr-2"></div>
-                  Đã nộp: {submittedCount}/{gameState.question?.isRescue ? eliminatedCount : gameState.question?.isAudience ? studentList.length : activeCount}
+                  Đã nộp: {submittedCount} / {gameState.question?.isRescue ? eliminatedCount : gameState.question?.isAudience ? studentList.length : activeCount}
                 </div>
               </div>
             </div>
