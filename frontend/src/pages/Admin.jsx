@@ -11,6 +11,8 @@ import { isYouTubeURL, getYouTubeEmbedURL } from '../utils/videoUtils';
 export default function Admin() {
   const [isAdminLogged, setIsAdminLogged] = useState(() => localStorage.getItem('admin_logged') === 'true');
   const [password, setPassword] = useState(() => localStorage.getItem('admin_password') || '');
+  const [isConnected, setIsConnected] = useState(socket.connected);
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   
   const [gameState, setGameState] = useState({
     phase: 'idle',
@@ -228,19 +230,28 @@ export default function Admin() {
 
   useEffect(() => {
     const handleConnect = () => {
+      setIsConnected(true);
       // Tự động login lại khi socket kết nối (hoặc kết nối lại)
       const savedPass = localStorage.getItem('admin_password');
       if (savedPass) {
         socket.emit('admin:login', { password: savedPass }, (res) => {
           if (res.success) {
             setIsAdminLogged(true);
-            console.log('[Admin] Auto-login successful on connect');
+            setIsAdminAuthenticated(true);
+          } else {
+            setIsAdminAuthenticated(false);
           }
         });
       }
     };
 
+    const handleDisconnect = () => {
+       setIsConnected(false);
+       setIsAdminAuthenticated(false);
+    };
+
     socket.on('connect', handleConnect);
+    socket.on('disconnect', handleDisconnect);
     // Gọi ngay lần đầu nếu đã kết nối
     if (socket.connected) handleConnect();
 
@@ -264,6 +275,7 @@ export default function Admin() {
 
     return () => {
       socket.off('connect', handleConnect);
+      socket.off('disconnect', handleDisconnect);
       socket.off('admin_state_update');
       socket.off('camera:signal_from_stage');
       stopCamera();
@@ -384,9 +396,11 @@ export default function Admin() {
     socket.emit('admin:login', { password }, (res) => {
       if (res.success) {
         setIsAdminLogged(true);
+        setIsAdminAuthenticated(true);
         localStorage.setItem('admin_logged', 'true');
         localStorage.setItem('admin_password', password);
       } else {
+        setIsAdminAuthenticated(false);
         alert(res.message);
       }
     });
@@ -1049,6 +1063,24 @@ export default function Admin() {
 
         {/* Monitor Panel */}
         <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg flex-1 overflow-hidden flex flex-col">
+            {/* Status Top Bar */}
+       <div className="flex items-center justify-between mb-6 px-4 py-2 bg-slate-800/50 rounded-lg border border-slate-700/50">
+          <div className="flex items-center gap-4">
+             <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
+                <span className="text-xs text-slate-400">Server: {isConnected ? 'Đã kết nối' : 'Mất kết nối'}</span>
+             </div>
+             <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${isAdminAuthenticated ? 'bg-blue-500' : 'bg-yellow-500'}`}></div>
+                <span className="text-xs text-slate-400">Quyền Admin: {isAdminAuthenticated ? 'Hiện diện' : 'Chưa xác thực'}</span>
+             </div>
+          </div>
+          <div className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">
+             Hệ thống Rung Chuông Vàng v2.1
+          </div>
+       </div>
+
+       <div className="flex flex-col md:flex-row gap-8">
             <div className="flex items-center justify-between mb-4">
                <div className="flex items-center gap-4">
                   <h3 className="text-xl font-bold text-white flex items-center"><Activity className="mr-2"/> Giám Sát Real-time</h3>

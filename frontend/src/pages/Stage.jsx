@@ -26,9 +26,10 @@ export default function Stage() {
   const [timeLeft, setTimeLeft] = useState(0);
   const [isLocalAudioUnlocked, setIsLocalAudioUnlocked] = useState(false);
   const audioCtxRef = useRef(null);
+  const scheduledTicksRef = useRef([]);
   const timerEndRef = useRef(null);   // timestamp (ms) khi hết giờ
+  const lastScheduledRef = useRef(null); // Để tránh schedule lặp lại cho cùng 1 mốc thời gian
   const rafRef = useRef(null);         // requestAnimationFrame id
-  const scheduledTicksRef = useRef([]); // danh sách AudioBufferSourceNode đã lên lịch
 
   // Tieng TICK co hoc - khop 1 lan/giay voi dong ho
   const playTick = (urgent = false) => {
@@ -194,12 +195,6 @@ export default function Stage() {
       audioCtxRef.current.resume();
     }
     setIsLocalAudioUnlocked(true);
-
-    // Nếu đang trong timer mà mới unlock -> phát bù âm thanh còn lại
-    if (gameState.phase === 'timer_running' && gameState.isSoundEnabled && timerEndRef.current) {
-       const remaining = Math.max(0, Math.ceil((timerEndRef.current - Date.now()) / 1000));
-       if (remaining > 0) scheduleAllTicks(remaining, 5);
-    }
   };
 
   // ── RAF-based countdown: tính từ timestamp để tránh drift setInterval ────
@@ -222,31 +217,16 @@ export default function Stage() {
   useEffect(() => {
      socket.on('game_state_update', (data) => {
         setGameState(prevState => {
-          // Nếu vừa bắt đầu timer HOẶC đang chạy timer mà Admin bật/tắt âm thanh
-          if (data.gamePhase === 'timer_running') {
-             // Case 1: Vừa bắt đầu mới
-             if (prevState.phase !== 'timer_running') {
-                const duration = data.currentQuestion?.time || 15;
-                timerEndRef.current = Date.now() + duration * 1000;
-                setTimeLeft(duration);
-                if (data.isSoundEnabled ) scheduleAllTicks(duration, 5);
-             } 
-             // Case 2: Đang chạy mà Admin bật âm thanh lên
-             else if (!prevState.isSoundEnabled && data.isSoundEnabled) {
-                const remaining = Math.max(0, Math.ceil((timerEndRef.current - Date.now()) / 1000));
-                if (remaining > 0) scheduleAllTicks(remaining, 5);
-             }
-             // Case 3: Đang chạy mà Admin tắt âm thanh đi
-             else if (prevState.isSoundEnabled && !data.isSoundEnabled) {
-                cancelAllTicks();
-             }
+          if (data.gamePhase === 'timer_running' && prevState.phase !== 'timer_running') {
+             const duration = data.currentQuestion?.time || 15;
+             timerEndRef.current = Date.now() + duration * 1000;
+             setTimeLeft(duration);
           }
 
-          // Nếu timer bị khóa/kết thúc → hủy
           if (data.gamePhase === 'locked' || data.gamePhase === 'idle' || data.gamePhase === 'question_sent') {
              timerEndRef.current = null;
-             cancelAllTicks();
           }
+
           return {
             phase: data.gamePhase,
             question: data.currentQuestion,
@@ -263,9 +243,32 @@ export default function Stage() {
     };
   }, [isLocalAudioUnlocked]);
 
-  // Dung dap an
+  // --- EFFECT: SELF-HEALING AUDIO SYNC -----------------------------------
+  // Effect này đảm bảo âm thanh luôn khớp với trạng thái game, dù mở khóa muộn hay toggle admin
   useEffect(() => {
-    if (gameState.isSoundEnabled && gameState.phase === 'answer_revealed') {
+    const shouldPlayTicks = gameState.phase === 'timer_running' && gameState.isSoundEnabled && isLocalAudioUnlocked && timerEndRef.current;
+
+    if (shouldPlayTicks) {
+      const remaining = Math.max(0, Math.ceil((timerEndRef.current - Date.now()) / 1000));
+      if (remaining > 0 && lastScheduledRef.current !== timerEndRef.current) {
+        console.log(`[Audio] Auto-syncing ticks: ${remaining}s left`);
+        lastScheduledRef.current = timerEndRef.current;
+        cancelAllTicks(); // Xóa cái cũ nếu có
+        scheduleAllTicks(remaining, 5);
+      }
+    } else {
+      // Nếu không thỏa mãn đk phát -> Dừng tất cả
+      if (lastScheduledRef.current !== null) {
+        console.log(`[Audio] Stopping ticks due to state change`);
+        lastScheduledRef.current = null;
+        cancelAllTicks();
+      }
+    }
+  }, [gameState.phase, gameState.isSoundEnabled, isLocalAudioUnlocked]);
+
+  // Dung dap an - Hiệu ứng này vẫn giữ riêng cho âm thanh kết quả
+  useEffect(() => {
+    if (gameState.isSoundEnabled && gameState.phase === 'answer_revealed' && isLocalAudioUnlocked) {
       cancelAllTicks();
       playCorrect();
     }

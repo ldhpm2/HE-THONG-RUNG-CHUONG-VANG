@@ -66,18 +66,21 @@ io.on('connection', (socket) => {
   // --- ADMIN EVENTS ---
   socket.on('admin:login', (data, callback) => {
     if (data.password === 'admin123') {
-      adminSocketId = socket.id;
-      console.log(`[Admin] Login Success: ${socket.id}`);
+      adminSocketId = socket.id; // Keep for backward compatibility if needed
+      socket.join('admin_room');
+      console.log(`[Admin] Login Success: ${socket.id}. Joined 'admin_room'`);
       if(callback) callback({ success: true });
       broadcastState();
     } else {
+      console.warn(`[Admin] Login Failed for ${socket.id}: Incorrect password`);
       if(callback) callback({ success: false, message: 'Sai mật khẩu Admin' });
     }
   });
 
   socket.on('admin:upload_students', (data, callback) => {
-    if (socket.id !== adminSocketId) {
-      if(callback) callback({ success: false, message: 'Bạn chưa đăng nhập Admin hoặc bị mất kết nối. Hãy F5 tải lại trang và Đăng nhập Admin lại nhé!' });
+    if (!socket.rooms.has('admin_room')) {
+      console.warn(`[Admin] Unauthorized upload_students attempt from ${socket.id}`);
+      if(callback) callback({ success: false, message: 'Bạn chưa đăng nhập Admin hoặc bị mất kết nối!' });
       return;
     }
     students = {};
@@ -90,33 +93,35 @@ io.on('connection', (socket) => {
         online: false
       };
     });
-    console.log(`[Admin] Uploaded ${data.length} students`);
+    console.log(`[Admin] Uploaded ${data.length} students by ${socket.id}`);
     if(callback) callback({ success: true, count: data.length });
     broadcastState();
   });
 
   socket.on('admin:clear_students', (callback) => {
-    if (socket.id !== adminSocketId) {
+    if (!socket.rooms.has('admin_room')) {
+      console.warn(`[Admin] Unauthorized clear_students attempt from ${socket.id}`);
       if(callback) callback({ success: false, message: 'Bạn chưa đăng nhập Admin hoặc bị mất kết nối!' });
       return;
     }
     students = {};
     gamePhase = 'idle';
     currentQuestion = null;
-    console.log(`[Admin] Cleared all students and reset game state`);
+    console.log(`[Admin] All students cleared and game reset by ${socket.id}`);
     if(callback) callback({ success: true });
     broadcastState();
   });
 
   socket.on('admin:set_welcome', () => {
-    if (socket.id !== adminSocketId) return;
+    if (!socket.rooms.has('admin_room')) return;
     gamePhase = 'idle';
     currentQuestion = null;
+    console.log(`[Admin] Game reset to welcome screen by ${socket.id}`);
     broadcastState();
   });
 
   socket.on('admin:push_question', (data) => {
-    if (socket.id !== adminSocketId) return;
+    if (!socket.rooms.has('admin_room')) return;
     currentQuestion = { 
        ...data.question, 
        isRescue: !!data.isRescue,
@@ -128,38 +133,41 @@ io.on('connection', (socket) => {
     for (const key in students) {
       students[key].currentAnswer = null;
     }
+    console.log(`[Admin] Question pushed by ${socket.id}: ${currentQuestion.id || 'N/A'}`);
     broadcastState();
     io.emit('client_play_sound', 'question_show');
   });
 
   socket.on('admin:start_timer', () => {
-    if (socket.id !== adminSocketId) return;
+    if (!socket.rooms.has('admin_room')) return;
     gamePhase = 'timer_running';
+    console.log(`[Admin] Timer started by ${socket.id}`);
     broadcastState();
     io.emit('client_play_sound', 'timer_start');
   });
 
   socket.on('admin:lock', () => {
-    if (socket.id !== adminSocketId) return;
+    if (!socket.rooms.has('admin_room')) return;
     gamePhase = 'locked';
+    console.log(`[Admin] Answers locked by ${socket.id}`);
     broadcastState();
     io.emit('client_play_sound', 'timeout');
   });
 
   socket.on('admin:toggle_sound', () => {
-    console.log(`[Admin] Toggle sound request from ${socket.id}. Current adminSocketId: ${adminSocketId}`);
-    if (socket.id !== adminSocketId) {
-      console.warn(`[Admin] Unauthorized sound toggle attempt from ${socket.id}`);
+    if (!socket.rooms.has('admin_room')) {
+      console.warn(`[Admin] Unauthorized toggle_sound attempt from ${socket.id}`);
       return;
     }
     isSoundEnabled = !isSoundEnabled;
-    console.log(`[Admin] Sound successfully toggled: ${isSoundEnabled}`);
+    console.log(`[Admin] Global sound toggled by ${socket.id}: ${isSoundEnabled}`);
     broadcastState();
   });
 
   socket.on('admin:reveal_answer', () => {
-    if (socket.id !== adminSocketId) return;
+    if (!socket.rooms.has('admin_room')) return;
     gamePhase = 'answer_revealed';
+    console.log(`[Admin] Answer revealed by ${socket.id}`);
     
     // Auto Validate
     const correctAns = currentQuestion?.correct?.toString().toLowerCase().trim();
