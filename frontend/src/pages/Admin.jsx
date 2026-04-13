@@ -182,7 +182,7 @@ export default function Admin() {
             socket.emit('admin:camera_frame', data);
           }
         }
-      }, 200); // 5 FPS
+      }, 100); // 10 FPS (Tăng tốc độ so với 5 FPS cũ)
     } else {
       if (frameIntervalRef.current) {
         clearInterval(frameIntervalRef.current);
