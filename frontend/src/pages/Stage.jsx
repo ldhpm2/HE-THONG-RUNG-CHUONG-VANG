@@ -502,7 +502,7 @@ export default function Stage() {
                         {studentsList.map((s, idx) => (
                           <div key={idx} className="flex items-center justify-between px-12 py-6 bg-slate-800/20 border-y border-yellow-500/10 backdrop-blur-sm rounded-xl">
                             <div className="flex items-center gap-8">
-                              <span className="text-5xl font-black font-mono text-yellow-500 w-24">{s.sbd}</span>
+                              <span className="text-6xl font-black font-mono text-yellow-500 w-32">{s.sbd}</span>
                               <div className="flex flex-col">
                                 <span className="text-6xl font-black text-white tracking-wide uppercase">{s.hoTen}</span>
                                 <span className="text-2xl text-yellow-400/80 uppercase tracking-widest font-bold">Lớp: {s.lop || 'N/A'}</span>
