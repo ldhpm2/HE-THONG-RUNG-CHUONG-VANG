@@ -508,8 +508,8 @@ export default function Stage() {
                                 <span className="text-2xl text-yellow-400/80 uppercase tracking-widest font-bold">Lớp: {s.lop || 'N/A'}</span>
                               </div>
                             </div>
-                            <div className="flex flex-col items-end">
-                              <span className="text-xs text-slate-500 uppercase tracking-widest mb-1">Mã tham gia</span>
+                            <div className="flex flex-col items-center">
+                              <span className="text-xl font-bold text-yellow-500/80 uppercase tracking-widest mb-2">Mã tham gia</span>
                               <span className="text-6xl font-black font-mono text-white tracking-tighter bg-slate-900/80 px-8 py-4 rounded-xl border-2 border-slate-700 shadow-[inset_0_2px_20px_rgba(0,0,0,0.8)] min-w-[180px] text-center">
                                 {s.pin || '---'}
                               </span>
