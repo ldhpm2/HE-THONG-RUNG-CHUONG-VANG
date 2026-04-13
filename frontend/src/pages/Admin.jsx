@@ -91,7 +91,16 @@ export default function Admin() {
     };
   }, []);
 
-  // srcObject được set trực tiếp trong startCamera() - không cần useEffect này nữa
+  // useEffect backup: gọi srcObject + play() sau khi div chuyển từ hidden → block
+  useEffect(() => {
+    if (isCameraActive && localStreamRef.current && localVideoRef.current) {
+      localVideoRef.current.srcObject = localStreamRef.current;
+      localVideoRef.current.play().catch(e => console.warn('Admin video play failed:', e));
+    }
+    if (!isCameraActive && localVideoRef.current) {
+      localVideoRef.current.srcObject = null;
+    }
+  }, [isCameraActive]);
 
   const stopCamera = () => {
     if (localStreamRef.current) {
@@ -116,15 +125,15 @@ export default function Admin() {
         video: true, 
         audio: true 
       }).catch(async () => {
-        // Fallback to video only if audio fails
         return await navigator.mediaDevices.getUserMedia({ video: true });
       });
       
       localStreamRef.current = stream;
 
-      // Set srcObject ngay lập tức - video element đã luôn có trong DOM
+      // Set srcObject và play() ngay - đảm bảo video phát dù element đang ẩn
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = stream;
+        localVideoRef.current.play().catch(e => console.warn('Admin video play failed:', e));
       }
 
       setIsCameraActive(true);

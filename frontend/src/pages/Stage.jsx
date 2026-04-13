@@ -315,6 +315,7 @@ export default function Stage() {
   useEffect(() => {
     if (isCameraActive && remoteVideoRef.current && remoteStream) {
       remoteVideoRef.current.srcObject = remoteStream;
+      remoteVideoRef.current.play().catch(e => console.warn('Stage video play failed:', e));
     }
   }, [remoteStream, isCameraActive]);
 
