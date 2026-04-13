@@ -91,11 +91,7 @@ export default function Admin() {
     };
   }, []);
 
-  useEffect(() => {
-    if (isCameraActive && localStreamRef.current && localVideoRef.current) {
-      localVideoRef.current.srcObject = localStreamRef.current;
-    }
-  }, [isCameraActive]);
+  // srcObject được set trực tiếp trong startCamera() - không cần useEffect này nữa
 
   const stopCamera = () => {
     if (localStreamRef.current) {
@@ -125,7 +121,13 @@ export default function Admin() {
       });
       
       localStreamRef.current = stream;
-      setIsCameraActive(true); // Re-render will trigger useEffect to set srcObject
+
+      // Set srcObject ngay lập tức - video element đã luôn có trong DOM
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = stream;
+      }
+
+      setIsCameraActive(true);
       socket.emit('admin:camera_status', { active: true });
 
       // Khoi tao WebRTC Caller
@@ -684,15 +686,14 @@ export default function Admin() {
               </button>
            </div>
            
-           {isCameraActive && (
-              <div className="mt-4 p-2 bg-black rounded-lg border border-red-500/50">
-                 <p className="text-[10px] text-red-500 font-bold uppercase mb-1 flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span> Live Camera Preview
-                 </p>
-                 <video ref={localVideoRef} autoPlay muted playsInline className="w-full h-40 object-cover rounded" />
-                 <canvas ref={canvasRef} className="hidden" />
-              </div>
-           )}
+           {/* Video và canvas luôn hiện diện trong DOM để ref luôn sẵn sàng */}
+           <div className={`mt-4 p-2 bg-black rounded-lg border border-red-500/50 ${isCameraActive ? 'block' : 'hidden'}`}>
+              <p className="text-[10px] text-red-500 font-bold uppercase mb-1 flex items-center gap-1">
+                 <span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span> Live Camera Preview
+              </p>
+              <video ref={localVideoRef} autoPlay muted playsInline className="w-full h-40 object-cover rounded" />
+              <canvas ref={canvasRef} className="hidden" />
+           </div>
                       <div className="mt-6 border-t border-slate-700 pt-6 space-y-3">
                <button 
                   onClick={rescueAll} 
