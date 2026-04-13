@@ -643,24 +643,31 @@ export default function Stage() {
             exit={{ opacity: 0, scale: 0.9 }}
             className="fixed inset-0 z-[200] bg-black flex items-center justify-center"
           >
-             {(remoteStream && webRtcConnected) ? (
+             {/* Background: Luôn hiện ảnh JPEG dự phòng nếu có */}
+             {lastFrame && (
+               <img 
+                 src={lastFrame} 
+                 alt="Admin Live Feed Fallback" 
+                 className={`absolute inset-0 w-full h-full object-contain ${webRtcConnected ? 'opacity-0 z-0' : 'opacity-100 z-10'}`} 
+               />
+             )}
+
+             {/* Foreground: Hiện Video mượt mà khi WebRTC đã kết nối */}
+             {remoteStream && (
                <video 
                  ref={remoteVideoRef} 
                  autoPlay 
                  muted
                  playsInline 
-                 className="w-full h-full object-contain"
+                 className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-1000 ${webRtcConnected ? 'opacity-100 z-20' : 'opacity-0 z-0'}`}
                />
-             ) : lastFrame ? (
-               <img 
-                 src={lastFrame} 
-                 alt="Admin Live Feed" 
-                 className="w-full h-full object-contain" 
-               />
-             ) : (
+             )}
+
+             {/* Loader khi hoàn toàn chưa có gì */}
+             {!lastFrame && !remoteStream && (
                <div className="flex flex-col items-center justify-center gap-4 text-white/50">
                  <Camera size={48} className="animate-pulse" />
-                 <span className="text-xl font-bold tracking-widest">Đang kết nối camera...</span>
+                 <span className="text-xl font-bold tracking-widest">Đang khởi tạo camera...</span>
                </div>
              )}
              
