@@ -484,16 +484,15 @@ export default function Stage() {
                     {/* Scrolling Container */}
                     <div className="flex-1 w-full max-w-6xl mt-48 overflow-hidden relative">
                       <motion.div
-                        initial={{ y: "90vh" }}
-                        animate={{ 
-                          y: studentsList.length > 0 ? `-${studentsList.length * 25}vh` : "-100vh" 
-                        }}
+                        initial={{ y: "100vh" }}
+                        animate={{ y: "-100%" }}
                         transition={{ 
-                          duration: Math.max(20, studentsList.length * 1.8), 
+                          duration: Math.max(30, studentsList.length * 3.5), 
                           ease: "linear",
-                          repeat: Infinity
+                          repeat: Infinity,
+                          repeatDelay: 2
                         }}
-                        className="flex flex-col gap-8 pb-[100vh]"
+                        className="flex flex-col gap-8"
                       >
                         {/* Title at start of scroll */}
                         <div className="text-center py-10">
