@@ -971,7 +971,7 @@ export default function Admin() {
               <span className="text-xs px-3 py-1 bg-slate-700 rounded-full">Phase: <span className="text-white font-bold">{gameState.phase}</span></span>
            </h3>
            
-           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
               <button onClick={setWelcome} className="bg-slate-700 hover:bg-slate-600 text-white py-4 rounded-xl flex flex-col items-center justify-center font-bold transition active:scale-95 shadow-lg border-2 border-slate-600 border-dashed">
                 <Activity className="mb-2 text-yellow-400"/> 0. Bắt đầu
               </button>
@@ -996,17 +996,30 @@ export default function Admin() {
                 }`}
               >
                {isCameraActive ? <CameraOff className="mb-2"/> : <Camera className="mb-2"/>}
+                <span className="text-[10px] uppercase opacity-80">Máy Quay</span>
                 {isCameraActive ? 'Tắt Camera' : 'Bật Camera'}
+              </button>
+
+              <button 
+                onClick={() => socket.emit('admin:toggle_sound')} 
+                className={`py-4 rounded-xl flex flex-col items-center justify-center font-bold transition active:scale-95 shadow-lg border-2 ${
+                  gameState.isSoundEnabled ? 'bg-green-600 border-green-400 text-white' : 'bg-red-600 border-red-400 text-white'
+                }`}
+              >
+                {gameState.isSoundEnabled ? <Volume2 className="mb-2"/> : <VolumeX className="mb-2"/>}
+                <span className="text-[10px] uppercase opacity-80">Sân Khấu</span>
+                {gameState.isSoundEnabled ? 'Loa: Đang Bật' : 'Loa: Đang Tắt'}
               </button>
 
               <button 
                 onClick={handleEnableAudio} 
                 className={`py-4 rounded-xl flex flex-col items-center justify-center font-bold transition active:scale-95 shadow-lg border-2 ${
-                  isAudioEnabled ? 'bg-green-600 border-green-400 text-white' : 'bg-yellow-500 border-yellow-400 text-slate-900 animate-pulse'
+                  isAudioEnabled ? 'bg-slate-700 border-blue-500 text-white' : 'bg-slate-800 border-slate-700 text-slate-500'
                 }`}
               >
                 {isAudioEnabled ? <Volume2 className="mb-2"/> : <VolumeX className="mb-2"/>}
-                {isAudioEnabled ? 'Âm thanh Đang Bật' : 'Kích hoạt Âm Thanh'}
+                <span className="text-[10px] uppercase opacity-80">Máy Admin (Loa này)</span>
+                {isAudioEnabled ? 'Loa: Đang Bật' : 'Kích hoạt loa'}
               </button>
            </div>
            

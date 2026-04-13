@@ -194,6 +194,12 @@ export default function Stage() {
       audioCtxRef.current.resume();
     }
     setIsLocalAudioUnlocked(true);
+
+    // Nếu đang trong timer mà mới unlock -> phát bù âm thanh còn lại
+    if (gameState.phase === 'timer_running' && gameState.isSoundEnabled && timerEndRef.current) {
+       const remaining = Math.max(0, Math.ceil((timerEndRef.current - Date.now()) / 1000));
+       if (remaining > 0) scheduleAllTicks(remaining, 5);
+    }
   };
 
   // ── RAF-based countdown: tính từ timestamp để tránh drift setInterval ────
