@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { socket } from '../socket';
 import { parseExcelStudentList, parseExcelQuestions } from '../utils/excelParser';
 import { parseWordQuestions } from '../utils/wordParser';
-import { Upload, Play, Square, Presentation, Eye, UserX, Activity, HeartHandshake, Trash2, XCircle, ChevronLeft, ChevronRight, Save, Plus, RotateCcw, FileDown, Camera, CameraOff } from 'lucide-react';
+import { pickAndDownloadDriveFile } from '../utils/googleDrivePicker';
+import { Upload, Play, Square, Presentation, Eye, UserX, Activity, HeartHandshake, Trash2, XCircle, ChevronLeft, ChevronRight, Save, Plus, RotateCcw, FileDown, Camera, CameraOff, FolderOpen, Loader2 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { MathJax } from 'better-react-mathjax';
 import { isYouTubeURL, getYouTubeEmbedURL } from '../utils/videoUtils';
@@ -39,6 +40,10 @@ export default function Admin() {
     mediaUrl: '',
     time: 30
   });
+
+  // --- GOOGLE DRIVE STATE ---
+  const [driveStudentLoading, setDriveStudentLoading] = useState(false);
+  const [driveQuestionLoading, setDriveQuestionLoading] = useState(false);
 
   // --- CAMERA STREAM STATE ---
   const [isCameraActive, setIsCameraActive] = useState(false);
@@ -268,6 +273,113 @@ export default function Admin() {
     }
   };
 
+  // ─── Google Drive: Tải danh sách thí sinh ──────────────────────────────────
+  const handleStudentFromDrive = async () => {
+    setDriveStudentLoading(true);
+    try {
+      const file = await pickAndDownloadDriveFile({
+        mimeTypes: [
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+          'application/vnd.ms-excel', // .xls
+          'application/vnd.google-apps.spreadsheet' // Google Sheets
+        ],
+        title: 'Chọn file Danh Sách Thí Sinh từ Google Drive'
+      });
+
+      // Nếu là Google Sheets thì không thể parse trực tiếp, cần export
+      if (file.type.includes('google-apps')) {
+        alert('Vui lòng xuất file Google Sheets sang định dạng .xlsx trước khi tải lên.');
+        setDriveStudentLoading(false);
+        return;
+      }
+
+      const students = await parseExcelStudentList(file);
+      if (students.length === 0) {
+        alert('File không có dữ liệu thí sinh hợp lệ. Kiểm tra lại cột SBD, HỌ TÊN, LỚP, MÃ PIN.');
+        setDriveStudentLoading(false);
+        return;
+      }
+
+      socket.emit('admin:upload_students', students, (res) => {
+        if (res.success) {
+          alert(`✅ Đã tải ${res.count} thí sinh từ Google Drive!`);
+        } else {
+          alert('Lỗi: ' + res.message);
+        }
+      });
+    } catch (err) {
+      if (err.message !== 'USER_CANCELLED') {
+        if (err.message.includes('Chưa cấu hình Google API')) {
+          alert(err.message);
+        } else {
+          alert('Lỗi tải file từ Google Drive: ' + err.message);
+        }
+      }
+    } finally {
+      setDriveStudentLoading(false);
+    }
+  };
+
+  // ─── Google Drive: Tải câu hỏi ──────────────────────────────────────────────
+  const handleQuestionFromDrive = async () => {
+    setDriveQuestionLoading(true);
+    try {
+      const file = await pickAndDownloadDriveFile({
+        mimeTypes: [
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+          'application/vnd.ms-excel', // .xls
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+          'application/json', // .json
+          'application/vnd.google-apps.spreadsheet' // Google Sheets
+        ],
+        title: 'Chọn file Câu Hỏi từ Google Drive'
+      });
+
+      if (file.type.includes('google-apps')) {
+        alert('Vui lòng xuất file Google Sheets sang định dạng .xlsx trước khi tải lên.');
+        setDriveQuestionLoading(false);
+        return;
+      }
+
+      let questions = [];
+      if (file.name.endsWith('.docx')) {
+        questions = await parseWordQuestions(file);
+      } else if (file.name.endsWith('.json')) {
+        const text = await file.text();
+        questions = JSON.parse(text);
+      } else {
+        questions = await parseExcelQuestions(file);
+      }
+
+      // Post-process: Auto-detect media types
+      questions = questions.map(q => ({
+        ...q,
+        mediaType: isYouTubeURL(q.mediaUrl) ? 'video' : q.mediaType
+      }));
+
+      if (questions.length === 0) {
+        alert('File không có dữ liệu câu hỏi hợp lệ.');
+        setDriveQuestionLoading(false);
+        return;
+      }
+
+      setQuestionsList(questions);
+      setCurrentIndex(0);
+      setQuestionDraft(questions[0]);
+      alert(`✅ Đã nạp ${questions.length} câu hỏi từ Google Drive thành công!`);
+    } catch (err) {
+      if (err.message !== 'USER_CANCELLED') {
+        if (err.message.includes('Chưa cấu hình Google API')) {
+          alert(err.message);
+        } else {
+          alert('Lỗi tải file từ Google Drive: ' + err.message);
+        }
+      }
+    } finally {
+      setDriveQuestionLoading(false);
+    }
+  };
+
   const exportQuestions = () => {
     if (questionsList.length === 0) return alert('Không có câu hỏi để lưu!');
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(questionsList, null, 2));
@@ -426,10 +538,27 @@ export default function Admin() {
         {/* Module Upload Thí Sinh */}
         <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
           <h3 className="text-xl font-bold text-white mb-4 flex items-center"><Upload className="mr-2"/> Dữ Liệu Thí Sinh</h3>
+          
+          {/* Upload từ máy tính */}
           <div>
-            <label className="block text-sm mb-2">Tải lên danh sách thí sinh (Excel)</label>
+            <label className="block text-xs uppercase text-slate-500 font-bold mb-2 tracking-wider">📂 Từ máy tính (Excel)</label>
             <input type="file" accept=".xlsx, .xls" onChange={handleStudentUpload} className="w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer" />
           </div>
+
+          {/* Chọn từ Google Drive */}
+          <div className="mt-4">
+            <label className="block text-xs uppercase text-slate-500 font-bold mb-2 tracking-wider">☁️ Từ Google Drive</label>
+            <button
+              onClick={handleStudentFromDrive}
+              disabled={driveStudentLoading}
+              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#1a73e8] hover:bg-[#1558b0] disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold text-sm transition-all active:scale-95 shadow-md"
+            >
+              {driveStudentLoading
+                ? <><Loader2 className="w-4 h-4 animate-spin" /> Đang tải.....</>
+                : <><FolderOpen className="w-4 h-4" /> Chọn file từ Google Drive</>}
+            </button>
+          </div>
+
           <div className="mt-4 pt-4 border-t border-slate-700/50 flex justify-between">
             <span className="text-slate-400">Chỉ số:</span>
             <span className="text-white font-mono">{studentList.length} Tổng / {onlineCount} Online</span>
@@ -482,15 +611,26 @@ export default function Admin() {
              </button>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 mb-4">
+          <div className="grid grid-cols-2 gap-2 mb-2">
              <button onClick={exportQuestions} className="bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 px-3 rounded-lg transition-all shadow-md active:scale-95 text-xs flex items-center justify-center gap-2">
                 <FileDown size={14}/> Xuất File (Backup)
              </button>
              <label className="bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-3 rounded-lg transition-all shadow-md active:scale-95 text-xs flex items-center justify-center gap-2 cursor-pointer">
-                <Upload size={14}/> Nạp Danh Sách
+                <Upload size={14}/> Nạp từ máy tính
                 <input type="file" accept=".xlsx, .xls, .docx, .json" onChange={handleQuestionUpload} className="hidden" />
              </label>
           </div>
+
+          {/* Nút chọn câu hỏi từ Google Drive */}
+          <button
+            onClick={handleQuestionFromDrive}
+            disabled={driveQuestionLoading}
+            className="w-full flex items-center justify-center gap-2 py-2 px-4 mb-4 rounded-lg bg-[#1a73e8] hover:bg-[#1558b0] disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold text-xs transition-all active:scale-95 shadow-md"
+          >
+            {driveQuestionLoading
+              ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Đang tải từ Drive...</>
+              : <><FolderOpen className="w-3.5 h-3.5" /> Nạp câu hỏi từ Google Drive</>}
+          </button>
 
           {/* Navigation Bar */}
           {questionsList.length > 0 && (
