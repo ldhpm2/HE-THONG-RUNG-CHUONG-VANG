@@ -533,7 +533,7 @@ export default function Admin() {
           {/* Upload từ máy tính */}
           <div>
             <label className="block text-xs uppercase text-slate-500 font-bold mb-2 tracking-wider">📂 Từ máy tính (Excel)</label>
-            <input type="file" accept=".xlsx, .xls" onChange={handleStudentUpload} className="w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer" />
+            <input type="file" accept=".xlsx, .xls, text/csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" onChange={handleStudentUpload} className="w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer" />
           </div>
 
           {/* Chọn từ Google Drive */}
@@ -608,7 +608,7 @@ export default function Admin() {
              </button>
              <label className="bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-3 rounded-lg transition-all shadow-md active:scale-95 text-xs flex items-center justify-center gap-2 cursor-pointer">
                 <Upload size={14}/> Nạp từ máy tính
-                <input type="file" accept=".xlsx, .xls, .docx, .json" onChange={handleQuestionUpload} className="hidden" />
+                <input type="file" accept=".xlsx, .xls, .docx, .json, text/csv, application/json, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/vnd.ms-excel" onChange={handleQuestionUpload} className="hidden" />
              </label>
           </div>
 

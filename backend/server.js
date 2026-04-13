@@ -73,7 +73,10 @@ io.on('connection', (socket) => {
   });
 
   socket.on('admin:upload_students', (data, callback) => {
-    if (socket.id !== adminSocketId) return;
+    if (socket.id !== adminSocketId) {
+      if(callback) callback({ success: false, message: 'Bạn chưa đăng nhập Admin hoặc bị mất kết nối. Hãy F5 tải lại trang và Đăng nhập Admin lại nhé!' });
+      return;
+    }
     students = {};
     data.forEach(s => {
       students[s.sbd] = {
@@ -90,7 +93,10 @@ io.on('connection', (socket) => {
   });
 
   socket.on('admin:clear_students', (callback) => {
-    if (socket.id !== adminSocketId) return;
+    if (socket.id !== adminSocketId) {
+      if(callback) callback({ success: false, message: 'Bạn chưa đăng nhập Admin hoặc bị mất kết nối!' });
+      return;
+    }
     students = {};
     gamePhase = 'idle';
     currentQuestion = null;
