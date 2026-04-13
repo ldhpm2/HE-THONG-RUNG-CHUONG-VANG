@@ -15,7 +15,8 @@ export default function Admin() {
   const [gameState, setGameState] = useState({
     phase: 'idle',
     question: null,
-    students: {}
+    students: {},
+    isSoundEnabled: true
   });
 
   const [questionsList, setQuestionsList] = useState(() => {

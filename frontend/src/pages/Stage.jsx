@@ -12,7 +12,8 @@ export default function Stage() {
   const [gameState, setGameState] = useState({
     phase: 'idle', // idle, question_sent, timer_running, locked, answer_revealed
     question: null,
-    students: {}
+    students: {},
+    isSoundEnabled: true
   });
 
   const [isCameraActive, setIsCameraActive] = useState(false);
@@ -213,29 +214,41 @@ export default function Stage() {
   }, [gameState.phase]);
 
   useEffect(() => {
-    socket.on('game_state_update', (data) => {
-       setGameState(prevState => {
-         // Nếu vừa bắt đầu timer
-         if (data.gamePhase === 'timer_running' && prevState.phase !== 'timer_running') {
-            const duration = data.currentQuestion?.time || 15;
-            timerEndRef.current = Date.now() + duration * 1000;
-            setTimeLeft(duration);
-            // Lên lịch âm thanh nếu global enable
-            if (data.isSoundEnabled ) scheduleAllTicks(duration, 5);
-         }
-         // Nếu timer bị khóa/kết thúc → hủy
-         if (data.gamePhase === 'locked' || data.gamePhase === 'idle' || data.gamePhase === 'question_sent') {
-            timerEndRef.current = null;
-            cancelAllTicks();
-         }
-         return {
-           phase: data.gamePhase,
-           question: data.currentQuestion,
-           students: data.students,
-           isSoundEnabled: data.isSoundEnabled
-         };
-       });
-     });
+     socket.on('game_state_update', (data) => {
+        setGameState(prevState => {
+          // Nếu vừa bắt đầu timer HOẶC đang chạy timer mà Admin bật/tắt âm thanh
+          if (data.gamePhase === 'timer_running') {
+             // Case 1: Vừa bắt đầu mới
+             if (prevState.phase !== 'timer_running') {
+                const duration = data.currentQuestion?.time || 15;
+                timerEndRef.current = Date.now() + duration * 1000;
+                setTimeLeft(duration);
+                if (data.isSoundEnabled ) scheduleAllTicks(duration, 5);
+             } 
+             // Case 2: Đang chạy mà Admin bật âm thanh lên
+             else if (!prevState.isSoundEnabled && data.isSoundEnabled) {
+                const remaining = Math.max(0, Math.ceil((timerEndRef.current - Date.now()) / 1000));
+                if (remaining > 0) scheduleAllTicks(remaining, 5);
+             }
+             // Case 3: Đang chạy mà Admin tắt âm thanh đi
+             else if (prevState.isSoundEnabled && !data.isSoundEnabled) {
+                cancelAllTicks();
+             }
+          }
+
+          // Nếu timer bị khóa/kết thúc → hủy
+          if (data.gamePhase === 'locked' || data.gamePhase === 'idle' || data.gamePhase === 'question_sent') {
+             timerEndRef.current = null;
+             cancelAllTicks();
+          }
+          return {
+            phase: data.gamePhase,
+            question: data.currentQuestion,
+            students: data.students,
+            isSoundEnabled: data.isSoundEnabled
+          };
+        });
+      });
 
      return () => {
       socket.off('game_state_update');
