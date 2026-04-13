@@ -156,15 +156,31 @@ export function openGooglePicker({ mimeTypes = [], title = 'Chọn file từ Goo
  * Tải nội dung file từ Google Drive về dạng File object (để parse như file upload thông thường)
  * @param {string} fileId - ID của file trên Drive
  * @param {string} fileName - Tên file (để xác định extension)
+ * @param {string} mimeType - Định dạng MIME của file từ Drive (tuỳ chọn)
  * @returns {Promise<File>} File object
  */
-export async function downloadDriveFileAsBlob(fileId, fileName) {
+export async function downloadDriveFileAsBlob(fileId, fileName, mimeType) {
   if (!accessToken) {
     throw new Error('Chưa xác thực. Vui lòng chọn file lại.');
   }
 
+  let url = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
+
+  // Xử lý tự động xuất (export) nếu là file của Google Workspace (như Google Sheets, Google Docs)
+  if (mimeType && mimeType.includes('google-apps')) {
+    if (mimeType === 'application/vnd.google-apps.spreadsheet') {
+      url = `https://www.googleapis.com/drive/v3/files/${fileId}/export?mimeType=application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`;
+      if (!fileName.endsWith('.xlsx')) fileName += '.xlsx';
+    } else if (mimeType === 'application/vnd.google-apps.document') {
+      url = `https://www.googleapis.com/drive/v3/files/${fileId}/export?mimeType=application/vnd.openxmlformats-officedocument.wordprocessingml.document`;
+      if (!fileName.endsWith('.docx')) fileName += '.docx';
+    } else {
+      throw new Error(`Không hỗ trợ tải trực tiếp loại file Google Workspace này: ${mimeType}`);
+    }
+  }
+
   const response = await fetch(
-    `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+    url,
     {
       headers: { Authorization: `Bearer ${accessToken}` }
     }
@@ -186,6 +202,6 @@ export async function downloadDriveFileAsBlob(fileId, fileName) {
  */
 export async function pickAndDownloadDriveFile(options = {}) {
   const fileInfo = await openGooglePicker(options);
-  const file = await downloadDriveFileAsBlob(fileInfo.id, fileInfo.name);
+  const file = await downloadDriveFileAsBlob(fileInfo.id, fileInfo.name, fileInfo.mimeType);
   return file;
 }

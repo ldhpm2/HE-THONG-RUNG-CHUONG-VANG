@@ -286,12 +286,7 @@ export default function Admin() {
         title: 'Chọn file Danh Sách Thí Sinh từ Google Drive'
       });
 
-      // Nếu là Google Sheets thì không thể parse trực tiếp, cần export
-      if (file.type.includes('google-apps')) {
-        alert('Vui lòng xuất file Google Sheets sang định dạng .xlsx trước khi tải lên.');
-        setDriveStudentLoading(false);
-        return;
-      }
+      // Google Sheets and Docs will now be automatically exported inside pickAndDownloadDriveFile
 
       const students = await parseExcelStudentList(file);
       if (students.length === 0) {
@@ -335,11 +330,7 @@ export default function Admin() {
         title: 'Chọn file Câu Hỏi từ Google Drive'
       });
 
-      if (file.type.includes('google-apps')) {
-        alert('Vui lòng xuất file Google Sheets sang định dạng .xlsx trước khi tải lên.');
-        setDriveQuestionLoading(false);
-        return;
-      }
+      // Google Sheets and Docs will now be automatically exported inside pickAndDownloadDriveFile
 
       let questions = [];
       if (file.name.endsWith('.docx')) {
