@@ -462,10 +462,74 @@ export default function Stage() {
           
           {/* MAIN STAGE (LEFT PANEL - 3/4) */}
           <div className="w-3/4 flex flex-col items-center justify-center relative min-h-0">
-             <AnimatePresence mode="wait">
-      
-      {/* IDLE / WELCOME SCREEN */}
-      {phase === 'idle' ? (
+              <AnimatePresence mode="wait">
+                
+                {/* INTRO SCREEN (SCROLLING LIST) */}
+                {phase === 'showing_intro' && (
+                  <motion.div 
+                    key="intro" 
+                    initial={{ opacity: 0 }} 
+                    animate={{ opacity: 1 }} 
+                    exit={{ opacity: 0 }}
+                    className="w-full h-full flex flex-col items-center relative overflow-hidden bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black rounded-3xl"
+                  >
+                    {/* Header Title for Intro */}
+                    <div className="absolute top-10 left-0 w-full z-10 flex flex-col items-center text-center">
+                      <h2 className="text-5xl font-black uppercase tracking-[0.2em] mb-4 text-transparent bg-clip-text bg-gradient-to-b from-yellow-100 via-yellow-400 to-yellow-600 drop-shadow-[0_5px_15px_rgba(250,204,21,0.5)]">
+                        Danh Sách Thí Sinh
+                      </h2>
+                      <div className="h-1 w-64 bg-yellow-500/50 rounded-full blur-sm"></div>
+                    </div>
+
+                    {/* Scrolling Container */}
+                    <div className="flex-1 w-full max-w-6xl mt-48 overflow-hidden relative">
+                      <motion.div
+                        initial={{ y: "80vh" }}
+                        animate={{ 
+                          y: studentsList.length > 0 ? `-${Math.max(100, studentsList.length * 12)}vh` : "-100vh" 
+                        }}
+                        transition={{ 
+                          duration: Math.max(20, studentsList.length * 2.5), 
+                          ease: "linear",
+                          repeat: Infinity
+                        }}
+                        className="flex flex-col gap-8 pb-[100vh]"
+                      >
+                        {studentsList.map((s, idx) => (
+                          <div key={idx} className="flex items-center justify-between px-12 py-6 bg-slate-800/20 border-y border-yellow-500/10 backdrop-blur-sm rounded-xl">
+                            <div className="flex items-center gap-8">
+                              <span className="text-5xl font-black font-mono text-yellow-500 w-24">#{s.sbd}</span>
+                              <div className="flex flex-col">
+                                <span className="text-6xl font-black text-white tracking-wide uppercase">{s.name}</span>
+                                <span className="text-2xl text-yellow-400/80 uppercase tracking-widest font-bold">Lớp: {s.className || 'N/A'}</span>
+                              </div>
+                            </div>
+                            <div className="flex flex-col items-end">
+                              <span className="text-xs text-slate-500 uppercase tracking-widest mb-1">Mã tham gia</span>
+                              <span className="text-4xl font-black font-mono text-slate-300 tracking-tighter bg-slate-900/50 px-6 py-2 rounded-lg border border-slate-700 shadow-inner">
+                                {s.pin}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                        
+                        {/* Message at end of list */}
+                        <div className="mt-32 py-32 text-center flex flex-col items-center">
+                          <div className="text-8xl mb-10">🔔</div>
+                          <p className="text-5xl font-black text-white italic tracking-[0.2em] uppercase mb-4">Tất cả đã sẵn sàng!</p>
+                          <p className="text-2xl text-yellow-500 font-black uppercase tracking-[0.4em] opacity-80">Hãy cùng chinh phục đỉnh cao</p>
+                        </div>
+                      </motion.div>
+                    </div>
+                    
+                    {/* Bottom & Top vignette to make fade effect */}
+                    <div className="absolute bottom-0 left-0 w-full h-48 bg-gradient-to-t from-black via-black/80 to-transparent pointer-events-none z-10"></div>
+                    <div className="absolute top-0 left-0 w-full h-48 bg-gradient-to-b from-black via-black/80 to-transparent pointer-events-none z-10"></div>
+                  </motion.div>
+                )}
+
+                {/* IDLE / WELCOME SCREEN */}
+                {phase === 'idle' ? (
                     <motion.div 
                       key="idle" 
                       initial={{ opacity: 0 }} 

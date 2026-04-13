@@ -124,6 +124,14 @@ io.on('connection', (socket) => {
     broadcastState();
   });
 
+  socket.on('admin:show_intro', () => {
+    if (!socket.rooms.has('admin_room')) return;
+    gamePhase = 'showing_intro';
+    currentQuestion = null;
+    console.log(`[Admin] Showing contestants intro by ${socket.id}`);
+    broadcastState();
+  });
+
   socket.on('admin:push_question', (data) => {
     if (!socket.rooms.has('admin_room')) return;
     currentQuestion = { 

@@ -1002,6 +1002,9 @@ export default function Admin() {
               <button onClick={setWelcome} className="bg-slate-700 hover:bg-slate-600 text-white py-4 rounded-xl flex flex-col items-center justify-center font-bold transition active:scale-95 shadow-lg border-2 border-slate-600 border-dashed">
                 <Activity className="mb-2 text-yellow-400"/> 0. Bắt đầu
               </button>
+              <button onClick={() => socket.emit('admin:show_intro')} className="bg-slate-700 hover:bg-slate-600 text-white py-4 rounded-xl flex flex-col items-center justify-center font-bold transition active:scale-95 shadow-lg border-2 border-slate-600">
+                <HeartHandshake className="mb-2 text-pink-400"/> 0.5. Giới thiệu
+              </button>
               <button onClick={pushQuestion} className="bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl flex flex-col items-center justify-center font-semibold transition active:scale-95 shadow-lg">
                 <Presentation className="mb-2"/> 1. Hiện Câu Hỏi
               </button>
