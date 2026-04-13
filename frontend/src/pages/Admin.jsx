@@ -127,10 +127,10 @@ export default function Admin() {
   const startCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: true, 
+        video: { facingMode: { ideal: "environment" } }, 
         audio: true 
       }).catch(async () => {
-        return await navigator.mediaDevices.getUserMedia({ video: true });
+        return await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } } });
       });
       
       localStreamRef.current = stream;
