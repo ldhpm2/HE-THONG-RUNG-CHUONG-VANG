@@ -3,7 +3,7 @@ import { socket } from '../socket';
 import { parseExcelStudentList, parseExcelQuestions } from '../utils/excelParser';
 import { parseWordQuestions } from '../utils/wordParser';
 import { pickAndDownloadDriveFile } from '../utils/googleDrivePicker';
-import { Upload, Play, Square, Presentation, Eye, UserX, Activity, HeartHandshake, Trash2, XCircle, ChevronLeft, ChevronRight, Save, Plus, RotateCcw, FileDown, Camera, CameraOff, FolderOpen, Loader2 } from 'lucide-react';
+import { Upload, Play, Square, Presentation, Eye, UserX, Activity, HeartHandshake, Trash2, XCircle, ChevronLeft, ChevronRight, Save, Plus, RotateCcw, FileDown, Camera, CameraOff, FolderOpen, Loader2, Volume2, VolumeX } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { MathJax } from 'better-react-mathjax';
 import { isYouTubeURL, getYouTubeEmbedURL } from '../utils/videoUtils';
@@ -52,6 +52,178 @@ export default function Admin() {
   const localVideoRef = useRef(null);
   const canvasRef = useRef(null);
   const frameIntervalRef = useRef(null);
+  
+  // --- SOUND SYSTEM ---
+  const [isAudioEnabled, setIsAudioEnabled] = useState(false);
+  const audioCtxRef = useRef(null);
+  const scheduledTicksRef = useRef([]);
+
+  const playTick = (urgent = false) => {
+    try {
+      const ctx = audioCtxRef.current;
+      if (!ctx) return;
+      const t = ctx.currentTime;
+      const dur = 0.025;
+      const buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * dur), ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < data.length; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (data.length * 0.3));
+      }
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      const bpf = ctx.createBiquadFilter();
+      bpf.type = 'bandpass';
+      bpf.frequency.value = urgent ? 3000 : 1800;
+      bpf.Q.value = 2;
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(urgent ? 2.5 : 1.5, t);
+      src.connect(bpf); bpf.connect(gain); gain.connect(ctx.destination);
+      src.start(t); src.stop(t + dur);
+      const osc = ctx.createOscillator();
+      const oscGain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = urgent ? 1200 : 800;
+      oscGain.gain.setValueAtTime(0.2, t);
+      oscGain.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
+      osc.connect(oscGain); oscGain.connect(ctx.destination);
+      osc.start(t); osc.stop(t + 0.07);
+    } catch(e) {}
+  };
+
+  const playGong = () => {
+    try {
+      const ctx = audioCtxRef.current;
+      if (!ctx) return;
+      const t = ctx.currentTime;
+      [0, 0.55, 1.1].forEach((delay, wave) => {
+        const baseFreq = 140 - wave * 8;
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(baseFreq, t + delay);
+        o.frequency.exponentialRampToValueAtTime(baseFreq * 0.85, t + delay + 2);
+        g.gain.setValueAtTime(0, t + delay);
+        g.gain.linearRampToValueAtTime(0.8, t + delay + 0.03);
+        g.gain.exponentialRampToValueAtTime(0.001, t + delay + 2.5);
+        o.connect(g); g.connect(ctx.destination);
+        o.start(t + delay); o.stop(t + delay + 2.5);
+        const o2 = ctx.createOscillator();
+        const g2 = ctx.createGain();
+        o2.type = 'sine';
+        o2.frequency.value = baseFreq * 2.76;
+        g2.gain.setValueAtTime(0, t + delay);
+        g2.gain.linearRampToValueAtTime(0.35, t + delay + 0.03);
+        g2.gain.exponentialRampToValueAtTime(0.001, t + delay + 1.5);
+        o2.connect(g2); g2.connect(ctx.destination);
+        o2.start(t + delay); o2.stop(t + delay + 1.5);
+      });
+    } catch(e) {}
+  };
+
+  const playCorrect = () => {
+    try {
+      const ctx = audioCtxRef.current;
+      if (!ctx) return;
+      const t = ctx.currentTime;
+      [523, 659, 784, 1047, 1319].forEach((freq, i) => {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = 'triangle';
+        o.frequency.setValueAtTime(freq, t + i * 0.11);
+        g.gain.setValueAtTime(0, t + i * 0.11);
+        g.gain.linearRampToValueAtTime(0.5, t + i * 0.11 + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.11 + 0.45);
+        o.connect(g); g.connect(ctx.destination);
+        o.start(t + i * 0.11); o.stop(t + i * 0.11 + 0.45);
+      });
+    } catch(e) {}
+  };
+
+  const cancelAllTicks = () => {
+    scheduledTicksRef.current.forEach(s => { try { s.stop(); } catch(_) {} });
+    scheduledTicksRef.current = [];
+  };
+
+  const scheduleAllTicks = (durationSec, urgent5sec) => {
+    const ctx = audioCtxRef.current;
+    if (!ctx) return;
+    cancelAllTicks();
+    const now = ctx.currentTime;
+    for (let i = 0; i < durationSec; i++) {
+      const tOffset = i;
+      const isUrgent = (durationSec - i) <= urgent5sec;
+      const t = now + tOffset;
+      const dur = 0.025;
+      const buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * dur), ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let j = 0; j < data.length; j++) {
+        data[j] = (Math.random() * 2 - 1) * Math.exp(-j / (data.length * 0.3));
+      }
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      const bpf = ctx.createBiquadFilter();
+      bpf.type = 'bandpass';
+      bpf.frequency.value = isUrgent ? 3000 : 1800;
+      bpf.Q.value = 2;
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(isUrgent ? 2.5 : 1.5, t);
+      src.connect(bpf); bpf.connect(gain); gain.connect(ctx.destination);
+      src.start(t); src.stop(t + dur);
+      scheduledTicksRef.current.push(src);
+
+      const osc = ctx.createOscillator();
+      const oscGain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = isUrgent ? 1200 : 800;
+      oscGain.gain.setValueAtTime(0.2, t);
+      oscGain.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
+      osc.connect(oscGain); oscGain.connect(ctx.destination);
+      osc.start(t); osc.stop(t + 0.07);
+      scheduledTicksRef.current.push(osc);
+    }
+    const gongT = now + durationSec;
+    [0, 0.55, 1.1].forEach((delay, wave) => {
+      const baseFreq = 140 - wave * 8;
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(baseFreq, gongT + delay);
+      o.frequency.exponentialRampToValueAtTime(baseFreq * 0.85, gongT + delay + 2);
+      g.gain.setValueAtTime(0, gongT + delay);
+      g.gain.linearRampToValueAtTime(0.8, gongT + delay + 0.03);
+      g.gain.exponentialRampToValueAtTime(0.001, gongT + delay + 2.5);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(gongT + delay); o.stop(gongT + delay + 2.5);
+      scheduledTicksRef.current.push(o);
+      const o2 = ctx.createOscillator();
+      const g2 = ctx.createGain();
+      o2.type = 'sine';
+      o2.frequency.value = baseFreq * 2.76;
+      g2.gain.setValueAtTime(0, gongT + delay);
+      g2.gain.linearRampToValueAtTime(0.35, gongT + delay + 0.03);
+      g2.gain.exponentialRampToValueAtTime(0.001, gongT + delay + 1.5);
+      o2.connect(g2); g2.connect(ctx.destination);
+      o2.start(gongT + delay); o2.stop(gongT + delay + 1.5);
+      scheduledTicksRef.current.push(o2);
+    });
+  };
+
+  const handleEnableAudio = () => {
+    if (!audioCtxRef.current) {
+      audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtxRef.current.state === 'suspended') {
+      audioCtxRef.current.resume();
+    }
+    setIsAudioEnabled(!isAudioEnabled);
+  };
+
+  useEffect(() => {
+    if (isAudioEnabled && gameState.phase === 'answer_revealed') {
+      cancelAllTicks();
+      playCorrect();
+    }
+  }, [gameState.phase, isAudioEnabled]);
 
   useEffect(() => {
     const handleConnect = () => {
@@ -72,11 +244,7 @@ export default function Admin() {
     if (socket.connected) handleConnect();
 
     socket.on('admin_state_update', (data) => {
-      setGameState({
-        phase: data.gamePhase,
-        question: data.currentQuestion,
-        students: data.students
-      });
+      setGameState(data);
     });
 
     socket.on('camera:signal_from_stage', async (data) => {
@@ -821,8 +989,18 @@ export default function Admin() {
                   isCameraActive ? 'bg-red-600 border-red-400 text-white animate-pulse' : 'bg-slate-700 border-slate-600 text-slate-300'
                 }`}
               >
-                {isCameraActive ? <CameraOff className="mb-2"/> : <Camera className="mb-2"/>}
+               {isCameraActive ? <CameraOff className="mb-2"/> : <Camera className="mb-2"/>}
                 {isCameraActive ? 'Tắt Camera' : 'Bật Camera'}
+              </button>
+
+              <button 
+                onClick={handleEnableAudio} 
+                className={`py-4 rounded-xl flex flex-col items-center justify-center font-bold transition active:scale-95 shadow-lg border-2 ${
+                  isAudioEnabled ? 'bg-green-600 border-green-400 text-white' : 'bg-yellow-500 border-yellow-400 text-slate-900 animate-pulse'
+                }`}
+              >
+                {isAudioEnabled ? <Volume2 className="mb-2"/> : <VolumeX className="mb-2"/>}
+                {isAudioEnabled ? 'Âm thanh Đang Bật' : 'Kích hoạt Âm Thanh'}
               </button>
            </div>
            

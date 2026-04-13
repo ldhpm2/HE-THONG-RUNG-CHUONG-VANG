@@ -23,7 +23,7 @@ export default function Stage() {
   const remoteVideoRef = useRef(null);
 
   const [timeLeft, setTimeLeft] = useState(0);
-  const [isAudioEnabled, setIsAudioEnabled] = useState(false);
+  const [isLocalAudioUnlocked, setIsLocalAudioUnlocked] = useState(false);
   const audioCtxRef = useRef(null);
   const timerEndRef = useRef(null);   // timestamp (ms) khi hết giờ
   const rafRef = useRef(null);         // requestAnimationFrame id
@@ -32,6 +32,7 @@ export default function Stage() {
   // Tieng TICK co hoc - khop 1 lan/giay voi dong ho
   const playTick = (urgent = false) => {
     try {
+      if (!isLocalAudioUnlocked) return;
       const ctx = audioCtxRef.current;
       if (!ctx) return;
       const t = ctx.currentTime;
@@ -62,9 +63,9 @@ export default function Stage() {
     } catch(e) {}
   };
 
-  // Tieng CONG het gio - tram am, vang doi 3 dot
   const playGong = () => {
     try {
+      if (!isLocalAudioUnlocked) return;
       const ctx = audioCtxRef.current;
       if (!ctx) return;
       const t = ctx.currentTime;
@@ -93,9 +94,9 @@ export default function Stage() {
     } catch(e) {}
   };
 
-  // Am thanh DUNG DAP AN - vui ve chuc mung
   const playCorrect = () => {
     try {
+      if (!isLocalAudioUnlocked) return;
       const ctx = audioCtxRef.current;
       if (!ctx) return;
       const t = ctx.currentTime;
@@ -113,27 +114,19 @@ export default function Stage() {
     } catch(e) {}
   };
 
-  const handleEnableAudio = () => {
-    if (!audioCtxRef.current) {
-      audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    if (audioCtxRef.current.state === 'suspended') {
-      audioCtxRef.current.resume();
-    }
-    setIsAudioEnabled(!isAudioEnabled);
-  };
-
-  // ── Hàm lên lịch toàn bộ tick trước bằng Web Audio precision ──────────────
-  const scheduleAllTicks = (durationSec, urgent5sec) => {
-    const ctx = audioCtxRef.current;
-    if (!ctx) return;
-    // Hủy các tick cũ nếu có
+  const cancelAllTicks = () => {
     scheduledTicksRef.current.forEach(s => { try { s.stop(); } catch(_) {} });
     scheduledTicksRef.current = [];
+  };
 
+  const scheduleAllTicks = (durationSec, urgent5sec) => {
+    const ctx = audioCtxRef.current;
+    if (!ctx || !isLocalAudioUnlocked) return;
+    
+    cancelAllTicks();
     const now = ctx.currentTime;
     for (let i = 0; i < durationSec; i++) {
-      const tOffset = i;           // mỗi tick cách nhau đúng 1 giây
+      const tOffset = i;
       const isUrgent = (durationSec - i) <= urgent5sec;
       const t = now + tOffset;
       const dur = 0.025;
@@ -165,7 +158,6 @@ export default function Stage() {
       scheduledTicksRef.current.push(osc);
     }
 
-    // Lên lịch tiếng cồng ngay sau tick cuối cùng
     const gongT = now + durationSec;
     [0, 0.55, 1.1].forEach((delay, wave) => {
       const baseFreq = 140 - wave * 8;
@@ -193,19 +185,15 @@ export default function Stage() {
     });
   };
 
-  // ── Hủy tất cả âm thanh đang lên lịch ────────────────────────────────────
-  const cancelAllTicks = () => {
-    scheduledTicksRef.current.forEach(s => { try { s.stop(); } catch(_) {} });
-    scheduledTicksRef.current = [];
-  };
-
-  // Dung dap an
-  useEffect(() => {
-    if (isAudioEnabled && gameState.phase === 'answer_revealed') {
-      cancelAllTicks();
-      playCorrect();
+  const handleUnlockAudio = () => {
+    if (!audioCtxRef.current) {
+      audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
     }
-  }, [gameState.phase, isAudioEnabled]);
+    if (audioCtxRef.current.state === 'suspended') {
+      audioCtxRef.current.resume();
+    }
+    setIsLocalAudioUnlocked(true);
+  };
 
   // ── RAF-based countdown: tính từ timestamp để tránh drift setInterval ────
   useEffect(() => {
@@ -232,19 +220,15 @@ export default function Stage() {
             const duration = data.currentQuestion?.time || 15;
             timerEndRef.current = Date.now() + duration * 1000;
             setTimeLeft(duration);
-            // Lên lịch toàn bộ âm thanh ngay lập tức
-            if (isAudioEnabled) scheduleAllTicks(duration, 5);
+            // Lên lịch âm thanh nếu global enable
+            if (data.isSoundEnabled ) scheduleAllTicks(duration, 5);
          }
-         // Nếu timer bị khóa/kết thúc → hủy tick
+         // Nếu timer bị khóa/kết thúc → hủy
          if (data.gamePhase === 'locked' || data.gamePhase === 'idle' || data.gamePhase === 'question_sent') {
             timerEndRef.current = null;
             cancelAllTicks();
          }
-         return {
-           phase: data.gamePhase,
-           question: data.currentQuestion,
-           students: data.students
-         };
+         return data;
        });
      });
 
@@ -253,7 +237,15 @@ export default function Stage() {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       cancelAllTicks();
     };
-  }, [isAudioEnabled]);
+  }, [isLocalAudioUnlocked]);
+
+  // Dung dap an
+  useEffect(() => {
+    if (gameState.isSoundEnabled && gameState.phase === 'answer_revealed') {
+      cancelAllTicks();
+      playCorrect();
+    }
+  }, [gameState.phase, gameState.isSoundEnabled, isLocalAudioUnlocked]);
 
   // --- DEDICATED CAMERA LISTENERS (Independent of Audio) ---
   useEffect(() => {
@@ -445,19 +437,20 @@ export default function Stage() {
                            </h2>
                            
                            <div className="flex flex-col items-center gap-6">
-                                <motion.button
-                                  whileHover={{ scale: 1.05 }}
-                                  whileTap={{ scale: 0.95 }}
-                                  onClick={handleEnableAudio}
-                                  className={`flex items-center gap-4 px-10 py-5 rounded-full font-black text-2xl uppercase tracking-widest shadow-[0_0_30px_rgba(234,179,8,0.3)] transition-all duration-500 border-b-8 ${
-                                    isAudioEnabled 
-                                      ? 'bg-green-600 hover:bg-green-500 border-green-800 text-white' 
-                                      : 'bg-yellow-500 hover:bg-yellow-400 border-yellow-700 text-slate-900 animate-pulse'
-                                  }`}
-                                >
-                                  {isAudioEnabled ? <Volume2 size={32}/> : <VolumeX size={32}/>}
-                                  {isAudioEnabled ? 'Âm thanh Đã Bật' : 'Kích hoạt Âm Thanh'}
-                                </motion.button>
+                                {!isLocalAudioUnlocked ? (
+                                  <motion.button
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={handleUnlockAudio}
+                                    className="flex items-center gap-4 px-10 py-5 rounded-full font-black text-2xl uppercase tracking-widest bg-yellow-500 hover:bg-yellow-400 border-b-8 border-yellow-700 text-slate-900 animate-pulse shadow-[0_0_30px_rgba(234,179,8,0.3)] transition-all duration-500"
+                                  >
+                                    <VolumeX size={32}/> Kích hoạt Âm Thanh
+                                  </motion.button>
+                                ) : (
+                                  <div className="flex items-center gap-2 text-green-500 font-bold bg-green-500/10 px-4 py-2 rounded-full border border-green-500/30">
+                                    <Volume2 size={18}/> {gameState.isSoundEnabled ? 'Âm thanh Sẵn sàng' : 'Âm thanh bị tắt từ Admin'}
+                                  </div>
+                                )}
 
                                 <motion.p 
                                   animate={{ opacity: [0.4, 1, 0.4] }}

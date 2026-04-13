@@ -21,6 +21,7 @@ let adminSocketId = null;
 let students = {}; // Key: SBD, Value: { sbd, hoTen, lop, pin, status: 'active' | 'eliminated', currentAnswer: null, socketId: null, online: false }
 let currentQuestion = null;
 let gamePhase = 'idle'; // 'idle', 'question_sent', 'timer_running', 'locked', 'answer_revealed'
+let isSoundEnabled = true;
 
 // Khởi tạo server
 const PORT = process.env.PORT || 4000;
@@ -44,7 +45,8 @@ const broadcastState = () => {
   io.emit('game_state_update', {
     gamePhase,
     currentQuestion: currentQuestion ? { ...currentQuestion, correct: gamePhase === 'answer_revealed' ? currentQuestion.correct : null } : null,
-    students: publicStudents
+    students: publicStudents,
+    isSoundEnabled
   });
   
   if (adminSocketId) {
@@ -52,7 +54,8 @@ const broadcastState = () => {
     io.to(adminSocketId).emit('admin_state_update', {
       gamePhase,
       currentQuestion,
-      students
+      students,
+      isSoundEnabled
     });
   }
 };
@@ -141,6 +144,13 @@ io.on('connection', (socket) => {
     gamePhase = 'locked';
     broadcastState();
     io.emit('client_play_sound', 'timeout');
+  });
+
+  socket.on('admin:toggle_sound', () => {
+    if (socket.id !== adminSocketId) return;
+    isSoundEnabled = !isSoundEnabled;
+    console.log(`[Admin] Sound toggled: ${isSoundEnabled}`);
+    broadcastState();
   });
 
   socket.on('admin:reveal_answer', () => {
