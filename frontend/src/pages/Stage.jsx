@@ -228,15 +228,36 @@ export default function Stage() {
           </AnimatePresence>
         </div>
 
-        {/* Sidebar */}
-        <div className="w-1/4 h-full flex flex-col bg-slate-900/90 rounded-3xl border border-slate-800 p-6 shadow-2xl">
-          <h2 className="text-3xl font-black text-yellow-500 uppercase tracking-tighter mb-6 border-b border-white/5 pb-4 italic">Sàn Thi Đấu</h2>
-          <div className="flex-1 overflow-y-auto grid grid-cols-5 gap-2 content-start pr-2 custom-scrollbar">
-            {studentsList.map((st) => (
-              <div key={st.sbd} className={`aspect-square rounded-xl flex items-center justify-center text-3xl font-black border-2 transition-all duration-500 ${st.status === 'active' ? 'bg-green-500 text-slate-900 border-green-400 shadow-[0_5px_15px_rgba(34,197,94,0.3)]' : 'bg-red-900/40 text-red-500 border-red-900 opacity-20 shadow-none'}`}>
-                {st.sbd}
-              </div>
-            ))}
+        {/* Sidebar: Sàn Thi Đấu */}
+        <div className="w-1/4 h-full flex flex-col bg-slate-900/60 rounded-[2rem] border border-slate-800 p-5 shadow-2xl backdrop-blur-xl overflow-hidden">
+          <div className="flex flex-col mb-6 flex-shrink-0">
+             <h2 className="text-3xl font-black italic uppercase text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-yellow-400 to-yellow-600 tracking-tight drop-shadow-[0_0_15px_rgba(234,179,8,0.4)]">
+               Sàn Thi Đấu
+             </h2>
+             <div className="h-1 w-full bg-slate-800 mt-2 rounded-full relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/50 to-transparent"></div>
+             </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+            <div className="grid grid-cols-5 gap-2 content-start">
+              {studentsList.map((st) => (
+                <motion.div
+                  key={st.sbd}
+                  whileHover={{ scale: 1.05 }}
+                  className={`aspect-square rounded-2xl flex items-center justify-center text-2xl font-black border-2 transition-all duration-500 relative ${
+                    st.status === 'active' 
+                      ? 'bg-green-500 text-slate-900 border-green-400 shadow-[0_5px_15px_rgba(34,197,94,0.4)]' 
+                      : 'bg-red-900/40 text-red-500 border-red-800 opacity-20 shadow-none'
+                  }`}
+                >
+                  {st.sbd}
+                  {st.status === 'active' && st.hasAnswered && gameState.phase !== 'idle' && (
+                    <div className="absolute top-1 right-1 w-3 h-3 bg-yellow-400 rounded-full shadow-[0_0_10px_rgba(250,204,21,1)] border border-slate-900"></div>
+                  )}
+                </motion.div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
