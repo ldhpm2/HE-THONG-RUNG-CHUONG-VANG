@@ -39,6 +39,7 @@ const broadcastState = () => {
       lop: students[sbd].lop,
       status: students[sbd].status,
       online: students[sbd].online,
+      pin: students[sbd].pin,
       hasAnswered: students[sbd].currentAnswer !== null
     };
   }

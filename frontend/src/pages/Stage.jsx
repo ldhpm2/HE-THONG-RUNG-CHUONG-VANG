@@ -389,7 +389,7 @@ export default function Stage() {
     }
   }, [remoteStream, isCameraActive]);
 
-  const studentsList = Object.values(gameState.students).sort((a,b) => String(a.sbd).localeCompare(String(b.sbd)));
+  const studentsList = Object.values(gameState.students).sort((a,b) => parseInt(a.sbd) - parseInt(b.sbd));
   const { phase, question } = gameState;
 
   const renderMixedText = (text) => {
@@ -511,7 +511,7 @@ export default function Stage() {
                             </div>
                             <div className="flex flex-col items-end">
                               <span className="text-xs text-slate-500 uppercase tracking-widest mb-1">Mã tham gia</span>
-                              <span className="text-4xl font-black font-mono text-white tracking-tighter bg-slate-900/80 px-6 py-2 rounded-lg border border-slate-700 shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] min-w-[120px] text-center">
+                              <span className="text-6xl font-black font-mono text-white tracking-tighter bg-slate-900/80 px-8 py-4 rounded-xl border-2 border-slate-700 shadow-[inset_0_2px_20px_rgba(0,0,0,0.8)] min-w-[180px] text-center">
                                 {s.pin || '---'}
                               </span>
                             </div>
