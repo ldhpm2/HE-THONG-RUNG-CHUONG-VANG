@@ -128,12 +128,16 @@ export function openGooglePicker({ mimeTypes = [], title = 'Chọn file từ Goo
       if (mimeTypes.length > 0) {
         view.setMimeTypes(mimeTypes.join(','));
       }
+      
+      // Lấy App ID từ Client ID (phần số ở trước dấu gạch ngang)
+      const appId = GOOGLE_CLIENT_ID.split('-')[0];
 
       const picker = new window.google.picker.PickerBuilder()
         .addView(view)
         .addView(new window.google.picker.DocsView(window.google.picker.ViewId.RECENTLY_PICKED))
         .setOAuthToken(token)
         .setDeveloperKey(GOOGLE_API_KEY)
+        .setAppId(appId)
         .setTitle(title)
         .setCallback((data) => {
           if (data.action === window.google.picker.Action.PICKED) {
