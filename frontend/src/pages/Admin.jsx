@@ -1076,22 +1076,6 @@ export default function Admin() {
 
         {/* Monitor Panel */}
         <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg flex-1 overflow-hidden flex flex-col">
-            {/* Status Top Bar */}
-       <div className="flex items-center justify-between mb-6 px-4 py-2 bg-slate-800/50 rounded-lg border border-slate-700/50">
-          <div className="flex items-center gap-4">
-             <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
-                <span className="text-xs text-slate-400">Server: {isConnected ? 'Đã kết nối' : 'Mất kết nối'}</span>
-             </div>
-             <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${isAdminAuthenticated ? 'bg-blue-500' : 'bg-yellow-500'}`}></div>
-                <span className="text-xs text-slate-400">Quyền Admin: {isAdminAuthenticated ? 'Hiện diện' : 'Chưa xác thực'}</span>
-             </div>
-          </div>
-          <div className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">
-             Hệ thống Rung Chuông Vàng v2.1
-          </div>
-       </div>
 
        <div className="flex flex-col md:flex-row gap-8">
             <div className="flex items-center justify-between mb-4">
@@ -1177,10 +1161,10 @@ export default function Admin() {
                  </tbody>
               </table>
            </div>
-        </div> {/* Close Monitor Panel stats/table flex-col */}
-      </div> {/* Close Monitor Panel */}
-    </div> {/* Close Right Column */}
-  </div> {/* Close Main Flex Content (Side-by-side) */}
-</div> {/* Close Outer Wrapper */}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
   );
 }
