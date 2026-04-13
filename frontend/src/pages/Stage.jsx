@@ -24,7 +24,10 @@ export default function Stage() {
   const remoteVideoRef = useRef(null);
 
   const [timeLeft, setTimeLeft] = useState(0);
-  const [isLocalAudioUnlocked, setIsLocalAudioUnlocked] = useState(false);
+  const [isLocalAudioUnlocked, setIsLocalAudioUnlocked] = useState(() => {
+    // Thử khôi phục từ session (nếu admin vừa refresh trang)
+    return sessionStorage.getItem('stage_audio_unlocked') === 'true';
+  });
   const audioCtxRef = useRef(null);
   const scheduledTicksRef = useRef([]);
   const timerEndRef = useRef(null);   // timestamp (ms) khi hết giờ
@@ -189,6 +192,8 @@ export default function Stage() {
   };
 
   const handleUnlockAudio = () => {
+    if (isLocalAudioUnlocked && audioCtxRef.current?.state === 'running') return;
+
     if (!audioCtxRef.current) {
       audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
     }
@@ -196,7 +201,24 @@ export default function Stage() {
       audioCtxRef.current.resume();
     }
     setIsLocalAudioUnlocked(true);
+    sessionStorage.setItem('stage_audio_unlocked', 'true');
+    console.log('[Audio] Stage Audio Unlocked via Interaction');
   };
+
+  // Lắng nghe click toàn màn hình để kích hoạt âm thanh tự động
+  useEffect(() => {
+    const handleGlobalClick = () => {
+      if (!isLocalAudioUnlocked) {
+        handleUnlockAudio();
+      }
+    };
+    window.addEventListener('click', handleGlobalClick);
+    window.addEventListener('touchstart', handleGlobalClick);
+    return () => {
+      window.removeEventListener('click', handleGlobalClick);
+      window.removeEventListener('touchstart', handleGlobalClick);
+    };
+  }, [isLocalAudioUnlocked]);
 
   // ── RAF-based countdown: tính từ timestamp để tránh drift setInterval ────
   useEffect(() => {
@@ -485,20 +507,33 @@ export default function Stage() {
                            </h2>
                            
                            <div className="flex flex-col items-center gap-6">
-                                {!isLocalAudioUnlocked ? (
-                                  <motion.button
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    onClick={handleUnlockAudio}
-                                    className="flex items-center gap-4 px-10 py-5 rounded-full font-black text-2xl uppercase tracking-widest bg-yellow-500 hover:bg-yellow-400 border-b-8 border-yellow-700 text-slate-900 animate-pulse shadow-[0_0_30px_rgba(234,179,8,0.3)] transition-all duration-500"
+                                {/* Sound Status Indicator & Unlocker */}
+                                <div className="flex justify-center">
+                                  <button 
+                                    onClick={(e) => {
+                                      e.stopPropagation(); // Ngăn sự kiện click toàn trang chạy 2 lần
+                                      handleUnlockAudio();
+                                      sessionStorage.setItem('isLocalAudioUnlocked', 'true');
+                                    }}
+                                    className={`flex items-center gap-2 px-4 py-1.5 rounded-full border transition-all duration-500 ${
+                                      isLocalAudioUnlocked 
+                                        ? 'bg-green-950/20 border-green-500/50 text-green-400 group' 
+                                        : 'bg-amber-950/20 border-amber-500/50 text-amber-400 animate-pulse'
+                                    }`}
                                   >
-                                    <VolumeX size={32}/> Kích hoạt Âm Thanh
-                                  </motion.button>
-                                ) : (
-                                  <div className="flex items-center gap-2 text-green-500 font-bold bg-green-500/10 px-4 py-2 rounded-full border border-green-500/30">
-                                    <Volume2 size={18}/> {gameState.isSoundEnabled ? 'Âm thanh Sẵn sàng' : 'Âm thanh bị tắt từ Admin'}
-                                  </div>
-                                )}
+                                    {isLocalAudioUnlocked ? (
+                                      <>
+                                        <Volume2 className="w-4 h-4" />
+                                        <span className="text-[10px] font-bold uppercase tracking-widest">Âm thanh Sẵn sàng</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <VolumeX className="w-4 h-4" />
+                                        <span className="text-[10px] font-bold uppercase tracking-widest italic">Nhấp bất kỳ để Kích hoạt âm thanh</span>
+                                      </>
+                                    )}
+                                  </button>
+                                </div>
 
                                 <motion.p 
                                   animate={{ opacity: [0.4, 1, 0.4] }}
