@@ -1079,91 +1079,101 @@ export default function Admin() {
 
         {/* Monitor Panel */}
         <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg flex-1 overflow-hidden flex flex-col">
-
-       <div className="flex flex-col md:flex-row gap-8">
-            <div className="flex items-center justify-between mb-4">
-               <div className="flex items-center gap-4">
-                  <h3 className="text-xl font-bold text-white flex items-center"><Activity className="mr-2"/> Giám Sát Real-time</h3>
-                  <button 
-                    onClick={clearStudents}
-                    className="p-1.5 rounded-lg bg-red-900/30 text-red-400 hover:bg-red-900/50 transition-colors border border-red-900/50 flex items-center gap-1 text-xs font-bold uppercase tracking-tighter"
-                    title="Xóa sạch danh sách"
-                  >
-                     <Trash2 size={14} /> Xóa DS
-                  </button>
+          {/* System Status Top Bar */}
+          <div className="flex items-center justify-between mb-6 px-4 py-2 bg-slate-900/50 rounded-lg border border-slate-700/50">
+            <div className="flex items-center gap-4 text-xs font-semibold text-slate-400">
+               <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                  Server: Đã kết nối
                </div>
-              <div className="flex gap-4 text-sm text-slate-400">
-                <span className="flex items-center"><div className="w-2 h-2 rounded-full bg-green-500 mr-2"></div> Đang chơi: {activeCount}</span>
-                <span className="flex items-center"><div className="w-2 h-2 rounded-full bg-red-500 mr-2"></div> Đã loại: {eliminatedCount}</span>
-                <span className="flex items-center">
-                  <div className="w-2 h-2 rounded-full bg-yellow-500 mr-2"></div> 
-                  Đã nộp: {submittedCount}/{
-                    gameState.question?.isRescue ? eliminatedCount : 
-                    gameState.question?.isAudience ? studentList.length : 
-                    activeCount
-                  }
-                </span>
-              </div>
-           </div>
+               <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                  Quyền Admin: Cho phép
+               </div>
+            </div>
+            <div className="text-[10px] text-slate-500 uppercase tracking-widest font-black">
+               Monitoring v2.4
+            </div>
+          </div>
 
-           <div className="overflow-y-auto pr-2 custom-scrollbar flex-1 max-h-[500px]">
+          <div className="flex flex-col gap-6 h-full min-h-0">
+            {/* Header: Title & Meta Stats */}
+            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 border-b border-slate-700 pb-4">
+              <div className="flex items-center gap-4">
+                 <h3 className="text-xl font-bold text-white flex items-center pr-4 border-r border-slate-700">
+                    <Activity className="mr-2 text-blue-400"/> Giám Sát Real-time
+                 </h3>
+                 <button 
+                   onClick={clearStudents}
+                   className="p-1.5 rounded-lg bg-red-900/30 text-red-400 hover:bg-red-900/50 transition-colors border border-red-900/50 flex items-center gap-1 text-xs font-bold uppercase tracking-tighter"
+                 >
+                    <Trash2 size={14} /> XÓA DS
+                 </button>
+              </div>
+              <div className="flex items-center gap-4 text-sm">
+                <div className="flex items-center px-3 py-1 bg-green-500/10 rounded-full border border-green-500/20 text-green-400">
+                  <div className="w-1.5 h-1.5 rounded-full bg-green-500 mr-2"></div>
+                  Đang chơi: {activeCount}
+                </div>
+                <div className="flex items-center px-3 py-1 bg-red-500/10 rounded-full border border-red-500/20 text-red-400">
+                  <div className="w-1.5 h-1.5 rounded-full bg-red-500 mr-2"></div>
+                  Đã loại: {eliminatedCount}
+                </div>
+                <div className="flex items-center px-3 py-1 bg-yellow-500/10 rounded-full border border-yellow-500/20 text-yellow-400">
+                  <div className="w-1.5 h-1.5 rounded-full bg-yellow-400 mr-2"></div>
+                  Đã nộp: {submittedCount}/{gameState.question?.isRescue ? eliminatedCount : gameState.question?.isAudience ? studentList.length : activeCount}
+                </div>
+              </div>
+            </div>
+
+            {/* Table Container */}
+            <div className="flex-1 overflow-auto rounded-xl border border-slate-700/50 bg-slate-900/30 custom-scrollbar">
               <table className="w-full text-left text-sm text-slate-300">
-                 <thead className="bg-slate-900 border-b border-slate-700 sticky top-0 z-10 text-xs uppercase text-slate-500">
+                 <thead className="bg-slate-900/80 border-b border-slate-700 sticky top-0 z-10 text-xs uppercase text-slate-500">
                     <tr>
-                      <th className="px-4 py-3">SBD</th>
-                      <th className="px-4 py-3">Lớp</th>
-                      <th className="px-4 py-3">Họ Tên</th>
-                      <th className="px-4 py-3">PIN/Connect</th>
-                      <th className="px-4 py-3">Trạng thái</th>
-                      <th className="px-4 py-3">Đáp án đang có</th>
-                      <th className="px-4 py-3">Hành động</th>
+                      <th className="px-5 py-4">SBD</th>
+                      <th className="px-5 py-4">Họ Tên</th>
+                      <th className="px-5 py-4">Lớp</th>
+                      <th className="px-5 py-4">PIN/Connect</th>
+                      <th className="px-5 py-4">Trạng thái</th>
+                      <th className="px-5 py-4 text-center">Đáp án nộp</th>
+                      <th className="px-5 py-4 text-right">Hành động</th>
                     </tr>
                  </thead>
-                 <tbody className="divide-y divide-slate-700/50">
+                 <tbody className="divide-y divide-slate-700/30">
                     {studentList.map(s => (
-                       <tr key={s.sbd} className={`hover:bg-slate-750 transition-colors ${s.status === 'eliminated' ? 'opacity-50' : ''}`}>
-                         <td className="px-4 py-3 font-mono font-bold text-white">{s.sbd}</td>
-                         <td className="px-4 py-3 font-medium">{s.lop}</td>
-                         <td className="px-4 py-3 font-medium">{s.hoTen}</td>
-                         <td className="px-4 py-3">
+                       <tr key={s.sbd} className={`hover:bg-slate-800/40 transition-colors ${s.status === 'eliminated' ? 'bg-red-900/5 opacity-60' : ''}`}>
+                         <td className="px-5 py-4 font-mono font-bold text-white">{s.sbd}</td>
+                         <td className="px-5 py-4 font-semibold text-slate-100">{s.hoTen}</td>
+                         <td className="px-5 py-4 text-slate-400">{s.lop || 'N/A'}</td>
+                         <td className="px-5 py-4">
                            <div className="flex items-center">
-                             <div className={`w-2 h-2 rounded-full mr-2 ${s.online ? 'bg-green-500' : 'bg-slate-600'}`}></div>
-                             {s.pin}
+                             <div className={`w-2 h-2 rounded-full mr-2 ${s.online ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-slate-600'}`}></div>
+                             <span className="font-mono text-slate-300">{s.pin}</span>
                            </div>
                          </td>
-                         <td className="px-4 py-3">
-                            <span className={`px-2 py-1 text-xs rounded-full font-semibold ${s.status === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                         <td className="px-5 py-4">
+                            <span className={`px-2 py-1 text-[10px] rounded uppercase font-black tracking-widest border ${s.status === 'active' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
                               {s.status === 'active' ? 'Trong sân' : 'Đã loại'}
                             </span>
                          </td>
-                         <td className="px-4 py-3">
-                            {s.currentAnswer !== null ? <span className="font-bold text-yellow-400">{s.currentAnswer}</span> : <span className="text-slate-600">-</span>}
+                         <td className="px-5 py-4 text-center">
+                            {s.currentAnswer !== null ? <div className="inline-block px-3 py-1 bg-yellow-500 text-slate-900 rounded-lg font-black text-lg shadow-lg"> {s.currentAnswer} </div> : <span className="text-slate-700 font-bold">-</span>}
                          </td>
-                         <td className="px-4 py-3 space-x-2">
-                            <button onClick={() => resetStudent(s.sbd)} title="Reset Connect" className="text-slate-400 hover:text-white"><Activity className="w-4 h-4"/></button>
+                         <td className="px-5 py-4 text-right space-x-3">
+                            <button onClick={() => resetStudent(s.sbd)} title="Reset Connect" className="text-slate-500 hover:text-blue-400 transition-colors"><Activity size={18}/></button>
                              {s.status === 'eliminated' ? (
-                                <button 
-                                   onClick={() => rescueStudent(s.sbd)} 
-                                   title="Cứu thí sinh này vào thi đấu" 
-                                   className="ml-2 text-pink-500 hover:text-pink-400 transition-colors animate-pulse"
-                                >
-                                   <HeartHandshake className="w-5 h-5"/>
-                                </button>
+                                <button onClick={() => rescueStudent(s.sbd)} title="Cứu thí sinh này vào thi đấu" className="text-pink-500 hover:text-pink-400 transition-colors animate-pulse inline-flex items-center"><HeartHandshake size={20}/></button>
                              ) : (
-                                <button 
-                                   onClick={() => eliminateStudent(s.sbd)} 
-                                   title="Loại thí sinh này (vi phạm quy chế)" 
-                                   className="ml-2 text-red-500 hover:text-red-400 transition-colors"
-                                >
-                                   <XCircle className="w-4 h-4"/>
-                                </button>
+                                <button onClick={() => eliminateStudent(s.sbd)} title="Loại thí sinh này (vi phạm quy chế)" className="text-slate-500 hover:text-red-500 transition-colors inline-flex items-center"><XCircle size={18}/></button>
                              )}
                           </td>
                        </tr>
                     ))}
                  </tbody>
               </table>
-           </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
