@@ -228,7 +228,12 @@ export default function Stage() {
             timerEndRef.current = null;
             cancelAllTicks();
          }
-         return data;
+         return {
+           phase: data.gamePhase,
+           question: data.currentQuestion,
+           students: data.students,
+           isSoundEnabled: data.isSoundEnabled
+         };
        });
      });
 

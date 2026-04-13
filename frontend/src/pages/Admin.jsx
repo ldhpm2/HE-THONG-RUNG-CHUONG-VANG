@@ -244,7 +244,12 @@ export default function Admin() {
     if (socket.connected) handleConnect();
 
     socket.on('admin_state_update', (data) => {
-      setGameState(data);
+      setGameState({
+        phase: data.gamePhase,
+        question: data.currentQuestion,
+        students: data.students,
+        isSoundEnabled: data.isSoundEnabled
+      });
     });
 
     socket.on('camera:signal_from_stage', async (data) => {
