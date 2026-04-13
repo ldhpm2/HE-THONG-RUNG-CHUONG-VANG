@@ -484,12 +484,12 @@ export default function Stage() {
                     {/* Scrolling Container */}
                     <div className="flex-1 w-full max-w-6xl mt-48 overflow-hidden relative">
                       <motion.div
-                        initial={{ y: "80vh" }}
+                        initial={{ y: "90vh" }}
                         animate={{ 
-                          y: studentsList.length > 0 ? `-${Math.max(100, studentsList.length * 12)}vh` : "-100vh" 
+                          y: studentsList.length > 0 ? `-${studentsList.length * 25}vh` : "-100vh" 
                         }}
                         transition={{ 
-                          duration: Math.max(20, studentsList.length * 2.5), 
+                          duration: Math.max(20, studentsList.length * 1.8), 
                           ease: "linear",
                           repeat: Infinity
                         }}
