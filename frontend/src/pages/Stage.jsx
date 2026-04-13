@@ -560,6 +560,7 @@ export default function Stage() {
                                  {question.mediaType === 'video' && (
                                     isYouTubeURL(question.mediaUrl) ? (
                                       <iframe 
+                                        ref={mediaRef}
                                         src={getYouTubeEmbedURL(question.mediaUrl, { mute: gameState.isSoundEnabled ? 0 : 1 })} 
                                         className="w-full h-full border-0" 
                                         allow="autoplay; encrypted-media; picture-in-picture" 
@@ -568,6 +569,7 @@ export default function Stage() {
                                       />
                                     ) : (
                                       <video 
+                                        ref={mediaRef}
                                         src={question.mediaUrl} 
                                         autoPlay 
                                         loop 
