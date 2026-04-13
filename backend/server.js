@@ -62,6 +62,9 @@ const broadcastState = () => {
 
 io.on('connection', (socket) => {
   console.log('Socket connected:', socket.id);
+  
+  // Gửi trạng thái hiện tại ngay lập tức cho kết nối mới
+  broadcastState();
 
   // --- ADMIN EVENTS ---
   socket.on('admin:login', (data, callback) => {

@@ -29,6 +29,7 @@ export default function Stage() {
   const scheduledTicksRef = useRef([]);
   const timerEndRef = useRef(null);   // timestamp (ms) khi hết giờ
   const lastScheduledRef = useRef(null); // Để tránh schedule lặp lại cho cùng 1 mốc thời gian
+  const mediaRef = useRef(null);        // Ref cho YouTube iframe, Video hoặc Audio tag
   const rafRef = useRef(null);         // requestAnimationFrame id
 
   // Tieng TICK co hoc - khop 1 lan/giay voi dong ho
@@ -246,6 +247,7 @@ export default function Stage() {
   // --- EFFECT: SELF-HEALING AUDIO SYNC -----------------------------------
   // Effect này đảm bảo âm thanh luôn khớp với trạng thái game, dù mở khóa muộn hay toggle admin
   useEffect(() => {
+    // 1. Đồng bộ Tiếng Tích Tắc
     const shouldPlayTicks = gameState.phase === 'timer_running' && gameState.isSoundEnabled && isLocalAudioUnlocked && timerEndRef.current;
 
     if (shouldPlayTicks) {
@@ -253,15 +255,34 @@ export default function Stage() {
       if (remaining > 0 && lastScheduledRef.current !== timerEndRef.current) {
         console.log(`[Audio] Auto-syncing ticks: ${remaining}s left`);
         lastScheduledRef.current = timerEndRef.current;
-        cancelAllTicks(); // Xóa cái cũ nếu có
+        cancelAllTicks();
         scheduleAllTicks(remaining, 5);
       }
     } else {
-      // Nếu không thỏa mãn đk phát -> Dừng tất cả
       if (lastScheduledRef.current !== null) {
-        console.log(`[Audio] Stopping ticks due to state change`);
+        console.log(`[Audio] Stopping ticks`);
         lastScheduledRef.current = null;
         cancelAllTicks();
+      }
+    }
+
+    // 2. Đồng bộ Video/YouTube (Không reload iframe)
+    if (mediaRef.current) {
+      const isMuted = !gameState.isSoundEnabled;
+      console.log(`[Audio] Syncing Media Sound: ${isMuted ? 'MUTED' : 'UNMUTED'}`);
+      
+      // Nếu là Video/Audio tag chuẩn
+      if (mediaRef.current.tagName === 'VIDEO' || mediaRef.current.tagName === 'AUDIO') {
+        mediaRef.current.muted = isMuted;
+      } 
+      // Nếu là YouTube Iframe
+      else if (mediaRef.current.tagName === 'IFRAME') {
+        const command = isMuted ? 'mute' : 'unmute';
+        mediaRef.current.contentWindow.postMessage(JSON.stringify({
+          event: 'command',
+          func: command,
+          args: ''
+        }), '*');
       }
     }
   }, [gameState.phase, gameState.isSoundEnabled, isLocalAudioUnlocked]);

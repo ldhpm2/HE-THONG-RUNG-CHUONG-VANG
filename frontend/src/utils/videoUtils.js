@@ -35,7 +35,9 @@ export const getYouTubeEmbedURL = (url, { autoplay = 1, mute = 1, loop = 1 } = {
     loop: loop ? 1 : 0,
     playlist: videoId, // Required for loop to work
     rel: 0,
-    modestbranding: 1
+    modestbranding: 1,
+    enablejsapi: 1,
+    origin: typeof window !== 'undefined' ? window.location.origin : ''
   });
 
   return `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
