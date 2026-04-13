@@ -119,7 +119,8 @@ io.on('connection', (socket) => {
     if (!socket.rooms.has('admin_room')) return;
     gamePhase = 'idle';
     currentQuestion = null;
-    console.log(`[Admin] Game reset to welcome screen by ${socket.id}`);
+    isSoundEnabled = true; // Luôn bật âm thanh khi khởi động/reset về màn hình chào
+    console.log(`[Admin] Game reset to welcome screen (Sound ON) by ${socket.id}`);
     broadcastState();
   });
 
