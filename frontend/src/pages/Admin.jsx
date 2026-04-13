@@ -1171,16 +1171,16 @@ export default function Admin() {
                                    <XCircle className="w-4 h-4"/>
                                 </button>
                              )}
-                            {/* Chức năng xem QR Code */}
-                         </td>
+                          </td>
                        </tr>
                     ))}
                  </tbody>
               </table>
            </div>
-        </div>
-
-      </div>
-    </div>
+        </div> {/* Close Monitor Panel stats/table flex-col */}
+      </div> {/* Close Monitor Panel */}
+    </div> {/* Close Right Column */}
+  </div> {/* Close Main Flex Content (Side-by-side) */}
+</div> {/* Close Outer Wrapper */}
   );
 }
