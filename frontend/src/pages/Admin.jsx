@@ -252,7 +252,6 @@ export default function Admin() {
 
     socket.on('connect', handleConnect);
     socket.on('disconnect', handleDisconnect);
-    // Gọi ngay lần đầu nếu đã kết nối
     if (socket.connected) handleConnect();
 
     socket.on('admin_state_update', (data) => {
@@ -282,7 +281,6 @@ export default function Admin() {
     };
   }, []);
 
-  // useEffect backup: gọi srcObject + play() sau khi div chuyển từ hidden → block
   useEffect(() => {
     if (isCameraActive && localStreamRef.current && localVideoRef.current) {
       localVideoRef.current.srcObject = localStreamRef.current;
@@ -321,7 +319,6 @@ export default function Admin() {
       
       localStreamRef.current = stream;
 
-      // Set srcObject và play() ngay - đảm bảo video phát dù element đang ẩn
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = stream;
         localVideoRef.current.play().catch(e => console.warn('Admin video play failed:', e));
@@ -330,7 +327,6 @@ export default function Admin() {
       setIsCameraActive(true);
       socket.emit('admin:camera_status', { active: true });
 
-      // Khoi tao WebRTC Caller
       const pc = new RTCPeerConnection({
         iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
       });
@@ -352,7 +348,6 @@ export default function Admin() {
     }
   };
 
-  // Dedicated Effect for Frame Relay to ensure refs are ready
   useEffect(() => {
     if (isCameraActive && localStreamRef.current) {
       frameIntervalRef.current = setInterval(() => {
@@ -368,7 +363,7 @@ export default function Admin() {
             socket.emit('admin:camera_frame', data);
           }
         }
-      }, 100); // 10 FPS (Tăng tốc độ so với 5 FPS cũ)
+      }, 100);
     } else {
       if (frameIntervalRef.current) {
         clearInterval(frameIntervalRef.current);
@@ -385,7 +380,6 @@ export default function Admin() {
     else startCamera();
   };
 
-  // Lưu trữ câu hỏi vào localStorage khi có thay đổi
   useEffect(() => {
     localStorage.setItem('admin_questions', JSON.stringify(questionsList));
     localStorage.setItem('admin_curr_idx', currentIndex.toString());
@@ -708,7 +702,26 @@ export default function Admin() {
   const submittedCount = studentList.filter(s => s.currentAnswer !== null).length;
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-300 p-6 flex flex-col md:flex-row gap-6">
+    <div className="min-h-screen bg-slate-900 text-slate-300 p-6 flex flex-col gap-6">
+      
+       {/* Status Top Bar */}
+       <div className="flex items-center justify-between px-4 py-2 bg-slate-800/50 rounded-lg border border-slate-700/50">
+          <div className="flex items-center gap-6">
+             <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
+                <span className="text-xs text-slate-400">Server: {isConnected ? 'Đã kết nối' : 'Mất kết nối'}</span>
+             </div>
+             <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${isAdminAuthenticated ? 'bg-blue-500' : 'bg-yellow-500'}`}></div>
+                <span className="text-xs text-slate-400">Quyền Admin: {isAdminAuthenticated ? 'Hiện diện' : 'Chưa xác thực'}</span>
+             </div>
+          </div>
+          <div className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">
+             Hệ thống Rung Chuông Vàng v2.1
+          </div>
+       </div>
+
+       <div className="flex-1 flex flex-col md:flex-row gap-6">
       
       {/* CỘT TRÁI: ĐIỀU KHIỂN & CÂU HỎI */}
       <div className="w-full md:w-1/3 flex flex-col gap-6">
