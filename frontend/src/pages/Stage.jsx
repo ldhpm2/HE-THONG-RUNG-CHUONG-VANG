@@ -17,6 +17,7 @@ export default function Stage() {
 
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [remoteStream, setRemoteStream] = useState(null);
+  const [webRtcConnected, setWebRtcConnected] = useState(false);
   const [lastFrame, setLastFrame] = useState(null);
   const pcRef = useRef(null);
   const remoteVideoRef = useRef(null);
@@ -285,6 +286,13 @@ export default function Stage() {
           pc.ontrack = (event) => setRemoteStream(event.streams[0]);
           pc.onicecandidate = (event) => {
             if (event.candidate) socket.emit('stage:camera_signal', { candidate: event.candidate });
+          };
+          pc.oniceconnectionstatechange = () => {
+             if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+                setWebRtcConnected(true);
+             } else {
+                setWebRtcConnected(false);
+             }
           };
         }
 
@@ -635,7 +643,7 @@ export default function Stage() {
             exit={{ opacity: 0, scale: 0.9 }}
             className="fixed inset-0 z-[200] bg-black flex items-center justify-center"
           >
-             {remoteStream ? (
+             {(remoteStream && webRtcConnected) ? (
                <video 
                  ref={remoteVideoRef} 
                  autoPlay 
