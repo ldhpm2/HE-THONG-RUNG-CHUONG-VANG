@@ -536,14 +536,21 @@ export default function Stage() {
                                  {question.mediaType === 'video' && (
                                     isYouTubeURL(question.mediaUrl) ? (
                                       <iframe 
-                                        src={getYouTubeEmbedURL(question.mediaUrl)} 
+                                        src={getYouTubeEmbedURL(question.mediaUrl, { mute: gameState.isSoundEnabled ? 0 : 1 })} 
                                         className="w-full h-full border-0" 
                                         allow="autoplay; encrypted-media; picture-in-picture" 
                                         allowFullScreen
                                         title="YouTube video"
                                       />
                                     ) : (
-                                      <video src={question.mediaUrl} autoPlay loop muted playsInline className="h-full w-full object-contain" />
+                                      <video 
+                                        src={question.mediaUrl} 
+                                        autoPlay 
+                                        loop 
+                                        muted={!gameState.isSoundEnabled} 
+                                        playsInline 
+                                        className="h-full w-full object-contain" 
+                                      />
                                     )
                                  )}
                                  {question.mediaType === 'image' && <img src={question.mediaUrl} alt="media" className="h-full w-full object-contain shadow-2xl" />}
@@ -552,7 +559,13 @@ export default function Stage() {
                                      <div className="p-8 bg-slate-900 rounded-full border-4 border-slate-700 animate-pulse">
                                        <span className="text-6xl">🎵</span>
                                      </div>
-                                     <audio src={question.mediaUrl} autoPlay controls className="opacity-50 hover:opacity-100 transition-opacity" />
+                                     <audio 
+                                       src={question.mediaUrl} 
+                                       autoPlay 
+                                       controls 
+                                       muted={!gameState.isSoundEnabled} 
+                                       className="opacity-50 hover:opacity-100 transition-opacity" 
+                                     />
                                    </div>
                                  )}
                               </div>

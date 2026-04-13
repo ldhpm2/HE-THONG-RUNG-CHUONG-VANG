@@ -147,9 +147,13 @@ io.on('connection', (socket) => {
   });
 
   socket.on('admin:toggle_sound', () => {
-    if (socket.id !== adminSocketId) return;
+    console.log(`[Admin] Toggle sound request from ${socket.id}. Current adminSocketId: ${adminSocketId}`);
+    if (socket.id !== adminSocketId) {
+      console.warn(`[Admin] Unauthorized sound toggle attempt from ${socket.id}`);
+      return;
+    }
     isSoundEnabled = !isSoundEnabled;
-    console.log(`[Admin] Sound toggled: ${isSoundEnabled}`);
+    console.log(`[Admin] Sound successfully toggled: ${isSoundEnabled}`);
     broadcastState();
   });
 
