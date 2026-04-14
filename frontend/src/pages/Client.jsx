@@ -32,6 +32,11 @@ export default function Client() {
          const myInfo = data.students[studentInfo.sbd];
          if (myInfo) {
            setStudentInfo(prev => ({...prev, status: myInfo.status}));
+         } else {
+           // Nếu không tìm thấy thông tin mình trong danh sách (do Admin xóa), tự động thoát
+           setIsLogged(false);
+           setStudentInfo(null);
+           setErrorMsg('Thông tin thí sinh đã bị xóa khỏi hệ thống. Vui lòng kết nối lại.');
          }
       }
     });
