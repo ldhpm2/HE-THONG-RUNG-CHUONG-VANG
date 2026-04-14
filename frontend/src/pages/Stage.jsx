@@ -668,7 +668,7 @@ export default function Stage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                            {[
                              { icon: "📜", title: "Lấy câu hỏi", desc: "Hệ thống sẽ lần lượt đưa ra các câu hỏi trắc nghiệm hoặc tự luận ngắn." },
-                             { icon: "⏱️", title: "Trả lời", desc: "Thí sinh có từ 15 đến 40 giây (tùy câu) để nhập đáp án lên điện thoại." },
+                             { icon: "⏱️", title: "Trả lời", desc: "Thí sinh có từ 15 đến 60 giây (tùy câu) để nhập đáp án lên điện thoại." },
                              { icon: "❌", title: "Loại trừ", desc: "Thí sinh trả lời sai hoặc không có đáp án khi hết giờ sẽ phải rời sân thi đấu." },
                              { icon: "🎗️", title: "Cứu trợ", desc: "Trong một số giai đoạn, thầy cô có thể tham gia trò chơi để cứu các thí sinh bị loại quay trở lại." },
                              { icon: "🏆", title: "Chiến thắng", desc: "Thí sinh duy nhất còn lại trên sàn thi đấu sẽ giành quyền Rung Chuông Vàng." },
