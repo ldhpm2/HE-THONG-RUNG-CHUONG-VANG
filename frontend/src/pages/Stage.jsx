@@ -448,15 +448,34 @@ export default function Stage() {
   const renderMixedText = (text) => {
     if (!text) return null;
     
-    // Khôi phục các ký tự thoát bị trình duyệt hiểu nhầm (VD: \v trong \vec, \f trong \forall)
     const restoreLatex = (str) => {
       if (typeof str !== 'string') return str;
       return str.replace(/\f/g, '\\f').replace(/\v/g, '\\v');
     };
 
-    let processedText = restoreLatex(text);
+    // Tách phần "Câu X." ở đầu đề bài để tô màu đỏ
+    const match = text.match(/^(Câu\s+\d+[\.:])\s*(.*)/si);
+    
+    if (match) {
+        const cauPart = match[1];
+        let restPart = match[2];
+        
+        restPart = restoreLatex(restPart);
+        if (!restPart.includes('$') && restPart.includes('\\')) {
+            restPart = `$${restPart}$`;
+        }
+        
+        return (
+          <MathJax dynamic>
+            <span className="whitespace-pre-wrap">
+              <span className="text-red-500 font-extrabold">{cauPart} </span>
+              {restPart}
+            </span>
+          </MathJax>
+        );
+    }
 
-    // Tự động nhận diện công thức: Nếu có dấu \ nhưng thiếu dấu $, tự động bao quanh $
+    let processedText = restoreLatex(text);
     if (!processedText.includes('$') && processedText.includes('\\')) {
        processedText = `$${processedText}$`;
     }
@@ -899,12 +918,6 @@ export default function Stage() {
                        {/* Question Content Wrapper - Priority Based Layout */}
                        <div className="flex-1 flex flex-col items-center justify-start min-h-0 overflow-hidden gap-2 mt-10 px-2">
                            {/* 1. Text Block - thu nhỏ khi có media để nhường chỗ cho ảnh */}
-                           {/* Câu X Header - Red & Prominent */}
-                           {question?.id && (
-                             <div className="text-red-600 font-black text-[clamp(2rem,6vh,4rem)] uppercase drop-shadow-lg mb-2">
-                               Câu {question.id}.
-                             </div>
-                           )}
 
                            <div className={`font-semibold text-slate-100 flex-shrink-0 whitespace-pre-wrap text-justify [text-align-last:center] max-w-[95%] px-6 ${
                              (question?.mediaType !== 'none' && question?.mediaUrl)
@@ -972,13 +985,13 @@ export default function Stage() {
                                       }`}
                                    >
                                       <span className={`${
-                                        (question.mediaType !== 'none' && question.mediaUrl) ? 'text-2xl' : 'text-[clamp(1.5rem,4vh,3rem)]'
+                                        (question.mediaType !== 'none' && question.mediaUrl) ? 'text-2xl' : 'text-[clamp(1.5rem,5vh,3.5rem)]'
                                       } text-yellow-500 font-black leading-none mb-1`}>{opt}</span>
                                       {question[`option${opt}`] && (
                                         <span className={`mt-0.5 text-center text-white whitespace-pre-wrap ${
                                           (question.mediaType !== 'none' && question.mediaUrl)
-                                            ? 'text-[clamp(0.8rem,2vh,1.4rem)]'
-                                            : getDynamicOptionSize(question[`option${opt}`]?.length)
+                                            ? 'text-[clamp(1.2rem,2.8vh,2rem)]'
+                                            : getDynamicFontSize(question[`option${opt}`]?.length)
                                         }`}>
                                           {renderMixedText(question[`option${opt}`])}
                                         </span>
