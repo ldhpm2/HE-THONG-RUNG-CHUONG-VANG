@@ -256,7 +256,8 @@ export default function Stage() {
             phase: data.gamePhase,
             question: data.currentQuestion,
             students: data.students,
-            isSoundEnabled: data.isSoundEnabled
+            isSoundEnabled: data.isSoundEnabled,
+            customMessage: data.customMessage
           };
         });
       });

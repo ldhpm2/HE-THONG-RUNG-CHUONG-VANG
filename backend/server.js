@@ -370,6 +370,15 @@ io.on('connection', (socket) => {
     broadcastState();
   });
 
+  socket.on('admin:show_custom', async (data) => {
+    if (!socket.rooms.has('admin_room')) return;
+    customMessage = data.message || '';
+    gamePhase = 'showing_custom';
+    console.log(`[Admin] Custom message shown by ${socket.id}: ${customMessage.substring(0, 30)}...`);
+    await saveFullState();
+    broadcastState();
+  });
+
   socket.on('admin:reveal_answer', async () => {
     if (!socket.rooms.has('admin_room')) return;
     gamePhase = 'answer_revealed';
