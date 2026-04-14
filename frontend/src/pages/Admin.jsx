@@ -1099,6 +1099,17 @@ export default function Admin() {
                 <span className="text-[10px] uppercase opacity-80">Máy Admin (Loa này)</span>
                 {isAudioEnabled ? 'Loa: Đang Bật' : 'Kích hoạt loa'}
               </button>
+
+              <button 
+                onClick={declareWinner} 
+                className={`py-4 rounded-xl flex flex-col items-center justify-center font-black transition active:scale-95 shadow-lg border-2 border-yellow-500/50 ${
+                  gameState.phase === 'winner_declared' ? 'bg-yellow-600 text-white' : 'bg-gradient-to-b from-amber-600 to-yellow-600 text-white'
+                } relative`}
+              >
+                <div className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full animate-bounce font-bold shadow-lg">WIN</div>
+                <Trophy className="mb-2 w-6 h-6"/>
+                CHÚC MỪNG CHIẾN THẮNG
+              </button>
            </div>
            
            {/* Video và canvas luôn hiện diện trong DOM để ref luôn sẵn sàng */}
