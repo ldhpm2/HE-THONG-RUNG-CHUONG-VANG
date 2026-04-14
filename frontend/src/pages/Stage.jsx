@@ -255,7 +255,6 @@ export default function Stage() {
           return {
             phase: data.gamePhase,
             question: data.currentQuestion,
-            customMessage: data.customMessage || '',
             students: data.students,
             isSoundEnabled: data.isSoundEnabled
           };
@@ -651,23 +650,20 @@ export default function Stage() {
                        <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-purple-600 rounded-full blur-[120px]"></div>
                     </div>
 
-                    <div className="z-10 w-full max-w-5xl flex flex-col gap-10">
-                        <div className="flex flex-col items-center text-center mb-4">
+                    <div className="z-10 w-full max-w-4xl flex flex-col gap-4">
+                        <div className="flex flex-col items-center text-center mb-2">
                            <motion.div 
                              initial={{ y: -20, opacity: 0 }}
                              animate={{ y: 0, opacity: 1 }}
                              transition={{ delay: 0.2 }}
-                             className="bg-indigo-600/20 p-5 rounded-3xl border border-indigo-500/50 mb-6"
+                             className="bg-indigo-600/20 p-3 rounded-2xl border border-indigo-500/50 mb-4"
                            >
-                              <ScrollText className="w-16 h-16 text-indigo-400" />
+                              <ScrollText className="w-12 h-12 text-indigo-400" />
                            </motion.div>
-                           <h2 className="text-6xl font-black uppercase tracking-[0.1em] text-transparent bg-clip-text bg-gradient-to-r from-white via-indigo-200 to-indigo-400 drop-shadow-sm">
+                           <h2 className="text-5xl font-black uppercase tracking-[0.1em] text-transparent bg-clip-text bg-gradient-to-r from-white via-indigo-200 to-indigo-400 drop-shadow-sm">
                              Thể Lệ Cuộc Thi
                            </h2>
-                           <div className="h-1 w-48 bg-gradient-to-r from-transparent via-indigo-500 to-transparent rounded-full mt-4"></div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                            {[
                              { icon: "📜", title: "Lấy câu hỏi", desc: "Hệ thống sẽ lần lượt đưa ra các câu hỏi trắc nghiệm hoặc tự luận ngắn." },
                              { icon: "⏱️", title: "Trả lời", desc: "Thí sinh có từ 15 đến 60 giây (tùy câu) để nhập đáp án lên điện thoại." },
@@ -681,7 +677,7 @@ export default function Stage() {
                                initial={{ x: i % 2 === 0 ? -50 : 50, opacity: 0 }}
                                animate={{ x: 0, opacity: 1 }}
                                transition={{ delay: 0.4 + (i * 0.1) }}
-                               className="flex items-start gap-5 p-6 bg-slate-900/60 border border-slate-800 rounded-2xl hover:border-indigo-500/50 transition-colors group"
+                               className="flex items-start gap-4 p-4 bg-slate-900/60 border border-slate-800 rounded-2xl hover:border-indigo-500/50 transition-colors group"
                              >
                                <span className="text-4xl filter grayscale group-hover:grayscale-0 transition-all">{rule.icon}</span>
                                <div className="flex flex-col">
@@ -698,7 +694,7 @@ export default function Stage() {
                           transition={{ delay: 1.2 }}
                           className="text-center mt-6"
                         >
-                           <p className="text-2xl font-black italic text-yellow-500 uppercase tracking-[0.3em] bg-yellow-500/10 py-4 rounded-xl border border-yellow-500/20">
+                           <p className="text-xl font-black italic text-yellow-500 uppercase tracking-[0.3em] bg-yellow-500/10 py-3 rounded-xl border border-yellow-500/20">
                              Chúc các bạn bình tĩnh và tự tin!
                            </p>
                         </motion.div>
