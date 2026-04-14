@@ -438,6 +438,8 @@ export default function Admin() {
         if(res.success) {
           alert(`Đã tải lên ${res.count} thí sinh!`);
           e.target.value = ''; // Reset input để có thể nạp lại cùng file nếu cần
+        } else {
+          alert('Lỗi máy chủ: ' + (res.message || 'Không rõ nguyên nhân'));
         }
       });
     } catch(err) {

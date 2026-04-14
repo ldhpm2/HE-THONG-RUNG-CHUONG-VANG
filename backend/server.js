@@ -205,42 +205,52 @@ io.on('connection', (socket) => {
   });
 
   socket.on('admin:upload_students', async (data, callback) => {
-    if (!socket.rooms.has('admin_room')) {
-      console.warn(`[Admin] Unauthorized upload_students attempt from ${socket.id}`);
-      if(callback) callback({ success: false, message: 'Bạn chưa đăng nhập Admin hoặc bị mất kết nối!' });
-      return;
+    try {
+      if (!socket.rooms.has('admin_room')) {
+        console.warn(`[Admin] Unauthorized upload_students attempt from ${socket.id}`);
+        if(callback) callback({ success: false, message: 'Bạn chưa đăng nhập Admin hoặc bị mất kết nối!' });
+        return;
+      }
+      await Student.deleteMany({}); // Xóa dữ liệu cũ trên DB
+      students = {};
+      data.forEach(s => {
+        students[s.sbd] = {
+          ...s,
+          status: 'active',
+          currentAnswer: null,
+          socketId: null,
+          online: false
+        };
+      });
+      console.log(`[Admin] Uploaded ${data.length} students by ${socket.id}`);
+      if(callback) callback({ success: true, count: data.length });
+      await saveFullState();
+      broadcastState();
+    } catch (error) {
+      console.error('[Admin] Error uploading students:', error);
+      if(callback) callback({ success: false, message: 'Lỗi server khi nạp thí sinh: ' + error.message });
     }
-    await Student.deleteMany({}); // Xóa dữ liệu cũ trên DB
-    students = {};
-    data.forEach(s => {
-      students[s.sbd] = {
-        ...s,
-        status: 'active',
-        currentAnswer: null,
-        socketId: null,
-        online: false
-      };
-    });
-    console.log(`[Admin] Uploaded ${data.length} students by ${socket.id}`);
-    if(callback) callback({ success: true, count: data.length });
-    await saveFullState();
-    broadcastState();
   });
 
   socket.on('admin:clear_students', async (callback) => {
-    if (!socket.rooms.has('admin_room')) {
-      console.warn(`[Admin] Unauthorized clear_students attempt from ${socket.id}`);
-      if(callback) callback({ success: false, message: 'Bạn chưa đăng nhập Admin hoặc bị mất kết nối!' });
-      return;
+    try {
+      if (!socket.rooms.has('admin_room')) {
+        console.warn(`[Admin] Unauthorized clear_students attempt from ${socket.id}`);
+        if(callback) callback({ success: false, message: 'Bạn chưa đăng nhập Admin hoặc bị mất kết nối!' });
+        return;
+      }
+      students = {};
+      gamePhase = 'idle';
+      currentQuestion = null;
+      await Student.deleteMany({}); // Xóa sạch thí sinh trong database
+      console.log(`[Admin] All students cleared and game reset by ${socket.id}`);
+      if(callback) callback({ success: true });
+      await saveFullState();
+      broadcastState();
+    } catch (error) {
+      console.error('[Admin] Error clearing students:', error);
+      if(callback) callback({ success: false, message: 'Lỗi server khi xóa thí sinh: ' + error.message });
     }
-    students = {};
-    gamePhase = 'idle';
-    currentQuestion = null;
-    await Student.deleteMany({}); // Xóa sạch thí sinh trong database
-    console.log(`[Admin] All students cleared and game reset by ${socket.id}`);
-    if(callback) callback({ success: true });
-    await saveFullState();
-    broadcastState();
   });
 
   socket.on('admin:mobile_upload_questions', (questions, callback) => {
