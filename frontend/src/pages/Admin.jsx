@@ -3,7 +3,7 @@ import { socket } from '../socket';
 import { parseExcelStudentList, parseExcelQuestions } from '../utils/excelParser';
 import { parseWordQuestions } from '../utils/wordParser';
 import { pickAndDownloadDriveFile } from '../utils/googleDrivePicker';
-import { Upload, Play, Square, Presentation, Eye, UserX, Activity, HeartHandshake, Trash2, XCircle, ChevronLeft, ChevronRight, Save, Plus, RotateCcw, FileDown, Camera, CameraOff, FolderOpen, Loader2, Volume2, VolumeX, Smartphone, ScrollText, MessageSquare } from 'lucide-react';
+import { Upload, Play, Square, Presentation, Eye, UserX, Activity, HeartHandshake, Trash2, XCircle, ChevronLeft, ChevronRight, Save, Plus, RotateCcw, FileDown, Camera, CameraOff, FolderOpen, Loader2, Volume2, VolumeX, Smartphone, ScrollText, MessageSquare, Trophy } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { MathJax } from 'better-react-mathjax';
 import { isYouTubeURL, getYouTubeEmbedURL } from '../utils/videoUtils';
@@ -268,7 +268,7 @@ export default function Admin() {
         question: data.currentQuestion,
         students: data.students,
         isSoundEnabled: data.isSoundEnabled,
-        customMessage: data.customMessage
+        customMessage: data.customMessage || ''
       });
     });
 
@@ -647,6 +647,11 @@ export default function Admin() {
   const kickStudent = (sbd) => socket.emit('admin:kick_student', { sbd });
   const resetStudent = (sbd) => socket.emit('admin:reset_student', { sbd });
   
+  const declareWinner = () => {
+    if(!window.confirm('Xác nhận CHÚC MỪNG CHIẾN THẮNG? Màn hình sẽ chuyển sang hiệu ứng vinh danh.')) return;
+    socket.emit('admin:declare_winner');
+  };
+
   const rescueSpecific = () => {
      const target = prompt('Nhập SBD các học sinh muốn cứu (cách nhau bởi dấu phẩy, vd: 111, 112):');
      if (!target) return;

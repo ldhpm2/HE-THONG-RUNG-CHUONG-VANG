@@ -122,6 +122,31 @@ export default function Stage() {
     } catch(e) {}
   };
 
+  const playVictory = () => {
+    try {
+      if (!isLocalAudioUnlocked) return;
+      const ctx = audioCtxRef.current;
+      if (!ctx) return;
+      const t = ctx.currentTime;
+      // Trumpet-like Fanfare (C4, E4, G4, C5, E5, G5)
+      const freqs = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99];
+      freqs.forEach((freq, i) => {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        const filter = ctx.createBiquadFilter();
+        o.type = 'sawtooth';
+        o.frequency.setValueAtTime(freq, t + i * 0.12);
+        filter.type = 'lowpass';
+        filter.frequency.value = 2000;
+        g.gain.setValueAtTime(0, t + i * 0.12);
+        g.gain.linearRampToValueAtTime(0.3, t + i * 0.12 + 0.03);
+        g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.12 + 1.2);
+        o.connect(filter); filter.connect(g); g.connect(ctx.destination);
+        o.start(t + i * 0.12); o.stop(t + i * 0.12 + 1.2);
+      });
+    } catch(e) {}
+  };
+
   const cancelAllTicks = () => {
     scheduledTicksRef.current.forEach(s => { try { s.stop(); } catch(_) {} });
     scheduledTicksRef.current = [];
@@ -260,6 +285,10 @@ export default function Stage() {
             customMessage: data.customMessage
           };
         });
+         
+         if (data.gamePhase === 'winner_declared' && gameState.phase !== 'winner_declared') {
+           playVictory();
+         }
       });
 
      return () => {
@@ -314,10 +343,13 @@ export default function Stage() {
 
   // Dung dap an - Hiệu ứng này vẫn giữ riêng cho âm thanh kết quả
   useEffect(() => {
-    if (gameState.isSoundEnabled && gameState.phase === 'answer_revealed' && isLocalAudioUnlocked) {
-      cancelAllTicks();
-      playCorrect();
+    if (gameState.isSoundEnabled && isLocalAudioUnlocked) {
+      socket.on('audio_trigger', (data) => {
+         if (data === 'reveal_answer') playCorrect();
+         if (data === 'victory') playVictory();
+      });
     }
+    return () => socket.off('audio_trigger');
   }, [gameState.phase, gameState.isSoundEnabled, isLocalAudioUnlocked]);
 
   // --- PERSISTENCE ---
@@ -756,8 +788,82 @@ export default function Stage() {
                   </motion.div>
                 )}
 
+                 {phase === 'winner_declared' && (
+                  <motion.div 
+                    key="winner" 
+                    initial={{ opacity: 0, scale: 0.8 }} 
+                    animate={{ opacity: 1, scale: 1 }} 
+                    exit={{ opacity: 0, scale: 1.2 }}
+                    className="w-full h-full flex flex-col items-center justify-center p-12 bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 rounded-3xl border-4 border-yellow-500/50 shadow-[0_0_50px_rgba(234,179,8,0.3)] relative overflow-hidden"
+                  >
+                    {/* Confetti Elements */}
+                    {[...Array(20)].map((_, i) => (
+                      <motion.div
+                        key={i}
+                        className="absolute w-3 h-3 rounded-sm"
+                        style={{
+                          backgroundColor: ['#EAB308', '#3B82F6', '#EF4444', '#22C55E'][i % 4],
+                          top: '-5%',
+                          left: `${Math.random() * 100}%`
+                        }}
+                        animate={{
+                          top: '105%',
+                          left: `${(Math.random() * 100)}%`,
+                          rotate: 360
+                        }}
+                        transition={{
+                          duration: 2 + Math.random() * 2,
+                          repeat: Infinity,
+                          delay: Math.random() * 2,
+                          ease: "linear"
+                        }}
+                      />
+                    ))}
+
+                    <div className="z-10 flex flex-col items-center text-center">
+                        <motion.div
+                          animate={{ 
+                            rotate: [0, -10, 10, -10, 10, 0],
+                            scale: [1, 1.1, 1]
+                          }}
+                          transition={{ repeat: Infinity, duration: 2 }}
+                          className="relative mb-8"
+                        >
+                           <div className="absolute inset-0 bg-yellow-400 blur-3xl opacity-20 animate-pulse"></div>
+                           <img 
+                              src="/victory-bell.png" 
+                              alt="Golden Bell" 
+                              className="w-64 h-64 md:w-80 md:h-80 object-contain drop-shadow-[0_0_30px_rgba(234,179,8,0.8)]"
+                              onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.src = "https://cdn-icons-png.flaticon.com/512/311/311081.png"; // Fallback emoji bell
+                              }}
+                           />
+                        </motion.div>
+
+                        <motion.h1
+                          initial={{ y: 20, opacity: 0 }}
+                          animate={{ y: 0, opacity: 1 }}
+                          transition={{ delay: 0.5 }}
+                          className="text-[clamp(2.5rem,8vh,5rem)] font-black uppercase text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 via-yellow-500 to-amber-700 tracking-tighter drop-shadow-2xl leading-none mb-4"
+                        >
+                          Chúc Mừng Chiến Thắng!
+                        </motion.h1>
+
+                        <motion.p
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ delay: 1 }}
+                          className="text-2xl md:text-3xl font-bold text-yellow-500/80 italic tracking-widest uppercase"
+                        >
+                          Quán quân Rung Chuông Vàng
+                        </motion.p>
+                    </div>
+                  </motion.div>
+                )}
+
                 {/* 3. QUESTION / PLAYING SCREEN */}
-                {!['idle', 'showing_intro', 'showing_rules', 'showing_custom'].includes(phase) && (
+                {!['idle', 'showing_intro', 'showing_rules', 'showing_custom', 'winner_declared'].includes(phase) && (
                    <motion.div 
                      key="question" 
                      initial={{ opacity: 0, x: -100 }} 

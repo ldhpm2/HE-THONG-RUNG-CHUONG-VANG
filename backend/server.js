@@ -379,6 +379,16 @@ io.on('connection', (socket) => {
     broadcastState();
   });
 
+  socket.on('admin:declare_winner', async () => {
+    if (!socket.rooms.has('admin_room')) return;
+    gamePhase = 'winner_declared';
+    currentQuestion = null;
+    console.log(`[Admin] WINNER DECLARED by ${socket.id}`);
+    await saveFullState();
+    broadcastState();
+    io.emit('client_play_sound', 'victory');
+  });
+
   socket.on('admin:reveal_answer', async () => {
     if (!socket.rooms.has('admin_room')) return;
     gamePhase = 'answer_revealed';
