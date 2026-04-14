@@ -12,7 +12,7 @@ export default function Stage() {
   const [gameState, setGameState] = useState({
     phase: 'idle', // idle, showing_intro, question_sent, timer_running, locked, answer_revealed
     question: null,
-    students: {},
+    students: JSON.parse(localStorage.getItem('stage_students') || '{}'),
     isSoundEnabled: true
   });
 
@@ -317,6 +317,11 @@ export default function Stage() {
       playCorrect();
     }
   }, [gameState.phase, gameState.isSoundEnabled, isLocalAudioUnlocked]);
+
+  // --- PERSISTENCE ---
+  useEffect(() => {
+    localStorage.setItem('stage_students', JSON.stringify(gameState.students));
+  }, [gameState.students]);
 
   // --- DEDICATED CAMERA LISTENERS (Independent of Audio) ---
   useEffect(() => {
@@ -768,6 +773,7 @@ export default function Stage() {
                   <div className="flex gap-3">
                     <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]"></div> Đang Thi</div>
                     <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm bg-red-600 shadow-[0_0_5px_rgba(220,38,38,0.5)]"></div> Loại</div>
+                    <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-yellow-400 shadow-[0_0_5px_rgba(250,204,21,0.5)]"></div> Đăng Nhập</div>
                   </div>
                   <div className="bg-slate-800/50 px-2 py-0.5 rounded text-slate-300 font-mono">
                      {studentsList.length} Tổng / {studentsList.filter(s => s.online).length} Online
@@ -790,7 +796,12 @@ export default function Stage() {
                           : 'bg-red-900/40 text-red-500 border-red-800 opacity-40 shadow-none'
                       } ${phase === 'locked' && st.status==='active' && st.hasAnswered ? 'ring-2 ring-yellow-400 scale-110 z-10' : ''}`}
                     >
-                      {st.sbd}
+                      <div className="flex flex-col items-center leading-none mt-0.5">
+                        <span>{st.sbd}</span>
+                        {st.online && (
+                          <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full mt-0.5 shadow-[0_0_5px_rgba(250,204,21,0.8)] animate-pulse"></div>
+                        )}
+                      </div>
                       {st.status === 'active' && st.hasAnswered && phase !== 'idle' && (
                         <div className="absolute top-0 right-0 w-2.5 h-2.5 bg-yellow-400 rounded-full translate-x-1/3 -translate-y-1/3 shadow-[0_0_8px_rgba(250,204,21,1)] border border-slate-900"></div>
                       )}

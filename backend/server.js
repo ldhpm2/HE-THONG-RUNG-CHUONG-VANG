@@ -4,6 +4,9 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const path = require('path');
 const os = require('os');
+const fs = require('fs');
+
+const DATA_FILE = path.join(__dirname, 'students.json');
 
 const app = express();
 app.use(cors());
@@ -23,6 +26,50 @@ let students = {}; // Key: SBD, Value: { sbd, hoTen, lop, pin, status: 'active' 
 let currentQuestion = null;
 let gamePhase = 'idle'; // 'idle', 'question_sent', 'timer_running', 'locked', 'answer_revealed'
 let isSoundEnabled = true;
+
+// --- PERSISTENCE HELPERS ---
+const saveStudentsToFile = () => {
+  try {
+    // Chỉ lưu thông tin cơ bản, không lưu socketId hay trạng thái online tạm thời
+    const dataToSave = {};
+    for (const sbd in students) {
+      dataToSave[sbd] = {
+        sbd: students[sbd].sbd,
+        hoTen: students[sbd].hoTen,
+        lop: students[sbd].lop,
+        pin: students[sbd].pin,
+        status: students[sbd].status,
+        currentAnswer: students[sbd].currentAnswer
+      };
+    }
+    fs.writeFileSync(DATA_FILE, JSON.stringify(dataToSave, null, 2));
+    // console.log('[Persistence] Students saved to disk');
+  } catch (err) {
+    console.error('[Persistence] Error saving students:', err);
+  }
+};
+
+const loadStudentsFromFile = () => {
+  try {
+    if (fs.existsSync(DATA_FILE)) {
+      const data = fs.readFileSync(DATA_FILE, 'utf8');
+      const loaded = JSON.parse(data);
+      for (const sbd in loaded) {
+        students[sbd] = {
+          ...loaded[sbd],
+          socketId: null,
+          online: false
+        };
+      }
+      console.log(`[Persistence] Loaded ${Object.keys(students).length} students from disk`);
+    }
+  } catch (err) {
+    console.error('[Persistence] Error loading students:', err);
+  }
+};
+
+// Initial load
+loadStudentsFromFile();
 
 // Helper to get local IP
 function getLocalIP() {
@@ -123,6 +170,7 @@ io.on('connection', (socket) => {
     });
     console.log(`[Admin] Uploaded ${data.length} students by ${socket.id}`);
     if(callback) callback({ success: true, count: data.length });
+    saveStudentsToFile();
     broadcastState();
   });
 
@@ -137,6 +185,7 @@ io.on('connection', (socket) => {
     currentQuestion = null;
     console.log(`[Admin] All students cleared and game reset by ${socket.id}`);
     if(callback) callback({ success: true });
+    saveStudentsToFile();
     broadcastState();
   });
 
@@ -178,6 +227,7 @@ io.on('connection', (socket) => {
       students[key].currentAnswer = null;
     }
     console.log(`[Admin] Question pushed by ${socket.id}: ${currentQuestion.id || 'N/A'}`);
+    saveStudentsToFile();
     broadcastState();
     io.emit('client_play_sound', 'question_show');
   });
@@ -256,6 +306,7 @@ io.on('connection', (socket) => {
          }
       }
     }
+    saveStudentsToFile();
     broadcastState();
     io.emit('client_play_sound', 'reveal_answer');
   });
@@ -292,6 +343,7 @@ io.on('connection', (socket) => {
     
     console.log(`[Admin] Rescued ${rescued.length} students`);
     if(callback) callback({ success: true, count: rescued.length });
+    saveStudentsToFile();
     broadcastState();
     io.emit('client_play_sound', 'rescue_success');
   });
@@ -307,6 +359,7 @@ io.on('connection', (socket) => {
       if (students[sbd].socketId) io.to(students[sbd].socketId).emit('you_are_eliminated');
       console.log(`[Admin] Manually eliminated SBD: ${sbd}`);
       if(callback) callback({ success: true });
+      saveStudentsToFile();
       broadcastState();
     } else {
       if(callback) callback({ success: false, message: 'Số báo danh không tồn tại' });
@@ -410,6 +463,7 @@ io.on('connection', (socket) => {
     if (adminSocketId) {
       io.to(adminSocketId).emit('admin_state_update', { gamePhase, currentQuestion, students });
     }
+    saveStudentsToFile();
   });
 
   // Sự kiện check disconnect để báo Admin ai offline

@@ -17,7 +17,7 @@ export default function Admin() {
   const [gameState, setGameState] = useState({
     phase: 'idle',
     question: null,
-    students: {},
+    students: JSON.parse(localStorage.getItem('admin_students') || '{}'),
     isSoundEnabled: true
   });
 
@@ -41,7 +41,7 @@ export default function Admin() {
     correct: 'A',
     mediaType: 'none', // none, image, video, audio
     mediaUrl: '',
-    time: 30
+    time: 40
   });
 
   // --- GOOGLE DRIVE STATE ---
@@ -410,7 +410,8 @@ export default function Admin() {
   useEffect(() => {
     localStorage.setItem('admin_questions', JSON.stringify(questionsList));
     localStorage.setItem('admin_curr_idx', currentIndex.toString());
-  }, [questionsList, currentIndex]);
+    localStorage.setItem('admin_students', JSON.stringify(gameState.students));
+  }, [questionsList, currentIndex, gameState.students]);
 
   const handleLogin = (e) => {
     e.preventDefault();

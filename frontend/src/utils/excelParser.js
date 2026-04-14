@@ -80,7 +80,7 @@ export const parseExcelQuestions = (file) => {
             optionC: sanitizeString(nRow['C'] || nRow['PHƯƠNG ÁN C'] || nRow['ĐÁP ÁN C'] || ''),
             optionD: sanitizeString(nRow['D'] || nRow['PHƯƠNG ÁN D'] || nRow['ĐÁP ÁN D'] || ''),
             correct: (nRow['ĐÁP ÁN ĐÚNG'] || nRow['ĐÁP ÁN'] || nRow['CORRECT'] || 'A').toString().toUpperCase().trim(),
-            time: Number(nRow['THỜI GIAN'] || nRow['TIME']) || 15,
+            time: Number(nRow['THỜI GIAN'] || nRow['TIME']) || 40,
             mediaType: (nRow['LOẠI MEDIA'] || nRow['MEDIA TYPE'] || 'none').toString().toLowerCase().trim(),
             mediaUrl: sanitizeString(nRow['URL MEDIA'] || nRow['LINK MEDIA'] || '')
           };

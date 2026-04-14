@@ -72,7 +72,7 @@ export const parseWordQuestions = async (file) => {
                 optionC: '',
                 optionD: '',
                 correct: 'A', 
-                time: 30,
+                time: 40,
                 mediaType: foundImg ? 'image' : 'none',
                 mediaUrl: foundImg || '' 
              };
