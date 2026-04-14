@@ -3,7 +3,7 @@ import { socket } from '../socket';
 import { parseExcelStudentList, parseExcelQuestions } from '../utils/excelParser';
 import { parseWordQuestions } from '../utils/wordParser';
 import { pickAndDownloadDriveFile } from '../utils/googleDrivePicker';
-import { Upload, Play, Square, Presentation, Eye, UserX, Activity, HeartHandshake, Trash2, XCircle, ChevronLeft, ChevronRight, Save, Plus, RotateCcw, FileDown, Camera, CameraOff, FolderOpen, Loader2, Volume2, VolumeX, Smartphone, ScrollText } from 'lucide-react';
+import { Upload, Play, Square, Presentation, Eye, UserX, Activity, HeartHandshake, Trash2, XCircle, ChevronLeft, ChevronRight, Save, Plus, RotateCcw, FileDown, Camera, CameraOff, FolderOpen, Loader2, Volume2, VolumeX, Smartphone, ScrollText, MessageSquare } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { MathJax } from 'better-react-mathjax';
 import { isYouTubeURL, getYouTubeEmbedURL } from '../utils/videoUtils';
@@ -25,6 +25,7 @@ export default function Admin() {
     const saved = localStorage.getItem('admin_questions');
     return saved ? JSON.parse(saved) : [];
   });
+  const [customText, setCustomText] = useState('');
   const [currentIndex, setCurrentIndex] = useState(() => {
     const saved = localStorage.getItem('admin_curr_idx');
     return saved ? parseInt(saved) : -1;
@@ -1038,6 +1039,14 @@ export default function Admin() {
               <button onClick={() => socket.emit('admin:show_rules')} className="bg-slate-700 hover:bg-slate-600 text-white py-4 rounded-xl flex flex-col items-center justify-center font-bold transition active:scale-95 shadow-lg border-2 border-slate-600">
                 <ScrollText className="mb-2 text-indigo-400"/> 0.6. Thể lệ
               </button>
+              <button 
+                onClick={() => socket.emit('admin:show_custom', { message: customText })} 
+                className={`py-4 rounded-xl flex flex-col items-center justify-center font-bold transition active:scale-95 shadow-lg border-2 ${
+                  gameState.phase === 'showing_custom' ? 'bg-indigo-600 border-indigo-400 text-white' : 'bg-slate-700 border-slate-600 text-slate-300'
+                }`}
+              >
+                <MessageSquare className="mb-2 text-blue-400"/> 0.7. Chiếu nội dung
+              </button>
               <button onClick={pushQuestion} className="bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl flex flex-col items-center justify-center font-semibold transition active:scale-95 shadow-lg">
                 <Presentation className="mb-2"/> 1. Hiện Câu Hỏi
               </button>
@@ -1094,7 +1103,33 @@ export default function Admin() {
               <video ref={localVideoRef} autoPlay muted playsInline className="w-full h-40 object-cover rounded" />
               <canvas ref={canvasRef} className="hidden" />
            </div>
-                      <div className="mt-6 border-t border-slate-700 pt-6 space-y-3">
+                      <div className="mt-6 border-t border-slate-700 pt-6">
+               <h4 className="text-sm font-bold text-slate-400 mb-3 uppercase tracking-wider flex items-center">
+                  <MessageSquare size={14} className="mr-2"/> Nội dung trình chiếu tùy chỉnh
+               </h4>
+               <textarea
+                 value={customText}
+                 onChange={(e) => setCustomText(e.target.value)}
+                 placeholder="Nhập nội dung bất kỳ để chiếu lên màn hình Stage (hỗ trợ MathJax)..."
+                 className="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 text-white text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all outline-none resize-none h-24 mb-3"
+               />
+               <div className="flex gap-2">
+                  <button 
+                    onClick={() => socket.emit('admin:show_custom', { message: customText })}
+                    className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white py-2 rounded-lg font-bold text-sm shadow-lg transition active:scale-95 flex items-center justify-center"
+                  >
+                     <Presentation className="mr-2 w-4 h-4"/> Chiếu nội dung này
+                  </button>
+                  <button 
+                    onClick={() => setCustomText('')}
+                    className="px-4 bg-slate-700 hover:bg-slate-600 text-slate-300 py-2 rounded-lg font-bold text-sm transition active:scale-95"
+                  >
+                     Xóa
+                  </button>
+               </div>
+            </div>
+
+            <div className="mt-6 border-t border-slate-700 pt-6 space-y-3">
                <button 
                   onClick={rescueAll} 
                   className="w-full bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white py-3 rounded-xl flex items-center justify-center font-bold text-lg shadow-lg transition active:scale-95"

@@ -53,6 +53,7 @@ const gameStateSchema = new mongoose.Schema({
   id: { type: String, default: 'main_state', unique: true },
   gamePhase: { type: String, default: 'idle' },
   currentQuestion: { type: mongoose.Schema.Types.Mixed, default: null },
+  customMessage: { type: String, default: '' },
   isSoundEnabled: { type: Boolean, default: true }
 });
 const GameState = mongoose.model('GameState', gameStateSchema);
@@ -61,6 +62,7 @@ const GameState = mongoose.model('GameState', gameStateSchema);
 let adminSocketId = null;
 let students = {}; 
 let currentQuestion = null;
+let customMessage = '';
 let gamePhase = 'idle'; 
 let isSoundEnabled = true;
 
@@ -74,7 +76,7 @@ const saveFullState = async () => {
     // 1. Lưu GameState
     await GameState.findOneAndUpdate(
       { id: 'main_state' },
-      { gamePhase, currentQuestion, isSoundEnabled },
+      { gamePhase, currentQuestion, customMessage, isSoundEnabled },
       { upsert: true }
     );
 
@@ -107,6 +109,7 @@ const loadFullState = async () => {
     if (gs) {
       gamePhase = gs.gamePhase;
       currentQuestion = gs.currentQuestion;
+      customMessage = gs.customMessage || '';
       isSoundEnabled = gs.isSoundEnabled;
     }
 
@@ -300,6 +303,16 @@ io.on('connection', (socket) => {
     gamePhase = 'showing_rules';
     currentQuestion = null;
     console.log(`[Admin] Showing rules by ${socket.id}`);
+    broadcastState();
+  });
+
+  socket.on('admin:show_custom', async (data) => {
+    if (!socket.rooms.has('admin_room')) return;
+    gamePhase = 'showing_custom';
+    customMessage = data.message || '';
+    currentQuestion = null;
+    console.log(`[Admin] Showing custom content by ${socket.id}`);
+    await saveFullState();
     broadcastState();
   });
 

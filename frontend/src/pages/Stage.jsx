@@ -4,14 +4,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MathJax } from 'better-react-mathjax';
 import logoBell from '../assets/logo_bell.png';
 import { QRCodeSVG } from 'qrcode.react';
-import { Volume2, VolumeX, Camera, CameraOff, ScrollText } from 'lucide-react';
+import { Volume2, VolumeX, Camera, CameraOff, ScrollText, MessageSquare } from 'lucide-react';
 import { isYouTubeURL, getYouTubeEmbedURL } from '../utils/videoUtils';
 
 
 export default function Stage() {
   const [gameState, setGameState] = useState({
-    phase: 'idle', // idle, showing_intro, showing_rules, question_sent, timer_running, locked, answer_revealed
+    phase: 'idle', // idle, showing_intro, showing_rules, showing_custom, question_sent, timer_running, locked, answer_revealed
     question: null,
+    customMessage: '',
     students: JSON.parse(localStorage.getItem('stage_students') || '{}'),
     isSoundEnabled: true
   });
@@ -247,7 +248,7 @@ export default function Stage() {
              setTimeLeft(duration);
           }
 
-          if (['locked', 'idle', 'question_sent', 'showing_intro', 'showing_rules'].includes(data.gamePhase)) {
+          if (['locked', 'idle', 'question_sent', 'showing_intro', 'showing_rules', 'showing_custom'].includes(data.gamePhase)) {
              timerEndRef.current = null;
           }
 
@@ -704,8 +705,59 @@ export default function Stage() {
                   </motion.div>
                 )}
 
+                {/* 1.7. CUSTOM CONTENT SCREEN */}
+                {phase === 'showing_custom' && (
+                  <motion.div 
+                    key="custom" 
+                    initial={{ opacity: 0, y: 30 }} 
+                    animate={{ opacity: 1, y: 0 }} 
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="w-full h-full flex flex-col items-center justify-center p-12 bg-slate-950 rounded-3xl border border-blue-500/20 shadow-2xl relative overflow-hidden"
+                  >
+                    {/* Background Detail */}
+                    <div className="absolute inset-0 opacity-10 pointer-events-none">
+                       <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
+                       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-600 rounded-full blur-[160px] opacity-20"></div>
+                    </div>
+
+                    <div className="z-10 w-full max-w-6xl flex flex-col items-center text-center">
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ type: "spring", damping: 12, delay: 0.2 }}
+                          className="mb-8 p-4 bg-blue-600/10 rounded-full border border-blue-500/30"
+                        >
+                           <MessageSquare className="w-12 h-12 text-blue-400" />
+                        </motion.div>
+
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ delay: 0.4 }}
+                          className="w-full"
+                        >
+                           <div className="inline-block text-[clamp(2.5rem,6vh,5rem)] font-black leading-tight text-white drop-shadow-2xl">
+                              <MathJax hideUntilTypeset={"first"}>
+                                 {gameState.customMessage.split('\n').map((line, i) => (
+                                   <div key={i} className="mb-4 last:mb-0">
+                                      {line}
+                                   </div>
+                                 ))}
+                              </MathJax>
+                           </div>
+                        </motion.div>
+
+                        <motion.div 
+                          className="mt-16 h-1 w-32 bg-blue-500/30 rounded-full"
+                          animate={{ width: [64, 160, 64] }}
+                          transition={{ repeat: Infinity, duration: 4 }}
+                        />
+                    </div>
+                  </motion.div>
+                )}
+
                 {/* 3. QUESTION / PLAYING SCREEN */}
-                {!['idle', 'showing_intro', 'showing_rules'].includes(phase) && (
+                {!['idle', 'showing_intro', 'showing_rules', 'showing_custom'].includes(phase) && (
                    <motion.div 
                      key="question" 
                      initial={{ opacity: 0, x: -100 }} 
