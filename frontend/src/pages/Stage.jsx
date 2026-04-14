@@ -487,21 +487,31 @@ export default function Stage() {
     );
   };
 
-  // Tính toán kích thước chữ nội dung câu hỏi (Sử dụng clamp để tự động thích ứng - Đã tăng size)
+  // Tính toán kích thước chữ nội dung câu hỏi (Tối ưu hóa tránh tràn)
   const getDynamicFontSize = (textLength) => {
-    if (!textLength) return 'text-[clamp(1.5rem,4vh,3rem)]';
-    if (textLength <= 150) return 'text-[clamp(1.2rem,4.5vh,3.5rem)] leading-[1.1] font-black';
-    if (textLength <= 300) return 'text-[clamp(1.1rem,3.8vh,2.8rem)] leading-[1.2] font-extrabold';
-    if (textLength <= 500) return 'text-[clamp(1rem,3.2vh,2.2rem)] leading-snug';
-    return 'text-[clamp(0.9rem,2.5vh,1.8rem)] leading-snug';
+    if (!textLength) return 'text-[clamp(1.2rem,3vh,2.5rem)]';
+    if (textLength <= 100) return 'text-[clamp(1.1rem,4vh,3.2rem)] leading-[1.1] font-black';
+    if (textLength <= 250) return 'text-[clamp(1rem,3.4vh,2.6rem)] leading-[1.2] font-extrabold';
+    if (textLength <= 450) return 'text-[clamp(0.9rem,2.8vh,2.1rem)] leading-snug';
+    return 'text-[clamp(0.85rem,2.4vh,1.7rem)] leading-snug';
   };
 
-  // Tính toán kích thước chữ phương án (Đã tăng size)
-  const getDynamicOptionSize = (textLength) => {
-    if (!textLength) return 'text-[clamp(0.9rem,2.5vh,1.8rem)]';
-    if (textLength <= 40) return 'text-[clamp(1.2rem,3.2vh,2.2rem)] leading-tight font-bold';
-    if (textLength <= 90) return 'text-[clamp(1rem,2.8vh,1.8rem)] leading-snug';
-    return 'text-[clamp(0.85rem,2.2vh,1.5rem)] leading-snug';
+  // Tính toán kích thước chữ phương án (Có xét đến độ phức tạp LaTeX)
+  const getDynamicOptionSize = (text) => {
+    if (typeof text !== 'string') return 'text-[clamp(0.9rem,2.2vh,1.6rem)]';
+    const textLength = text.length;
+    
+    // Kiểm tra độ phức tạp của LaTeX (cases, matrix, vec, frac, etc.)
+    const isComplex = /\\begin|\\cases|\\matrix|\\frac|\\vec|\\\\/i.test(text);
+    
+    if (isComplex) {
+       if (textLength <= 80) return 'text-[clamp(0.95rem,2.5vh,1.8rem)] leading-tight font-bold';
+       return 'text-[clamp(0.85rem,2.1vh,1.5rem)] leading-tight';
+    }
+
+    if (textLength <= 40) return 'text-[clamp(1.1rem,3.2vh,2.4rem)] leading-tight font-bold';
+    if (textLength <= 90) return 'text-[clamp(1rem,2.6vh,1.9rem)] leading-snug';
+    return 'text-[clamp(0.85rem,2.2vh,1.6rem)] leading-snug';
   };
 
   return (
@@ -916,7 +926,7 @@ export default function Stage() {
                        </div>
 
                        {/* Question Content Wrapper - Priority Based Layout */}
-                       <div className="flex-1 flex flex-col items-center justify-start min-h-0 overflow-hidden gap-2 mt-10 px-2">
+                       <div className="flex-1 flex flex-col items-center justify-start min-h-0 overflow-hidden gap-2 mt-4 px-2">
                            {/* 1. Text Block - thu nhỏ khi có media để nhường chỗ cho ảnh */}
 
                            <div className={`font-semibold text-slate-100 flex-shrink-0 whitespace-pre-wrap text-justify [text-align-last:center] max-w-[95%] px-6 ${
@@ -990,8 +1000,8 @@ export default function Stage() {
                                       {question[`option${opt}`] && (
                                         <span className={`mt-0.5 text-center text-white whitespace-pre-wrap ${
                                           (question.mediaType !== 'none' && question.mediaUrl)
-                                            ? 'text-[clamp(1.2rem,2.8vh,2rem)]'
-                                            : getDynamicFontSize(question[`option${opt}`]?.length)
+                                            ? 'text-[clamp(1.1rem,2.5vh,1.9rem)]'
+                                            : getDynamicOptionSize(question[`option${opt}`])
                                         }`}>
                                           {renderMixedText(question[`option${opt}`])}
                                         </span>
