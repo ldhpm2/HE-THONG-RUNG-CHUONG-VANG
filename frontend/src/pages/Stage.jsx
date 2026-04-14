@@ -764,9 +764,14 @@ export default function Stage() {
           <div className="w-1/4 flex flex-col bg-slate-900/50 rounded-2xl border border-slate-800 p-3 shadow-2xl backdrop-blur-md overflow-hidden text-white">
              <div className="flex flex-col mb-4 flex-shrink-0">
                <h2 className="text-2xl font-black uppercase text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-yellow-500 tracking-tight mb-3 drop-shadow-[0_0_10px_rgba(234,179,8,0.3)]">Sàn Thi Đấu</h2>
-               <div className="flex justify-between text-xs font-bold opacity-80 border-b border-slate-800 pb-2">
-                  <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-sm bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]"></div> Đang Thi</div>
-                  <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-sm bg-red-600 shadow-[0_0_5px_rgba(220,38,38,0.5)]"></div> Loại</div>
+               <div className="flex justify-between items-center text-[10px] font-bold opacity-80 border-b border-slate-800 pb-2">
+                  <div className="flex gap-3">
+                    <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]"></div> Đang Thi</div>
+                    <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm bg-red-600 shadow-[0_0_5px_rgba(220,38,38,0.5)]"></div> Loại</div>
+                  </div>
+                  <div className="bg-slate-800/50 px-2 py-0.5 rounded text-slate-300 font-mono">
+                     {studentsList.length} Tổng / {studentsList.filter(s => s.online).length} Online
+                  </div>
                </div>
              </div>
              
