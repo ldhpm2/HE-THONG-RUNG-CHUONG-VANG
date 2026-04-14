@@ -255,6 +255,7 @@ export default function Stage() {
           return {
             phase: data.gamePhase,
             question: data.currentQuestion,
+            customMessage: data.customMessage || '',
             students: data.students,
             isSoundEnabled: data.isSoundEnabled
           };
