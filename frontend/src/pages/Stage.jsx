@@ -899,6 +899,13 @@ export default function Stage() {
                        {/* Question Content Wrapper - Priority Based Layout */}
                        <div className="flex-1 flex flex-col items-center justify-start min-h-0 overflow-hidden gap-2 mt-10 px-2">
                            {/* 1. Text Block - thu nhỏ khi có media để nhường chỗ cho ảnh */}
+                           {/* Câu X Header - Red & Prominent */}
+                           {question?.id && (
+                             <div className="text-red-600 font-black text-[clamp(2rem,6vh,4rem)] uppercase drop-shadow-lg mb-2">
+                               Câu {question.id}.
+                             </div>
+                           )}
+
                            <div className={`font-semibold text-slate-100 flex-shrink-0 whitespace-pre-wrap text-justify [text-align-last:center] max-w-[95%] px-6 ${
                              (question?.mediaType !== 'none' && question?.mediaUrl)
                                ? 'text-[clamp(1rem,2.8vh,2rem)] leading-snug'
