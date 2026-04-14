@@ -437,19 +437,19 @@ export default function Stage() {
 
   // Tính toán kích thước chữ nội dung câu hỏi (Sử dụng clamp để tự động thích ứng - Đã tăng size)
   const getDynamicFontSize = (textLength) => {
-    if (!textLength) return 'text-[clamp(1.8rem,5vh,4rem)]';
-    if (textLength <= 150) return 'text-[clamp(1.5rem,5.5vh,4.2rem)] leading-[1.1] font-black';
-    if (textLength <= 300) return 'text-[clamp(1.3rem,4.5vh,3.5rem)] leading-[1.2] font-extrabold';
-    if (textLength <= 500) return 'text-[clamp(1.2rem,3.8vh,2.8rem)] leading-snug';
-    return 'text-[clamp(1rem,3vh,2.2rem)] leading-snug';
+    if (!textLength) return 'text-[clamp(1.5rem,4vh,3rem)]';
+    if (textLength <= 150) return 'text-[clamp(1.2rem,4.5vh,3.5rem)] leading-[1.1] font-black';
+    if (textLength <= 300) return 'text-[clamp(1.1rem,3.8vh,2.8rem)] leading-[1.2] font-extrabold';
+    if (textLength <= 500) return 'text-[clamp(1rem,3.2vh,2.2rem)] leading-snug';
+    return 'text-[clamp(0.9rem,2.5vh,1.8rem)] leading-snug';
   };
 
   // Tính toán kích thước chữ phương án (Đã tăng size)
   const getDynamicOptionSize = (textLength) => {
-    if (!textLength) return 'text-[clamp(1rem,3vh,2rem)]';
-    if (textLength <= 40) return 'text-[clamp(1.5rem,4vh,2.8rem)] leading-tight font-bold';
-    if (textLength <= 90) return 'text-[clamp(1.2rem,3.5vh,2.2rem)] leading-snug';
-    return 'text-[clamp(1rem,2.8vh,1.8rem)] leading-snug';
+    if (!textLength) return 'text-[clamp(0.9rem,2.5vh,1.8rem)]';
+    if (textLength <= 40) return 'text-[clamp(1.2rem,3.2vh,2.2rem)] leading-tight font-bold';
+    if (textLength <= 90) return 'text-[clamp(1rem,2.8vh,1.8rem)] leading-snug';
+    return 'text-[clamp(0.85rem,2.2vh,1.5rem)] leading-snug';
   };
 
   return (
@@ -762,7 +762,7 @@ export default function Stage() {
                      initial={{ opacity: 0, x: -100 }} 
                      animate={{ opacity: 1, x: 0 }} 
                      exit={{ opacity: 0, x: -100 }}
-                     className="w-full h-full flex flex-col bg-slate-800/80 rounded-3xl border border-slate-700 p-8 pt-12 shadow-2xl backdrop-blur-md relative overflow-hidden"
+                     className="w-full h-full flex flex-col bg-slate-800/80 rounded-3xl border border-slate-700 p-6 pt-10 shadow-2xl backdrop-blur-md relative overflow-hidden"
                    >
                        {/* Status Badge (Top Left Corner Inside) */}
                        <div className="absolute top-4 left-6 z-30">
@@ -790,7 +790,7 @@ export default function Stage() {
                        </div>
 
                        {/* Question Content Wrapper - Priority Based Layout */}
-                       <div className="flex-1 flex flex-col items-center justify-start min-h-0 overflow-hidden gap-3 mt-12 px-2">
+                       <div className="flex-1 flex flex-col items-center justify-start min-h-0 overflow-hidden gap-2 mt-10 px-2">
                            {/* 1. Text Block - thu nhỏ khi có media để nhường chỗ cho ảnh */}
                            <div className={`font-semibold text-slate-100 flex-shrink-0 whitespace-pre-wrap text-justify [text-align-last:center] max-w-[95%] px-6 ${
                              (question?.mediaType !== 'none' && question?.mediaUrl)
@@ -858,7 +858,7 @@ export default function Stage() {
                                       }`}
                                    >
                                       <span className={`${
-                                        (question.mediaType !== 'none' && question.mediaUrl) ? 'text-3xl' : 'text-5xl md:text-6xl'
+                                        (question.mediaType !== 'none' && question.mediaUrl) ? 'text-2xl' : 'text-[clamp(1.5rem,4vh,3rem)]'
                                       } text-yellow-500 font-black leading-none mb-1`}>{opt}</span>
                                       {question[`option${opt}`] && (
                                         <span className={`mt-0.5 text-center text-white whitespace-pre-wrap ${
