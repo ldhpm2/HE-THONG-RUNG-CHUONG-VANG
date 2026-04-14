@@ -642,7 +642,7 @@ export default function Stage() {
                     initial={{ opacity: 0, scale: 0.9 }} 
                     animate={{ opacity: 1, scale: 1 }} 
                     exit={{ opacity: 0, scale: 1.1 }}
-                    className="w-full h-full flex flex-col items-center justify-center p-12 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-900/40 via-slate-950 to-black rounded-3xl border border-indigo-500/30 shadow-[0_0_100px_rgba(79,70,229,0.1)] relative overflow-hidden"
+                    className="w-full h-full flex flex-col items-center justify-center p-4 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-900/40 via-slate-950 to-black rounded-3xl border border-indigo-500/30 shadow-[0_0_100px_rgba(79,70,229,0.1)] relative overflow-hidden"
                   >
                     {/* Background Decorative Elements */}
                     <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none opacity-20">
@@ -650,15 +650,15 @@ export default function Stage() {
                        <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-purple-600 rounded-full blur-[120px]"></div>
                     </div>
 
-                    <div className="z-10 w-full max-w-4xl flex flex-col gap-4">
-                        <div className="flex flex-col items-center text-center mb-2">
+                    <div className="z-10 w-full max-w-4xl flex flex-col gap-2">
+                        <div className="flex flex-col items-center text-center">
                            <motion.div 
                              initial={{ y: -20, opacity: 0 }}
                              animate={{ y: 0, opacity: 1 }}
                              transition={{ delay: 0.2 }}
-                             className="bg-indigo-600/20 p-3 rounded-2xl border border-indigo-500/50 mb-4"
+                             className="bg-indigo-600/20 p-2 rounded-2xl border border-indigo-500/50 mb-2"
                            >
-                              <ScrollText className="w-12 h-12 text-indigo-400" />
+                              <ScrollText className="w-10 h-10 text-indigo-400" />
                            </motion.div>
                             <h2 className="text-5xl font-black uppercase tracking-[0.1em] text-transparent bg-clip-text bg-gradient-to-r from-white via-indigo-200 to-indigo-400 drop-shadow-sm">
                               Thể Lệ Cuộc Thi
@@ -694,9 +694,9 @@ export default function Stage() {
                           initial={{ y: 20, opacity: 0 }}
                           animate={{ y: 0, opacity: 1 }}
                           transition={{ delay: 1.2 }}
-                          className="text-center mt-6"
+                          className="text-center mt-2"
                         >
-                           <p className="text-xl font-black italic text-yellow-500 uppercase tracking-[0.3em] bg-yellow-500/10 py-3 rounded-xl border border-yellow-500/20">
+                           <p className="text-xl font-black italic text-yellow-500 uppercase tracking-[0.3em] bg-yellow-500/10 py-1 rounded-xl border border-yellow-500/20">
                              Chúc các bạn bình tĩnh và tự tin!
                            </p>
                         </motion.div>
