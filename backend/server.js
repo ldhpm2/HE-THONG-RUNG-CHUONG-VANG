@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -5,8 +6,7 @@ const cors = require('cors');
 const path = require('path');
 const os = require('os');
 const fs = require('fs');
-
-const DATA_FILE = path.join(__dirname, 'students.json');
+const mongoose = require('mongoose');
 
 const app = express();
 app.use(cors());
@@ -17,66 +17,117 @@ const io = new Server(server, {
     origin: '*',
     methods: ['GET', 'POST']
   },
-  maxHttpBufferSize: 5e6 // 5MB - cho phép truyền frame ảnh Base64
+  maxHttpBufferSize: 5e6 // 5MB
 });
 
-// --- GAME STATE ---
+// --- MONGODB SETUP ---
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/rung_chuong_vang';
+
+mongoose.connect(MONGODB_URI)
+  .then(() => console.log('[MongoDB] Connected successfully'))
+  .catch(err => console.error('[MongoDB] Connection error:', err));
+
+// Schema cho Thí sinh
+const studentSchema = new mongoose.Schema({
+  sbd: { type: String, unique: true, required: true },
+  hoTen: String,
+  lop: String,
+  pin: String,
+  status: { type: String, default: 'active' }, // 'active' | 'eliminated'
+  currentAnswer: { type: String, default: null }
+});
+const Student = mongoose.model('Student', studentSchema);
+
+// Schema cho Trạng thái Game
+const gameStateSchema = new mongoose.Schema({
+  id: { type: String, default: 'main_state', unique: true },
+  gamePhase: { type: String, default: 'idle' },
+  currentQuestion: { type: mongoose.Schema.Types.Mixed, default: null },
+  isSoundEnabled: { type: Boolean, default: true }
+});
+const GameState = mongoose.model('GameState', gameStateSchema);
+
+// --- GAME STATE (In-memory) ---
 let adminSocketId = null;
-let students = {}; // Key: SBD, Value: { sbd, hoTen, lop, pin, status: 'active' | 'eliminated', currentAnswer: null, socketId: null, online: false }
+let students = {}; 
 let currentQuestion = null;
-let gamePhase = 'idle'; // 'idle', 'question_sent', 'timer_running', 'locked', 'answer_revealed'
+let gamePhase = 'idle'; 
 let isSoundEnabled = true;
 
-// --- PERSISTENCE HELPERS ---
-const saveStudentsToFile = () => {
+// --- PERSISTENCE HELPERS (MongoDB) ---
+const saveFullState = async () => {
   try {
-    // Chỉ lưu thông tin cơ bản, không lưu socketId hay trạng thái online tạm thời
-    const dataToSave = {};
-    for (const sbd in students) {
-      dataToSave[sbd] = {
-        sbd: students[sbd].sbd,
-        hoTen: students[sbd].hoTen,
-        lop: students[sbd].lop,
-        pin: students[sbd].pin,
-        status: students[sbd].status,
-        currentAnswer: students[sbd].currentAnswer
-      };
+    // 1. Lưu GameState
+    await GameState.findOneAndUpdate(
+      { id: 'main_state' },
+      { gamePhase, currentQuestion, isSoundEnabled },
+      { upsert: true }
+    );
+
+    // 2. Lưu Students
+    const studentOps = Object.values(students).map(s => ({
+      updateOne: {
+        filter: { sbd: s.sbd },
+        update: { 
+          hoTen: s.hoTen, 
+          lop: s.lop, 
+          pin: s.pin, 
+          status: s.status, 
+          currentAnswer: s.currentAnswer 
+        },
+        upsert: true
+      }
+    }));
+    if (studentOps.length > 0) {
+      await Student.bulkWrite(studentOps);
     }
-    fs.writeFileSync(DATA_FILE, JSON.stringify(dataToSave, null, 2));
-    // console.log('[Persistence] Students saved to disk');
   } catch (err) {
-    console.error('[Persistence] Error saving students:', err);
+    console.error('[Persistence] Error saving to MongoDB:', err);
   }
 };
 
-const loadStudentsFromFile = () => {
+const loadFullState = async () => {
   try {
-    if (fs.existsSync(DATA_FILE)) {
-      const data = fs.readFileSync(DATA_FILE, 'utf8');
-      const loaded = JSON.parse(data);
-      for (const sbd in loaded) {
-        students[sbd] = {
-          ...loaded[sbd],
-          socketId: null,
-          online: false
-        };
-      }
-      console.log(`[Persistence] Loaded ${Object.keys(students).length} students from disk`);
+    // 1. Tải GameState
+    const gs = await GameState.findOne({ id: 'main_state' });
+    if (gs) {
+      gamePhase = gs.gamePhase;
+      currentQuestion = gs.currentQuestion;
+      isSoundEnabled = gs.isSoundEnabled;
     }
+
+    // 2. Tải Students
+    const dbStudents = await Student.find({});
+    students = {};
+    dbStudents.forEach(s => {
+      students[s.sbd] = {
+        sbd: s.sbd,
+        hoTen: s.hoTen,
+        lop: s.lop,
+        pin: s.pin,
+        status: s.status,
+        currentAnswer: s.currentAnswer,
+        socketId: null,
+        online: false
+      };
+    });
+    console.log(`[Persistence] Loaded ${Object.keys(students).length} students and game state from MongoDB`);
+    broadcastState();
   } catch (err) {
-    console.error('[Persistence] Error loading students:', err);
+    console.error('[Persistence] Error loading from MongoDB:', err);
   }
 };
 
 // Initial load
-loadStudentsFromFile();
+mongoose.connection.once('open', () => {
+  loadFullState();
+});
 
 // Helper to get local IP
 function getLocalIP() {
   const interfaces = os.networkInterfaces();
   for (const name of Object.keys(interfaces)) {
     for (const iface of interfaces[name]) {
-      // Look for IPv4 and skip internal (127.0.0.1)
       if (iface.family === 'IPv4' && !iface.internal) {
         return iface.address;
       }
@@ -90,6 +141,7 @@ const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
   console.log(`Backend server is running on port ${PORT}`);
 });
+
 
 // --- BROADCASTER ---
 const broadcastState = () => {
@@ -158,6 +210,7 @@ io.on('connection', (socket) => {
       if(callback) callback({ success: false, message: 'Bạn chưa đăng nhập Admin hoặc bị mất kết nối!' });
       return;
     }
+    await Student.deleteMany({}); // Xóa dữ liệu cũ trên DB
     students = {};
     data.forEach(s => {
       students[s.sbd] = {
@@ -170,7 +223,7 @@ io.on('connection', (socket) => {
     });
     console.log(`[Admin] Uploaded ${data.length} students by ${socket.id}`);
     if(callback) callback({ success: true, count: data.length });
-    saveStudentsToFile();
+    await saveFullState();
     broadcastState();
   });
 
@@ -183,9 +236,10 @@ io.on('connection', (socket) => {
     students = {};
     gamePhase = 'idle';
     currentQuestion = null;
+    await Student.deleteMany({}); // Xóa sạch thí sinh trong database
     console.log(`[Admin] All students cleared and game reset by ${socket.id}`);
     if(callback) callback({ success: true });
-    saveStudentsToFile();
+    await saveFullState();
     broadcastState();
   });
 
@@ -213,6 +267,14 @@ io.on('connection', (socket) => {
     broadcastState();
   });
 
+  socket.on('admin:show_rules', () => {
+    if (!socket.rooms.has('admin_room')) return;
+    gamePhase = 'showing_rules';
+    currentQuestion = null;
+    console.log(`[Admin] Showing rules by ${socket.id}`);
+    broadcastState();
+  });
+
   socket.on('admin:push_question', (data) => {
     if (!socket.rooms.has('admin_room')) return;
     currentQuestion = { 
@@ -227,7 +289,7 @@ io.on('connection', (socket) => {
       students[key].currentAnswer = null;
     }
     console.log(`[Admin] Question pushed by ${socket.id}: ${currentQuestion.id || 'N/A'}`);
-    saveStudentsToFile();
+    await saveFullState();
     broadcastState();
     io.emit('client_play_sound', 'question_show');
   });
@@ -306,7 +368,7 @@ io.on('connection', (socket) => {
          }
       }
     }
-    saveStudentsToFile();
+    await saveFullState();
     broadcastState();
     io.emit('client_play_sound', 'reveal_answer');
   });
@@ -343,7 +405,7 @@ io.on('connection', (socket) => {
     
     console.log(`[Admin] Rescued ${rescued.length} students`);
     if(callback) callback({ success: true, count: rescued.length });
-    saveStudentsToFile();
+    await saveFullState();
     broadcastState();
     io.emit('client_play_sound', 'rescue_success');
   });
@@ -359,7 +421,7 @@ io.on('connection', (socket) => {
       if (students[sbd].socketId) io.to(students[sbd].socketId).emit('you_are_eliminated');
       console.log(`[Admin] Manually eliminated SBD: ${sbd}`);
       if(callback) callback({ success: true });
-      saveStudentsToFile();
+      await saveFullState();
       broadcastState();
     } else {
       if(callback) callback({ success: false, message: 'Số báo danh không tồn tại' });
@@ -463,7 +525,7 @@ io.on('connection', (socket) => {
     if (adminSocketId) {
       io.to(adminSocketId).emit('admin_state_update', { gamePhase, currentQuestion, students });
     }
-    saveStudentsToFile();
+    await saveFullState();
   });
 
   // Sự kiện check disconnect để báo Admin ai offline

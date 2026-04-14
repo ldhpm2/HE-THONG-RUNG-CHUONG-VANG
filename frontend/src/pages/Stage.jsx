@@ -4,13 +4,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MathJax } from 'better-react-mathjax';
 import logoBell from '../assets/logo_bell.png';
 import { QRCodeSVG } from 'qrcode.react';
-import { Volume2, VolumeX, Camera, CameraOff } from 'lucide-react';
+import { Volume2, VolumeX, Camera, CameraOff, ScrollText } from 'lucide-react';
 import { isYouTubeURL, getYouTubeEmbedURL } from '../utils/videoUtils';
 
 
 export default function Stage() {
   const [gameState, setGameState] = useState({
-    phase: 'idle', // idle, showing_intro, question_sent, timer_running, locked, answer_revealed
+    phase: 'idle', // idle, showing_intro, showing_rules, question_sent, timer_running, locked, answer_revealed
     question: null,
     students: JSON.parse(localStorage.getItem('stage_students') || '{}'),
     isSoundEnabled: true
@@ -247,7 +247,7 @@ export default function Stage() {
              setTimeLeft(duration);
           }
 
-          if (['locked', 'idle', 'question_sent', 'showing_intro'].includes(data.gamePhase)) {
+          if (['locked', 'idle', 'question_sent', 'showing_intro', 'showing_rules'].includes(data.gamePhase)) {
              timerEndRef.current = null;
           }
 
@@ -634,8 +634,78 @@ export default function Stage() {
                     </motion.div>
                 )}
 
+                {/* 1.5. RULES SCREEN */}
+                {phase === 'showing_rules' && (
+                  <motion.div 
+                    key="rules" 
+                    initial={{ opacity: 0, scale: 0.9 }} 
+                    animate={{ opacity: 1, scale: 1 }} 
+                    exit={{ opacity: 0, scale: 1.1 }}
+                    className="w-full h-full flex flex-col items-center justify-center p-12 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-900/40 via-slate-950 to-black rounded-3xl border border-indigo-500/30 shadow-[0_0_100px_rgba(79,70,229,0.1)] relative overflow-hidden"
+                  >
+                    {/* Background Decorative Elements */}
+                    <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none opacity-20">
+                       <div className="absolute -top-24 -left-24 w-96 h-96 bg-indigo-600 rounded-full blur-[120px]"></div>
+                       <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-purple-600 rounded-full blur-[120px]"></div>
+                    </div>
+
+                    <div className="z-10 w-full max-w-5xl flex flex-col gap-10">
+                        <div className="flex flex-col items-center text-center mb-4">
+                           <motion.div 
+                             initial={{ y: -20, opacity: 0 }}
+                             animate={{ y: 0, opacity: 1 }}
+                             transition={{ delay: 0.2 }}
+                             className="bg-indigo-600/20 p-5 rounded-3xl border border-indigo-500/50 mb-6"
+                           >
+                              <ScrollText className="w-16 h-16 text-indigo-400" />
+                           </motion.div>
+                           <h2 className="text-6xl font-black uppercase tracking-[0.1em] text-transparent bg-clip-text bg-gradient-to-r from-white via-indigo-200 to-indigo-400 drop-shadow-sm">
+                             Thể Lệ Cuộc Thi
+                           </h2>
+                           <div className="h-1 w-48 bg-gradient-to-r from-transparent via-indigo-500 to-transparent rounded-full mt-4"></div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                           {[
+                             { icon: "📜", title: "Lấy câu hỏi", desc: "Hệ thống sẽ lần lượt đưa ra các câu hỏi trắc nghiệm hoặc tự luận ngắn." },
+                             { icon: "⏱️", title: "Trả lời", desc: "Thí sinh có từ 15 đến 40 giây (tùy câu) để nhập đáp án lên điện thoại." },
+                             { icon: "❌", title: "Loại trừ", desc: "Thí sinh trả lời sai hoặc không có đáp án khi hết giờ sẽ phải rời sân thi đấu." },
+                             { icon: "🎗️", title: "Cứu trợ", desc: "Trong một số giai đoạn, thầy cô có thể tham gia trò chơi để cứu các thí sinh bị loại quay trở lại." },
+                             { icon: "🏆", title: "Chiến thắng", desc: "Thí sinh duy nhất còn lại trên sàn thi đấu sẽ giành quyền Rung Chuông Vàng." },
+                             { icon: "📱", title: "Kết nối", desc: "Luôn đảm bảo thiết bị di động được kết nối mạng ổn định suốt quá trình thi." }
+                           ].map((rule, i) => (
+                             <motion.div 
+                               key={i}
+                               initial={{ x: i % 2 === 0 ? -50 : 50, opacity: 0 }}
+                               animate={{ x: 0, opacity: 1 }}
+                               transition={{ delay: 0.4 + (i * 0.1) }}
+                               className="flex items-start gap-5 p-6 bg-slate-900/60 border border-slate-800 rounded-2xl hover:border-indigo-500/50 transition-colors group"
+                             >
+                               <span className="text-4xl filter grayscale group-hover:grayscale-0 transition-all">{rule.icon}</span>
+                               <div className="flex flex-col">
+                                 <h3 className="text-xl font-black text-indigo-300 uppercase tracking-wider mb-1">{rule.title}</h3>
+                                 <p className="text-slate-400 leading-relaxed font-medium">{rule.desc}</p>
+                               </div>
+                             </motion.div>
+                           ))}
+                        </div>
+
+                        <motion.div 
+                          initial={{ y: 20, opacity: 0 }}
+                          animate={{ y: 0, opacity: 1 }}
+                          transition={{ delay: 1.2 }}
+                          className="text-center mt-6"
+                        >
+                           <p className="text-2xl font-black italic text-yellow-500 uppercase tracking-[0.3em] bg-yellow-500/10 py-4 rounded-xl border border-yellow-500/20">
+                             Chúc các bạn bình tĩnh và tự tin!
+                           </p>
+                        </motion.div>
+                    </div>
+                  </motion.div>
+                )}
+
                 {/* 3. QUESTION / PLAYING SCREEN */}
-                {!['idle', 'showing_intro'].includes(phase) && (
+                {!['idle', 'showing_intro', 'showing_rules'].includes(phase) && (
                    <motion.div 
                      key="question" 
                      initial={{ opacity: 0, x: -100 }} 

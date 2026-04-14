@@ -3,7 +3,7 @@ import { socket } from '../socket';
 import { parseExcelStudentList, parseExcelQuestions } from '../utils/excelParser';
 import { parseWordQuestions } from '../utils/wordParser';
 import { pickAndDownloadDriveFile } from '../utils/googleDrivePicker';
-import { Upload, Play, Square, Presentation, Eye, UserX, Activity, HeartHandshake, Trash2, XCircle, ChevronLeft, ChevronRight, Save, Plus, RotateCcw, FileDown, Camera, CameraOff, FolderOpen, Loader2, Volume2, VolumeX, Smartphone } from 'lucide-react';
+import { Upload, Play, Square, Presentation, Eye, UserX, Activity, HeartHandshake, Trash2, XCircle, ChevronLeft, ChevronRight, Save, Plus, RotateCcw, FileDown, Camera, CameraOff, FolderOpen, Loader2, Volume2, VolumeX, Smartphone, ScrollText } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { MathJax } from 'better-react-mathjax';
 import { isYouTubeURL, getYouTubeEmbedURL } from '../utils/videoUtils';
@@ -1032,6 +1032,9 @@ export default function Admin() {
               </button>
               <button onClick={() => socket.emit('admin:show_intro')} className="bg-slate-700 hover:bg-slate-600 text-white py-4 rounded-xl flex flex-col items-center justify-center font-bold transition active:scale-95 shadow-lg border-2 border-slate-600">
                 <HeartHandshake className="mb-2 text-pink-400"/> 0.5. Giới thiệu
+              </button>
+              <button onClick={() => socket.emit('admin:show_rules')} className="bg-slate-700 hover:bg-slate-600 text-white py-4 rounded-xl flex flex-col items-center justify-center font-bold transition active:scale-95 shadow-lg border-2 border-slate-600">
+                <ScrollText className="mb-2 text-indigo-400"/> 0.6. Thể lệ
               </button>
               <button onClick={pushQuestion} className="bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl flex flex-col items-center justify-center font-semibold transition active:scale-95 shadow-lg">
                 <Presentation className="mb-2"/> 1. Hiện Câu Hỏi
