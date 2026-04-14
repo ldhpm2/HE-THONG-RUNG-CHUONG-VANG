@@ -23,9 +23,19 @@ const io = new Server(server, {
 // --- MONGODB SETUP ---
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/rung_chuong_vang';
 
-mongoose.connect(MONGODB_URI)
-  .then(() => console.log('[MongoDB] Connected successfully'))
-  .catch(err => console.error('[MongoDB] Connection error:', err));
+let isDbConnected = false;
+mongoose.connect(MONGODB_URI, { 
+  serverSelectionTimeoutMS: 5000 // Giảm thời gian chờ xuống 5s để không bị treo lâu
+})
+  .then(() => {
+    isDbConnected = true;
+    console.log('[MongoDB] Connected successfully');
+    loadFullState(); // Chỉ tải dữ liệu nếu kết nối thành công
+  })
+  .catch(err => {
+    isDbConnected = false;
+    console.error('[MongoDB] Connection error (Tạm thời chạy ở chế độ IN-MEMORY):', err.message);
+  });
 
 // Schema cho Thí sinh
 const studentSchema = new mongoose.Schema({
@@ -56,6 +66,10 @@ let isSoundEnabled = true;
 
 // --- PERSISTENCE HELPERS (MongoDB) ---
 const saveFullState = async () => {
+  if (!isDbConnected) {
+    // console.log('[Persistence] Database not connected. Data only in memory.');
+    return;
+  }
   try {
     // 1. Lưu GameState
     await GameState.findOneAndUpdate(
@@ -211,7 +225,9 @@ io.on('connection', (socket) => {
         if(callback) callback({ success: false, message: 'Bạn chưa đăng nhập Admin hoặc bị mất kết nối!' });
         return;
       }
-      await Student.deleteMany({}); // Xóa dữ liệu cũ trên DB
+      if (isDbConnected) {
+        await Student.deleteMany({}); // Chỉ xóa trên DB nếu có kết nối
+      }
       students = {};
       data.forEach(s => {
         students[s.sbd] = {
@@ -242,7 +258,9 @@ io.on('connection', (socket) => {
       students = {};
       gamePhase = 'idle';
       currentQuestion = null;
-      await Student.deleteMany({}); // Xóa sạch thí sinh trong database
+      if (isDbConnected) {
+        await Student.deleteMany({}); // Xóa sạch thí sinh trong database
+      }
       console.log(`[Admin] All students cleared and game reset by ${socket.id}`);
       if(callback) callback({ success: true });
       await saveFullState();
