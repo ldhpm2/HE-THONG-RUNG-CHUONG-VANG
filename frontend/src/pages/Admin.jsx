@@ -726,7 +726,7 @@ export default function Admin() {
     );
   }
 
-  const studentList = Object.values(gameState.students);
+  const studentList = Object.values(gameState.students).sort((a, b) => parseInt(a.sbd) - parseInt(b.sbd));
   const activeCount = studentList.filter(s => s.status === 'active').length;
   const eliminatedCount = studentList.filter(s => s.status === 'eliminated').length;
   const onlineCount = studentList.filter(s => s.online).length;
