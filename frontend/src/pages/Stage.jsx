@@ -694,7 +694,7 @@ export default function Stage() {
                           initial={{ y: 20, opacity: 0 }}
                           animate={{ y: 0, opacity: 1 }}
                           transition={{ delay: 1.2 }}
-                          className="text-center -mt-8"
+                          className="text-center mt-2"
                         >
                            <p className="text-xl font-black italic text-yellow-500 uppercase tracking-[0.3em] bg-yellow-500/10 py-1 rounded-xl border border-yellow-500/20">
                              Chúc các bạn bình tĩnh và tự tin!
