@@ -3,6 +3,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const path = require('path');
+const os = require('os');
 
 const app = express();
 app.use(cors());
@@ -22,6 +23,20 @@ let students = {}; // Key: SBD, Value: { sbd, hoTen, lop, pin, status: 'active' 
 let currentQuestion = null;
 let gamePhase = 'idle'; // 'idle', 'question_sent', 'timer_running', 'locked', 'answer_revealed'
 let isSoundEnabled = true;
+
+// Helper to get local IP
+function getLocalIP() {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      // Look for IPv4 and skip internal (127.0.0.1)
+      if (iface.family === 'IPv4' && !iface.internal) {
+        return iface.address;
+      }
+    }
+  }
+  return 'localhost';
+}
 
 // Khởi tạo server
 const PORT = process.env.PORT || 4000;
@@ -81,6 +96,15 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('admin:get_server_info', (callback) => {
+    const ip = getLocalIP();
+    if(callback) callback({ 
+      ip: ip, 
+      port: PORT,
+      url: `http://${ip}:${PORT}`
+    });
+  });
+
   socket.on('admin:upload_students', (data, callback) => {
     if (!socket.rooms.has('admin_room')) {
       console.warn(`[Admin] Unauthorized upload_students attempt from ${socket.id}`);
@@ -114,6 +138,13 @@ io.on('connection', (socket) => {
     console.log(`[Admin] All students cleared and game reset by ${socket.id}`);
     if(callback) callback({ success: true });
     broadcastState();
+  });
+
+  socket.on('admin:mobile_upload_questions', (questions, callback) => {
+    if (!socket.rooms.has('admin_room')) return;
+    // Relay to other admins (mostly the PC)
+    socket.to('admin_room').emit('admin:mobile_upload_questions', questions);
+    if(callback) callback({ success: true });
   });
 
   socket.on('admin:set_welcome', () => {
