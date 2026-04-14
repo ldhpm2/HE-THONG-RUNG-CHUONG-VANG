@@ -748,10 +748,10 @@ export default function Admin() {
         <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
           <h3 className="text-xl font-bold text-white mb-4 flex items-center"><Upload className="mr-2"/> Dữ Liệu Thí Sinh</h3>
           
-          {/* Upload từ máy tính */}
+          {/* Chọn từ Thiết bị (Excel) */}
           <div>
-            <label className="block text-xs uppercase text-slate-500 font-bold mb-2 tracking-wider">📂 Từ máy tính (Excel)</label>
-            <input type="file" accept=".xlsx, .xls, text/csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" onChange={handleStudentUpload} className="w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer" />
+            <label className="block text-xs uppercase text-slate-500 font-bold mb-2 tracking-wider">📂 Từ thiết bị (Excel)</label>
+            <input type="file" accept=".xlsx,.xls,.csv" onChange={handleStudentUpload} className="w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer" />
           </div>
 
           {/* Chọn từ Google Drive */}
@@ -772,49 +772,6 @@ export default function Admin() {
             <span className="text-slate-400">Chỉ số:</span>
             <span className="text-white font-mono">{studentList.length} Tổng / {onlineCount} Online</span>
           </div>
-        </div>
-
-        {/* Nạp từ điện thoại (QR Code) */}
-        <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
-           <h3 className="text-sm font-black uppercase text-slate-500 tracking-wider mb-4 flex items-center gap-2">
-             <Smartphone className="w-4 h-4 text-blue-400" /> Nạp từ điện thoại
-           </h3>
-           <div className="flex flex-col items-center gap-4">
-              <div className="bg-white p-3 rounded-xl shadow-inner">
-                 <QRCodeSVG 
-                    value={(serverInfo.ip && window.location.hostname === 'localhost') 
-                      ? `http://${serverInfo.ip}:${window.location.port}/mobile-upload` 
-                      : `${window.location.origin}/mobile-upload`
-                    } 
-                    size={140}
-                    level="H"
-                    includeMargin={false}
-                 />
-              </div>
-              <div className="text-center">
-                 <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">Quét mã để mở trang nạp nhanh</p>
-                 <p className="text-[9px] text-blue-500 font-mono break-all">{window.location.host}/mobile-upload</p>
-              </div>
-              <button 
-                onClick={() => {
-                  socket.emit('admin:get_server_info', (info) => {
-                    setServerInfo(info);
-                    alert(`Đã cập nhật IP: ${info.ip}`);
-                  });
-                }}
-                className="w-full py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-[10px] font-bold uppercase transition"
-              >
-                Cập nhật IP Server
-              </button>
-           </div>
-           {serverInfo.ip && serverInfo.ip !== 'localhost' && (
-             <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl">
-                <p className="text-[10px] text-blue-400 leading-relaxed font-medium">
-                  Nếu quét lỗi, hãy đảm bảo điện thoại dùng chung Wi-Fi và thử truy cập: <br/>
-                  <span className="font-bold text-blue-300 select-all">http://{serverInfo.ip}:{window.location.port}/mobile-upload</span>
-                </p>
-             </div>
-           )}
         </div>
 
         {/* Soạn Câu Hỏi */}
@@ -868,8 +825,8 @@ export default function Admin() {
                 <FileDown size={14}/> Xuất File (Backup)
              </button>
              <label className="bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-3 rounded-lg transition-all shadow-md active:scale-95 text-xs flex items-center justify-center gap-2 cursor-pointer">
-                <Upload size={14}/> Nạp từ máy tính
-                <input type="file" accept=".xlsx, .xls, .docx, .json, text/csv, application/json, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/vnd.ms-excel" onChange={handleQuestionUpload} className="hidden" />
+                <Upload size={14}/> Nạp từ thiết bị
+                <input type="file" accept=".xlsx,.xls,.csv,.docx,.json" onChange={handleQuestionUpload} className="hidden" />
              </label>
           </div>
 
