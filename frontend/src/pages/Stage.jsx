@@ -884,7 +884,7 @@ export default function Stage() {
                 {/* 3. QUESTION / PLAYING SCREEN */}
                 {!['idle', 'showing_intro', 'showing_rules', 'showing_custom', 'winner_declared'].includes(phase) && (
                    <motion.div 
-                     key="question" 
+                     key={`question-${question?.id || 'none'}`} 
                      initial={{ opacity: 0, x: -100 }} 
                      animate={{ opacity: 1, x: 0 }} 
                      exit={{ opacity: 0, x: -100 }}
