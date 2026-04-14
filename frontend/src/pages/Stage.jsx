@@ -799,7 +799,7 @@ export default function Stage() {
                       <div className="flex flex-col items-center leading-none mt-0.5">
                         <span>{st.sbd}</span>
                         {st.online && (
-                          <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full mt-0.5 shadow-[0_0_5px_rgba(250,204,21,0.8)] animate-pulse"></div>
+                          <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full mt-0.5 shadow-[0_0_5px_rgba(250,204,21,0.8)]"></div>
                         )}
                       </div>
                       {st.status === 'active' && st.hasAnswered && phase !== 'idle' && (
