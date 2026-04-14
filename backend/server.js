@@ -327,23 +327,23 @@ io.on('connection', (socket) => {
 
   // --- CAMERA STREAMING (WebRTC Relay) ---
   socket.on('admin:camera_signal', (data) => {
-    if (socket.id !== adminSocketId) return;
+    if (!socket.rooms.has('admin_room')) return;
     socket.broadcast.emit('camera:signal_from_admin', data);
   });
 
   socket.on('stage:camera_signal', (data) => {
-    if (adminSocketId) {
-      io.to(adminSocketId).emit('camera:signal_from_stage', data);
-    }
+    // Relay Stage ICE/SDP back to all admins in admin_room
+    io.to('admin_room').emit('camera:signal_from_stage', data);
   });
 
   socket.on('admin:camera_status', (data) => {
-    if (socket.id !== adminSocketId) return;
+    if (!socket.rooms.has('admin_room')) return;
+    console.log(`[Camera] Status update from ${socket.id}: active=${data.active}`);
     io.emit('camera:status_update', data);
   });
 
   socket.on('admin:camera_frame', (data) => {
-    if (socket.id !== adminSocketId) return;
+    if (!socket.rooms.has('admin_room')) return;
     socket.broadcast.emit('camera:frame_from_admin', data);
   });
 

@@ -344,8 +344,18 @@ export default function Admin() {
       setIsCameraActive(true);
       socket.emit('admin:camera_status', { active: true });
 
+      // Chờ Stage kịp xử lý camera_status trước khi nhận SDP offer
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      // Nếu trong lúc chờ, user đã tắt camera
+      if (!localStreamRef.current) return;
+
+      const pendingCandidates = [];
       const pc = new RTCPeerConnection({
-        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' }
+        ]
       });
       pcRef.current = pc;
 

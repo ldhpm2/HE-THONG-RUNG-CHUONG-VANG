@@ -22,6 +22,7 @@ export default function Stage() {
   const [lastFrame, setLastFrame] = useState(null);
   const pcRef = useRef(null);
   const remoteVideoRef = useRef(null);
+  const pendingCandidatesRef = useRef([]); // Queue ICE candidates arriving before remote desc
 
   const [timeLeft, setTimeLeft] = useState(0);
   const [isLocalAudioUnlocked, setIsLocalAudioUnlocked] = useState(() => {
@@ -324,6 +325,8 @@ export default function Stage() {
       if (!data.active) {
         setRemoteStream(null);
         setLastFrame(null);
+        setWebRtcConnected(false);
+        pendingCandidatesRef.current = [];
         if (pcRef.current) {
           pcRef.current.close();
           pcRef.current = null;
@@ -345,6 +348,7 @@ export default function Stage() {
             ]
           });
           pcRef.current = pc;
+          pendingCandidatesRef.current = [];
           pc.ontrack = (event) => setRemoteStream(event.streams[0]);
           pc.onicecandidate = (event) => {
             if (event.candidate) socket.emit('stage:camera_signal', { candidate: event.candidate });
@@ -352,7 +356,7 @@ export default function Stage() {
           pc.oniceconnectionstatechange = () => {
              if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
                 setWebRtcConnected(true);
-             } else {
+             } else if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
                 setWebRtcConnected(false);
              }
           };
@@ -363,8 +367,18 @@ export default function Stage() {
           const answer = await pcRef.current.createAnswer();
           await pcRef.current.setLocalDescription(answer);
           socket.emit('stage:camera_signal', { sdp: answer });
+          // Flush queued ICE candidates
+          for (const candidate of pendingCandidatesRef.current) {
+            try { await pcRef.current.addIceCandidate(new RTCIceCandidate(candidate)); } catch(_) {}
+          }
+          pendingCandidatesRef.current = [];
         } else if (data.candidate) {
-          await pcRef.current.addIceCandidate(new RTCIceCandidate(data.candidate));
+          // Queue if remote description not yet set
+          if (pcRef.current.remoteDescription) {
+            await pcRef.current.addIceCandidate(new RTCIceCandidate(data.candidate));
+          } else {
+            pendingCandidatesRef.current.push(data.candidate);
+          }
         }
       } catch (err) {
         console.error("WebRTC Error:", err);
@@ -833,7 +847,7 @@ export default function Stage() {
                </div>
              )}
              
-             <div className="absolute top-8 left-8 flex items-center gap-4 bg-red-600 px-6 py-2 rounded-full shadow-2xl animate-pulse">
+             <div className="absolute top-8 left-8 flex items-center gap-4 bg-red-600 px-6 py-2 rounded-full shadow-2xl animate-pulse z-50">
                 <Camera className="text-white" size={24}/>
                 <span className="text-white font-black uppercase tracking-widest text-xl">TRỰC TIẾP TỪ BAN TỔ CHỨC</span>
              </div>
