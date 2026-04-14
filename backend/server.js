@@ -204,7 +204,7 @@ io.on('connection', (socket) => {
     });
   });
 
-  socket.on('admin:upload_students', (data, callback) => {
+  socket.on('admin:upload_students', async (data, callback) => {
     if (!socket.rooms.has('admin_room')) {
       console.warn(`[Admin] Unauthorized upload_students attempt from ${socket.id}`);
       if(callback) callback({ success: false, message: 'Bạn chưa đăng nhập Admin hoặc bị mất kết nối!' });
@@ -227,7 +227,7 @@ io.on('connection', (socket) => {
     broadcastState();
   });
 
-  socket.on('admin:clear_students', (callback) => {
+  socket.on('admin:clear_students', async (callback) => {
     if (!socket.rooms.has('admin_room')) {
       console.warn(`[Admin] Unauthorized clear_students attempt from ${socket.id}`);
       if(callback) callback({ success: false, message: 'Bạn chưa đăng nhập Admin hoặc bị mất kết nối!' });
@@ -275,7 +275,7 @@ io.on('connection', (socket) => {
     broadcastState();
   });
 
-  socket.on('admin:push_question', (data) => {
+  socket.on('admin:push_question', async (data) => {
     if (!socket.rooms.has('admin_room')) return;
     currentQuestion = { 
        ...data.question, 
@@ -320,7 +320,7 @@ io.on('connection', (socket) => {
     broadcastState();
   });
 
-  socket.on('admin:reveal_answer', () => {
+  socket.on('admin:reveal_answer', async () => {
     if (!socket.rooms.has('admin_room')) return;
     gamePhase = 'answer_revealed';
     console.log(`[Admin] Answer revealed by ${socket.id}`);
@@ -373,7 +373,7 @@ io.on('connection', (socket) => {
     io.emit('client_play_sound', 'reveal_answer');
   });
 
-  socket.on('admin:rescue', (data, callback) => {
+  socket.on('admin:rescue', async (data, callback) => {
     if (socket.id !== adminSocketId) {
         if(callback) callback({ success: false, message: 'Từ chối: Không có quyền Admin' });
         return;
@@ -410,7 +410,7 @@ io.on('connection', (socket) => {
     io.emit('client_play_sound', 'rescue_success');
   });
 
-  socket.on('admin:eliminate_student', (data, callback) => {
+  socket.on('admin:eliminate_student', async (data, callback) => {
     if (socket.id !== adminSocketId) {
        if(callback) callback({ success: false, message: 'Bạn không có quyền Admin' });
        return;
@@ -494,7 +494,7 @@ io.on('connection', (socket) => {
     broadcastState(); // Báo cho admin biết hs đã online
   });
 
-  socket.on('student:submit_answer', (data, callback) => {
+  socket.on('student:submit_answer', async (data, callback) => {
     const sbd = socket.data.sbd;
     if (!sbd || !students[sbd]) return;
     
