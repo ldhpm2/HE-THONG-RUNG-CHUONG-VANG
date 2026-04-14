@@ -178,7 +178,8 @@ const broadcastState = () => {
     gamePhase,
     currentQuestion: currentQuestion ? { ...currentQuestion, correct: gamePhase === 'answer_revealed' ? currentQuestion.correct : null } : null,
     students: publicStudents,
-    isSoundEnabled
+    isSoundEnabled,
+    customMessage
   });
   
   if (adminSocketId) {
@@ -186,6 +187,7 @@ const broadcastState = () => {
     io.to(adminSocketId).emit('admin_state_update', {
       gamePhase,
       currentQuestion,
+      customMessage,
       students,
       isSoundEnabled
     });
