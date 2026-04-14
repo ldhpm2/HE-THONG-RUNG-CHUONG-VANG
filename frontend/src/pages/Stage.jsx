@@ -660,9 +660,11 @@ export default function Stage() {
                            >
                               <ScrollText className="w-12 h-12 text-indigo-400" />
                            </motion.div>
-                           <h2 className="text-5xl font-black uppercase tracking-[0.1em] text-transparent bg-clip-text bg-gradient-to-r from-white via-indigo-200 to-indigo-400 drop-shadow-sm">
-                             Thể Lệ Cuộc Thi
-                           </h2>
+                            <h2 className="text-5xl font-black uppercase tracking-[0.1em] text-transparent bg-clip-text bg-gradient-to-r from-white via-indigo-200 to-indigo-400 drop-shadow-sm">
+                              Thể Lệ Cuộc Thi
+                            </h2>
+                            <div className="h-1 w-32 bg-gradient-to-r from-transparent via-indigo-500 to-transparent rounded-full mt-3"></div>
+                        </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                            {[
                              { icon: "📜", title: "Lấy câu hỏi", desc: "Hệ thống sẽ lần lượt đưa ra các câu hỏi trắc nghiệm hoặc tự luận ngắn." },

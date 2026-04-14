@@ -22,20 +22,27 @@ const io = new Server(server, {
 
 // --- MONGODB SETUP ---
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/rung_chuong_vang';
-
 let isDbConnected = false;
-mongoose.connect(MONGODB_URI, { 
-  serverSelectionTimeoutMS: 5000 // Giảm thời gian chờ xuống 5s để không bị treo lâu
-})
-  .then(() => {
+
+// Hàm kết nối Database với logic an toàn
+const connectDB = async () => {
+  try {
+    if (!MONGODB_URI || (!MONGODB_URI.startsWith('mongodb://') && !MONGODB_URI.startsWith('mongodb+srv://'))) {
+      throw new Error('MONGODB_URI không hợp lệ hoặc chưa cấu hình.');
+    }
+    await mongoose.connect(MONGODB_URI, { 
+      serverSelectionTimeoutMS: 5000 
+    });
     isDbConnected = true;
     console.log('[MongoDB] Connected successfully');
-    loadFullState(); // Chỉ tải dữ liệu nếu kết nối thành công
-  })
-  .catch(err => {
+    await loadFullState();
+  } catch (err) {
     isDbConnected = false;
-    console.error('[MongoDB] Connection error (Tạm thời chạy ở chế độ IN-MEMORY):', err.message);
-  });
+    console.error('[MongoDB] Connection failed. Running in IN-MEMORY mode:', err.message);
+  }
+};
+
+connectDB();
 
 // Schema cho Thí sinh
 const studentSchema = new mongoose.Schema({
