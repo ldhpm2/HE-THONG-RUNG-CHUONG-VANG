@@ -388,12 +388,12 @@ export default function Stage() {
   // Dung dap an - Hiệu ứng này vẫn giữ riêng cho âm thanh kết quả
   useEffect(() => {
     if (gameState.isSoundEnabled && isLocalAudioUnlocked) {
-      socket.on('audio_trigger', (data) => {
+      socket.on('client_play_sound', (data) => {
          if (data === 'reveal_answer') playCorrect();
          if (data === 'victory') playVictory();
       });
     }
-    return () => socket.off('audio_trigger');
+    return () => socket.off('client_play_sound');
   }, [gameState.phase, gameState.isSoundEnabled, isLocalAudioUnlocked]);
 
   // --- PERSISTENCE ---
