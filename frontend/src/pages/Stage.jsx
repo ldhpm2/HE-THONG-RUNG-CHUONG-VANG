@@ -997,7 +997,7 @@ export default function Stage() {
                        </div>
 
                        {/* Timer Circle (Top Right Corner Inside) */}
-                       <div className="absolute top-4 right-6 w-20 h-20 bg-slate-900/80 rounded-full border-4 border-slate-600 flex items-center justify-center z-20 shadow-xl backdrop-blur-sm">
+                       <div className="absolute top-0 right-0 w-20 h-20 bg-slate-900/80 rounded-full border-4 border-slate-600 flex items-center justify-center z-20 shadow-xl backdrop-blur-sm">
                           <span className={`text-4xl font-black font-mono tracking-tighter ${
                             phase === 'timer_running' && timeLeft <= 5 ? 'text-red-500 animate-ping' : 
                             phase === 'timer_running' ? 'text-yellow-400' : 
