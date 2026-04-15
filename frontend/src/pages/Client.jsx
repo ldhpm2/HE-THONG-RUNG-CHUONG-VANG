@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { LogIn, Clock, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
 import { MathJax } from 'better-react-mathjax';
 
-
 export default function Client() {
   const [sbd, setSbd] = useState('');
   const [pin, setPin] = useState('');
@@ -94,7 +93,9 @@ export default function Client() {
   };
 
   const handleSelectAnswer = (ans) => {
-    if (gameState.phase !== 'timer_running' && gameState.phase !== 'question_sent') return;
+    // Chỉ cho phép chọn/đổi đáp án khi đồng hồ đang đếm ngược
+    // ĐÃ XÓA ĐIỀU KIỆN CHẶN "submitted" ĐỂ CHO PHÉP ĐỔI ĐÁP ÁN
+    if (gameState.phase !== 'timer_running') return;
     
     socket.emit('student:submit_answer', { answer: ans }, (res) => {
         if (res.success) {
@@ -108,7 +109,9 @@ export default function Client() {
 
   const handleSubmitText = (e) => {
     e.preventDefault();
+    // ĐÃ XÓA ĐIỀU KIỆN CHẶN "submitted"
     if (gameState.phase !== 'timer_running' || !localAnswer) return;
+    
     socket.emit('student:submit_answer', { answer: localAnswer }, (res) => {
         if (res.success) setSubmitted(true);
     });
@@ -186,7 +189,6 @@ export default function Client() {
     );
   }
 
-  // Khung hình nếu bị loại và KHÔNG PHẢI trong phiên Cứu Trợ / Khán giả
   if (studentInfo?.status === 'eliminated' && !gameState.question?.isRescue && !gameState.question?.isAudience) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-red-950 px-6 text-center">
@@ -202,7 +204,6 @@ export default function Client() {
     );
   }
 
-  // Khung hình nếu đang an toàn và ĐANG TRONG phiên Cứu Trợ
   if (studentInfo?.status === 'active' && gameState.question?.isRescue) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-green-950 px-6 text-center">
@@ -217,10 +218,8 @@ export default function Client() {
     );
   }
 
-  // Màn hình chính khi đang chơi
   return (
     <div className="flex flex-col min-h-screen bg-slate-900">
-      {/* Header Info */}
       <div className="bg-slate-800 p-4 border-b border-slate-700 flex justify-between items-center shadow-md">
         <div>
           <p className="text-xs text-slate-400 uppercase tracking-widest">Thí sinh</p>
@@ -241,7 +240,6 @@ export default function Client() {
       </div>
 
       <div className="flex-1 flex flex-col p-4">
-        {/* Trạng thái chưa có câu hỏi */}
         {(gameState.phase === 'idle') && (
           <div className="flex-1 flex flex-col items-center justify-center text-center opacity-70">
             <Clock className="w-16 h-16 text-slate-500 mb-4 animate-spin-slow" style={{ animationDuration: '3s' }}/>
@@ -253,12 +251,10 @@ export default function Client() {
           </div>
         )}
 
-        {/* Trạng thái hiện câu hỏi */}
         {gameState.phase !== 'idle' && gameState.question && (
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="flex-1 flex flex-col">
             <div className="bg-slate-800 p-6 rounded-2xl shadow-xl flex-1 mt-2 border border-slate-700 flex flex-col relative overflow-hidden">
               
-              {/* Question Phase Info */}
               <div className="absolute top-0 inset-x-0 h-1 bg-slate-700">
                  {gameState.phase === 'timer_running' && <motion.div initial={{ width: '100%' }} animate={{ width: '0%' }} transition={{ duration: gameState.question.time, ease: 'linear' }} className="h-full bg-yellow-500" />}
               </div>
@@ -281,7 +277,6 @@ export default function Client() {
                   </span>
                 </div>
 
-                {/* Question Text Display for Student */}
                 <div className="bg-slate-900/50 rounded-xl p-4 mb-4 border border-slate-700 max-h-[40vh] overflow-y-auto">
                    <div className="text-lg text-slate-100 font-medium leading-relaxed">
                       {renderMixedText(gameState.question.content)}
@@ -298,7 +293,6 @@ export default function Client() {
                    )}
                 </div>
 
-               {/* Interaction Area */}
                <div className="mt-auto mb-auto">
                  {gameState.question.type === 'mcq' ? (
                    <div className="grid grid-cols-2 gap-4">
@@ -307,24 +301,37 @@ export default function Client() {
                        const isCorrect = gameState.phase === 'answer_revealed' && gameState.question.correct === opt;
                        const isWrong = gameState.phase === 'answer_revealed' && isSelected && !isCorrect;
                        
-                       let btnClass = "py-8 text-4xl font-black rounded-2xl shadow-lg border-b-4 transform transition-all active:scale-95 flex items-center justify-center ";
+                       let btnClass = "py-8 text-4xl font-black rounded-2xl shadow-lg border-b-4 transform transition-all flex items-center justify-center ";
                        
                        if (isCorrect) {
                          btnClass += "bg-green-500 border-green-700 text-white animate-bounce";
                        } else if (isWrong) {
                          btnClass += "bg-red-500 border-red-700 text-white opacity-50";
-                       } else if (isSelected) {
-                         btnClass += "bg-yellow-500 border-yellow-700 text-slate-900 ring-4 ring-yellow-300 ring-offset-2 ring-offset-slate-800";
-                       } else if (gameState.phase === 'timer_running' && !submitted) {
-                         btnClass += "bg-slate-700 border-slate-900 text-white hover:bg-slate-600 cursor-pointer";
+                       } else if (gameState.phase === 'timer_running') {
+                         // Nếu đang tính giờ, nút được chọn sáng lên, nút khác vẫn sáng bình thường để dễ bấm đổi
+                         if (isSelected) {
+                           btnClass += "bg-yellow-500 border-yellow-700 text-slate-900 ring-4 ring-yellow-300 ring-offset-2 ring-offset-slate-800 scale-95";
+                         } else {
+                           btnClass += "bg-slate-700 border-slate-900 text-white hover:bg-slate-600 cursor-pointer active:scale-95";
+                         }
                        } else {
-                         btnClass += "bg-slate-800 border-slate-900 text-slate-500 opacity-50 cursor-not-allowed";
+                         // Trạng thái đã khóa đáp án (Hết giờ / Chưa tính giờ)
+                         if (isSelected) {
+                           btnClass += "bg-yellow-500 border-yellow-700 text-slate-900 opacity-80 cursor-not-allowed";
+                         } else {
+                           btnClass += "bg-slate-800 border-slate-900 text-slate-500 opacity-50 cursor-not-allowed";
+                         }
                        }
 
                        return (
                          <div
                            key={opt}
-                           onClick={() => handleSelectAnswer(opt)}
+                           onClick={() => {
+                              // Khóa hẳn thao tác nếu đồng hồ KHÔNG chạy
+                              if (gameState.phase === 'timer_running') {
+                                handleSelectAnswer(opt);
+                              }
+                           }}
                            className={btnClass}
                          >
                            {opt}
@@ -339,16 +346,18 @@ export default function Client() {
                         type="text"
                         value={localAnswer}
                         onChange={e => setLocalAnswer(e.target.value.toUpperCase())}
-                        disabled={gameState.phase !== 'timer_running' || submitted}
+                        // Bỏ chặn "submitted"
+                        disabled={gameState.phase !== 'timer_running'}
                         placeholder="NHẬP ĐÁP ÁN..."
                         className="w-full bg-slate-900 border-2 border-slate-600 rounded-2xl text-4xl text-center py-6 text-white font-bold uppercase disabled:opacity-50 focus:border-yellow-500 focus:ring-0 outline-none transition-colors"
                       />
                       <button 
                         type="submit"
-                        disabled={gameState.phase !== 'timer_running' || submitted || !localAnswer}
+                        // Bỏ chặn "submitted"
+                        disabled={gameState.phase !== 'timer_running' || !localAnswer}
                         className="w-full bg-blue-600 text-white py-4 rounded-xl text-xl font-bold font-white uppercase shadow-md disabled:bg-slate-700 disabled:text-slate-500 transition-colors"
                       >
-                       {submitted ? 'Đã Nộp' : 'Chốt Đáp Án'}
+                       {submitted ? 'Cập Nhật Lại Đáp Án' : 'Chốt Đáp Án'}
                       </button>
                     </form>
                  )}
@@ -359,11 +368,9 @@ export default function Client() {
                   {submitted && gameState.phase === 'timer_running' && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center">
                        <p className="text-yellow-400 font-medium flex items-center justify-center gap-2">
-                          <CheckCircle className="w-5 h-5"/> Đã nộp: <span className="font-bold text-xl">{localAnswer}</span>
+                          <CheckCircle className="w-5 h-5"/> Đã ghi nhận: <span className="font-bold text-xl">{localAnswer}</span>
                        </p>
-                       {gameState.question?.isRescue && (
-                          <p className="text-xs text-yellow-500/80 mt-1 animate-pulse italic">Hãy chờ đợi tín hiệu hồi sinh từ BTC!</p>
-                       )}
+                       <p className="text-xs text-slate-400 mt-1 italic">Bạn có thể đổi đáp án trước khi hết giờ.</p>
                     </motion.div>
                   )}
                   {gameState.phase === 'answer_revealed' && (
