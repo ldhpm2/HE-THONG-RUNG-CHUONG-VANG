@@ -5,6 +5,7 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const path = require('path');
 const os = require('os');
+const fs = require('fs');
 const mongoose = require('mongoose');
 
 const app = express();
@@ -22,6 +23,26 @@ const io = new Server(server, {
 // --- MONGODB SETUP ---
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/rung_chuong_vang';
 let isDbConnected = false;
+
+// Hàm kết nối Database với logic an toàn
+const connectDB = async () => {
+  try {
+    if (!MONGODB_URI || (!MONGODB_URI.startsWith('mongodb://') && !MONGODB_URI.startsWith('mongodb+srv://'))) {
+      throw new Error('MONGODB_URI không hợp lệ hoặc chưa cấu hình.');
+    }
+    await mongoose.connect(MONGODB_URI, { 
+      serverSelectionTimeoutMS: 5000 
+    });
+    isDbConnected = true;
+    console.log('[MongoDB] Connected successfully');
+    await loadFullState();
+  } catch (err) {
+    isDbConnected = false;
+    console.error('[MongoDB] Connection failed. Running in IN-MEMORY mode:', err.message);
+  }
+};
+
+connectDB();
 
 // Schema cho Thí sinh
 const studentSchema = new mongoose.Schema({
@@ -45,39 +66,37 @@ const gameStateSchema = new mongoose.Schema({
 const GameState = mongoose.model('GameState', gameStateSchema);
 
 // --- GAME STATE (In-memory) ---
-let students = {};
+let adminSocketId = null;
+let students = {}; 
 let currentQuestion = null;
 let customMessage = '';
-let gamePhase = 'idle';
+let gamePhase = 'idle'; 
 let isSoundEnabled = true;
 
 // --- PERSISTENCE HELPERS (MongoDB) ---
-
-// FIX #5: Debounce saveFullState để tránh ghi DB liên tục khi nhiều học sinh nộp bài cùng lúc
-let saveTimeout = null;
-const debouncedSave = () => {
-  clearTimeout(saveTimeout);
-  saveTimeout = setTimeout(() => saveFullState(), 1000);
-};
-
 const saveFullState = async () => {
-  if (!isDbConnected) return;
+  if (!isDbConnected) {
+    // console.log('[Persistence] Database not connected. Data only in memory.');
+    return;
+  }
   try {
+    // 1. Lưu GameState
     await GameState.findOneAndUpdate(
       { id: 'main_state' },
       { gamePhase, currentQuestion, customMessage, isSoundEnabled },
       { upsert: true }
     );
 
+    // 2. Lưu Students
     const studentOps = Object.values(students).map(s => ({
       updateOne: {
         filter: { sbd: s.sbd },
-        update: {
-          hoTen: s.hoTen,
-          lop: s.lop,
-          pin: s.pin,
-          status: s.status,
-          currentAnswer: s.currentAnswer
+        update: { 
+          hoTen: s.hoTen, 
+          lop: s.lop, 
+          pin: s.pin, 
+          status: s.status, 
+          currentAnswer: s.currentAnswer 
         },
         upsert: true
       }
@@ -92,6 +111,7 @@ const saveFullState = async () => {
 
 const loadFullState = async () => {
   try {
+    // 1. Tải GameState
     const gs = await GameState.findOne({ id: 'main_state' });
     if (gs) {
       gamePhase = gs.gamePhase;
@@ -100,6 +120,7 @@ const loadFullState = async () => {
       isSoundEnabled = gs.isSoundEnabled;
     }
 
+    // 2. Tải Students
     const dbStudents = await Student.find({});
     students = {};
     dbStudents.forEach(s => {
@@ -121,25 +142,10 @@ const loadFullState = async () => {
   }
 };
 
-// FIX #1: Kết nối DB trước, sau đó mới khởi động server để tránh 502 khi health check
-const connectDB = async () => {
-  try {
-    if (!MONGODB_URI || (!MONGODB_URI.startsWith('mongodb://') && !MONGODB_URI.startsWith('mongodb+srv://'))) {
-      throw new Error('MONGODB_URI không hợp lệ hoặc chưa cấu hình.');
-    }
-    await mongoose.connect(MONGODB_URI, {
-      serverSelectionTimeoutMS: 5000
-    });
-    isDbConnected = true;
-    console.log('[MongoDB] Connected successfully');
-    // FIX #2: Chỉ gọi loadFullState() MỘT lần duy nhất tại đây
-    // Đã xóa mongoose.connection.once('open') để tránh gọi trùng lặp
-    await loadFullState();
-  } catch (err) {
-    isDbConnected = false;
-    console.error('[MongoDB] Connection failed. Running in IN-MEMORY mode:', err.message);
-  }
-};
+// Initial load
+mongoose.connection.once('open', () => {
+  loadFullState();
+});
 
 // Helper to get local IP
 function getLocalIP() {
@@ -154,22 +160,17 @@ function getLocalIP() {
   return 'localhost';
 }
 
-// FIX #1: Khởi động server SAU KHI kết nối DB xong
+// Khởi tạo server
 const PORT = process.env.PORT || 4000;
 
-const startServer = async () => {
-  await connectDB(); // Chờ DB (hoặc timeout) xong mới listen
+// Render.com yêu cầu keepAliveTimeout > 60s để tránh 502
+server.keepAliveTimeout = 120000; // 120 giây
+server.headersTimeout = 125000;   // 125 giây (phải > keepAliveTimeout)
 
-  // Render.com yêu cầu keepAliveTimeout > 60s để tránh 502
-  server.keepAliveTimeout = 120000; // 120 giây
-  server.headersTimeout = 125000;   // 125 giây (phải > keepAliveTimeout)
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`Backend server is running on 0.0.0.0:${PORT}`);
+});
 
-  server.listen(PORT, '0.0.0.0', () => {
-    console.log(`Backend server is running on 0.0.0.0:${PORT}`);
-  });
-};
-
-startServer();
 
 // --- BROADCASTER ---
 const broadcastState = () => {
@@ -187,64 +188,62 @@ const broadcastState = () => {
   }
   io.emit('game_state_update', {
     gamePhase,
-    currentQuestion: currentQuestion
-      ? { ...currentQuestion, correct: gamePhase === 'answer_revealed' ? currentQuestion.correct : null }
-      : null,
+    currentQuestion: currentQuestion ? { ...currentQuestion, correct: gamePhase === 'answer_revealed' ? currentQuestion.correct : null } : null,
     students: publicStudents,
     isSoundEnabled,
     customMessage
   });
-
-  // Admin nhận đầy đủ thông tin bao gồm đáp án học sinh
-  io.to('admin_room').emit('admin_state_update', {
-    gamePhase,
-    currentQuestion,
-    customMessage,
-    students,
-    isSoundEnabled
-  });
+  
+  if (adminSocketId) {
+    // Admin gets full view including what answers are
+    io.to(adminSocketId).emit('admin_state_update', {
+      gamePhase,
+      currentQuestion,
+      customMessage,
+      students,
+      isSoundEnabled
+    });
+  }
 };
 
 io.on('connection', (socket) => {
   console.log('Socket connected:', socket.id);
-
+  
   // Gửi trạng thái hiện tại ngay lập tức cho kết nối mới
   broadcastState();
 
-  // =====================================================================
   // --- ADMIN EVENTS ---
-  // =====================================================================
-
   socket.on('admin:login', (data, callback) => {
     if (data.password === 'admin123') {
+      adminSocketId = socket.id; // Keep for backward compatibility if needed
       socket.join('admin_room');
       console.log(`[Admin] Login Success: ${socket.id}. Joined 'admin_room'`);
-      if (callback) callback({ success: true });
+      if(callback) callback({ success: true });
       broadcastState();
     } else {
       console.warn(`[Admin] Login Failed for ${socket.id}: Incorrect password`);
-      if (callback) callback({ success: false, message: 'Sai mật khẩu Admin' });
+      if(callback) callback({ success: false, message: 'Sai mật khẩu Admin' });
     }
   });
 
   socket.on('admin:get_server_info', (callback) => {
     const ip = getLocalIP();
-    if (callback) callback({
-      ip: ip,
+    if(callback) callback({ 
+      ip: ip, 
       port: PORT,
       url: `http://${ip}:${PORT}`
     });
   });
 
   socket.on('admin:upload_students', async (data, callback) => {
-    if (!socket.rooms.has('admin_room')) {
-      console.warn(`[Admin] Unauthorized upload_students attempt from ${socket.id}`);
-      if (callback) callback({ success: false, message: 'Bạn chưa đăng nhập Admin hoặc bị mất kết nối!' });
-      return;
-    }
     try {
+      if (!socket.rooms.has('admin_room')) {
+        console.warn(`[Admin] Unauthorized upload_students attempt from ${socket.id}`);
+        if(callback) callback({ success: false, message: 'Bạn chưa đăng nhập Admin hoặc bị mất kết nối!' });
+        return;
+      }
       if (isDbConnected) {
-        await Student.deleteMany({});
+        await Student.deleteMany({}); // Chỉ xóa trên DB nếu có kết nối
       }
       students = {};
       data.forEach(s => {
@@ -257,49 +256,50 @@ io.on('connection', (socket) => {
         };
       });
       console.log(`[Admin] Uploaded ${data.length} students by ${socket.id}`);
-      if (callback) callback({ success: true, count: data.length });
+      if(callback) callback({ success: true, count: data.length });
       await saveFullState();
       broadcastState();
     } catch (error) {
       console.error('[Admin] Error uploading students:', error);
-      if (callback) callback({ success: false, message: 'Lỗi server khi nạp thí sinh: ' + error.message });
+      if(callback) callback({ success: false, message: 'Lỗi server khi nạp thí sinh: ' + error.message });
     }
   });
 
   socket.on('admin:clear_students', async (callback) => {
-    if (!socket.rooms.has('admin_room')) {
-      console.warn(`[Admin] Unauthorized clear_students attempt from ${socket.id}`);
-      if (callback) callback({ success: false, message: 'Bạn chưa đăng nhập Admin hoặc bị mất kết nối!' });
-      return;
-    }
     try {
+      if (!socket.rooms.has('admin_room')) {
+        console.warn(`[Admin] Unauthorized clear_students attempt from ${socket.id}`);
+        if(callback) callback({ success: false, message: 'Bạn chưa đăng nhập Admin hoặc bị mất kết nối!' });
+        return;
+      }
       students = {};
       gamePhase = 'idle';
       currentQuestion = null;
       if (isDbConnected) {
-        await Student.deleteMany({});
+        await Student.deleteMany({}); // Xóa sạch thí sinh trong database
       }
       console.log(`[Admin] All students cleared and game reset by ${socket.id}`);
-      if (callback) callback({ success: true });
+      if(callback) callback({ success: true });
       await saveFullState();
       broadcastState();
     } catch (error) {
       console.error('[Admin] Error clearing students:', error);
-      if (callback) callback({ success: false, message: 'Lỗi server khi xóa thí sinh: ' + error.message });
+      if(callback) callback({ success: false, message: 'Lỗi server khi xóa thí sinh: ' + error.message });
     }
   });
 
   socket.on('admin:mobile_upload_questions', (questions, callback) => {
     if (!socket.rooms.has('admin_room')) return;
+    // Relay to other admins (mostly the PC)
     socket.to('admin_room').emit('admin:mobile_upload_questions', questions);
-    if (callback) callback({ success: true });
+    if(callback) callback({ success: true });
   });
 
   socket.on('admin:set_welcome', () => {
     if (!socket.rooms.has('admin_room')) return;
     gamePhase = 'idle';
     currentQuestion = null;
-    isSoundEnabled = true;
+    isSoundEnabled = true; // Luôn bật âm thanh khi khởi động/reset về màn hình chào
     console.log(`[Admin] Game reset to welcome screen (Sound ON) by ${socket.id}`);
     broadcastState();
   });
@@ -315,6 +315,7 @@ io.on('connection', (socket) => {
   socket.on('admin:intro_media', (data) => {
     if (!socket.rooms.has('admin_room')) return;
     console.log(`[Admin] Intro media sent by ${socket.id}: ${data.name}`);
+    // Relay to all clients (Stage) except admin
     socket.broadcast.emit('intro:media_data', data);
   });
 
@@ -332,25 +333,26 @@ io.on('connection', (socket) => {
     broadcastState();
   });
 
-  // FIX #3: Xóa handler 'admin:show_custom' trùng lặp — chỉ giữ lại 1 handler duy nhất
   socket.on('admin:show_custom', async (data) => {
     if (!socket.rooms.has('admin_room')) return;
     gamePhase = 'showing_custom';
     customMessage = data.message || '';
     currentQuestion = null;
-    console.log(`[Admin] Showing custom content by ${socket.id}: ${customMessage.substring(0, 30)}...`);
+    console.log(`[Admin] Showing custom content by ${socket.id}`);
     await saveFullState();
     broadcastState();
   });
 
   socket.on('admin:push_question', async (data) => {
     if (!socket.rooms.has('admin_room')) return;
-    currentQuestion = {
-      ...data.question,
-      isRescue: !!data.isRescue,
-      isAudience: !!data.isAudience
-    };
+    currentQuestion = { 
+       ...data.question, 
+       isRescue: !!data.isRescue,
+       isAudience: !!data.isAudience 
+    }; 
+
     gamePhase = 'question_sent';
+    // Clear old answers
     for (const key in students) {
       students[key].currentAnswer = null;
     }
@@ -386,6 +388,15 @@ io.on('connection', (socket) => {
     broadcastState();
   });
 
+  socket.on('admin:show_custom', async (data) => {
+    if (!socket.rooms.has('admin_room')) return;
+    customMessage = data.message || '';
+    gamePhase = 'showing_custom';
+    console.log(`[Admin] Custom message shown by ${socket.id}: ${customMessage.substring(0, 30)}...`);
+    await saveFullState();
+    broadcastState();
+  });
+
   socket.on('admin:declare_winner', async () => {
     if (!socket.rooms.has('admin_room')) return;
     gamePhase = 'winner_declared';
@@ -400,42 +411,48 @@ io.on('connection', (socket) => {
     if (!socket.rooms.has('admin_room')) return;
     gamePhase = 'answer_revealed';
     console.log(`[Admin] Answer revealed by ${socket.id}`);
-
+    
+    // Auto Validate
     const correctAns = currentQuestion?.correct?.toString().toLowerCase().trim();
     console.log(`[Reveal] Correct Ans: ${correctAns}`);
 
     // Bỏ qua nếu là câu hỏi dành cho khán giả
     if (currentQuestion?.isAudience) {
-      broadcastState();
-      return;
+       broadcastState();
+       return;
     }
 
     for (const key in students) {
       const student = students[key];
-
+      
       if (currentQuestion?.isRescue) {
-        // --- LOGIC GIAI ĐOẠN CỨU TRỢ ---
-        if (student.status === 'eliminated') {
-          const studentAns = (student.currentAnswer || '').toString().toLowerCase().trim();
-          if (studentAns && studentAns === correctAns) {
-            console.log(`[Rescue] SBD ${student.sbd} correct! Status -> Active`);
-            student.status = 'active';
-            if (student.socketId) io.to(student.socketId).emit('you_are_rescued');
-          } else {
-            if (student.socketId) io.to(student.socketId).emit('you_are_eliminated');
-          }
-        }
+         // --- LOGIC GIAI ĐOẠN CỨU TRỢ ---
+         if (student.status === 'eliminated') {
+            const studentAns = (student.currentAnswer || "").toString().toLowerCase().trim();
+            if (studentAns && studentAns === correctAns) {
+               console.log(`[Rescue] SBD ${student.sbd} correct! Status -> Active`);
+               student.status = 'active'; // Hồi sinh
+               if (student.socketId) io.to(student.socketId).emit('you_are_rescued');
+            } else {
+               // Vẫn bị loại
+               if (student.socketId) io.to(student.socketId).emit('you_are_eliminated');
+            }
+         }
       } else {
-        // --- LOGIC THI ĐẤU BÌNH THƯỜNG ---
-        if (student.status === 'active') {
-          const studentAns = (student.currentAnswer || '').toString().toLowerCase().trim();
-          if (!studentAns || studentAns !== correctAns) {
-            student.status = 'eliminated';
-            if (student.socketId) io.to(student.socketId).emit('you_are_eliminated');
-          } else {
-            if (student.socketId) io.to(student.socketId).emit('you_passed');
-          }
-        }
+         // --- LOGIC THI ĐẤU BÌNH THƯỜNG ---
+         if (student.status === 'active') {
+           const studentAns = (student.currentAnswer || "").toString().toLowerCase().trim();
+           if (!studentAns || studentAns !== correctAns) {
+             student.status = 'eliminated';
+             if (student.socketId) {
+               io.to(student.socketId).emit('you_are_eliminated');
+             }
+           } else {
+              if (student.socketId) {
+               io.to(student.socketId).emit('you_passed');
+             }
+           }
+         }
       }
     }
     await saveFullState();
@@ -443,65 +460,63 @@ io.on('connection', (socket) => {
     io.emit('client_play_sound', 'reveal_answer');
   });
 
-  // FIX #4: Đồng nhất auth check sang admin_room thay vì dùng adminSocketId
   socket.on('admin:rescue', async (data, callback) => {
-    if (!socket.rooms.has('admin_room')) {
-      if (callback) callback({ success: false, message: 'Từ chối: Không có quyền Admin' });
-      return;
+    if (socket.id !== adminSocketId) {
+        if(callback) callback({ success: false, message: 'Từ chối: Không có quyền Admin' });
+        return;
     }
     const targetStr = (data.target || data.count || '').toString().toLowerCase().trim();
     console.log(`[Admin] Rescue command received: ${targetStr}`);
-
+    
     const eliminatedList = Object.values(students).filter(s => s.status === 'eliminated');
     let rescued = [];
 
     if (targetStr === 'all') {
-      rescued = eliminatedList;
+       rescued = eliminatedList;
     } else {
-      const sbdList = targetStr.split(',').map(s => s.trim());
-      rescued = eliminatedList.filter(s => sbdList.includes(s.sbd.toString().toLowerCase().trim()));
+       // Target contains comma-separated SBDs (e.g. "111, 112")
+       const sbdList = targetStr.split(',').map(s => s.trim());
+       rescued = eliminatedList.filter(s => sbdList.includes(s.sbd.toString().toLowerCase().trim()));
     }
-
+    
     rescued.forEach(s => {
       s.status = 'active';
       if (s.socketId) io.to(s.socketId).emit('you_are_rescued');
     });
 
-    gamePhase = 'idle';
+    gamePhase = 'idle'; // Reset về không thi đấu cho ván mới
     currentQuestion = null;
     for (const key in students) {
       students[key].currentAnswer = null;
     }
-
+    
     console.log(`[Admin] Rescued ${rescued.length} students`);
-    if (callback) callback({ success: true, count: rescued.length });
+    if(callback) callback({ success: true, count: rescued.length });
     await saveFullState();
     broadcastState();
     io.emit('client_play_sound', 'rescue_success');
   });
 
-  // FIX #4: Đồng nhất auth check sang admin_room
   socket.on('admin:eliminate_student', async (data, callback) => {
-    if (!socket.rooms.has('admin_room')) {
-      if (callback) callback({ success: false, message: 'Bạn không có quyền Admin' });
-      return;
+    if (socket.id !== adminSocketId) {
+       if(callback) callback({ success: false, message: 'Bạn không có quyền Admin' });
+       return;
     }
     const { sbd } = data;
     if (students[sbd]) {
       students[sbd].status = 'eliminated';
       if (students[sbd].socketId) io.to(students[sbd].socketId).emit('you_are_eliminated');
       console.log(`[Admin] Manually eliminated SBD: ${sbd}`);
-      if (callback) callback({ success: true });
+      if(callback) callback({ success: true });
       await saveFullState();
       broadcastState();
     } else {
-      if (callback) callback({ success: false, message: 'Số báo danh không tồn tại' });
+      if(callback) callback({ success: false, message: 'Số báo danh không tồn tại' });
     }
   });
 
-  // FIX #4: Đồng nhất auth check sang admin_room
   socket.on('admin:reset_student', (data) => {
-    if (!socket.rooms.has('admin_room')) return;
+    if (socket.id !== adminSocketId) return;
     const { sbd } = data;
     if (students[sbd]) {
       console.log(`[Admin] Reset student SBD: ${sbd}`);
@@ -519,6 +534,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('stage:camera_signal', (data) => {
+    // Relay Stage ICE/SDP back to all admins in admin_room
     io.to('admin_room').emit('camera:signal_from_stage', data);
   });
 
@@ -533,74 +549,80 @@ io.on('connection', (socket) => {
     socket.broadcast.emit('camera:frame_from_admin', data);
   });
 
-  // =====================================================================
-  // --- CLIENT (HỌC SINH) EVENTS ---
-  // =====================================================================
-
+  // --- CLIENT EVENTS ---
   socket.on('student:login', (data, callback) => {
     const { sbd, pin } = data;
     const student = students[sbd];
-
+    
     if (!student) {
-      if (callback) callback({ success: false, message: 'Số báo danh không tồn tại' });
+      if(callback) callback({ success: false, message: 'Số báo danh không tồn tại' });
       return;
     }
     if (student.pin.toString() !== pin.toString()) {
-      if (callback) callback({ success: false, message: 'Mã PIN không hợp lệ' });
+      if(callback) callback({ success: false, message: 'Mã PIN không hợp lệ' });
       return;
     }
-
-    // Nếu có đăng nhập ở nơi khác thì disconnect user cũ
+    
+    // Nếu có đăng nhập ở nơi khác thỉ disconnect user đó
     if (student.socketId && student.socketId !== socket.id) {
-      io.to(student.socketId).emit('force_logout', { message: 'Tài khoản được đăng nhập ở nơi khác' });
-      io.to(student.socketId).disconnectSockets(true);
+       io.to(student.socketId).emit('force_logout', { message: 'Tài khoản được đăng nhập ở nơi khác' });
+       io.to(student.socketId).disconnect(true);
     }
 
     student.socketId = socket.id;
     student.online = true;
-    socket.data.sbd = sbd;
+    socket.data.sbd = sbd; // Gắn identifier vào socket object
 
-    if (callback) callback({
-      success: true,
-      student: { sbd: student.sbd, hoTen: student.hoTen, lop: student.lop, status: student.status }
+    if(callback) callback({ 
+      success: true, 
+      student: {sbd: student.sbd, hoTen: student.hoTen, lop: student.lop, status: student.status} 
     });
-
-    broadcastState();
+    
+    broadcastState(); // Báo cho admin biết hs đã online
   });
 
-  // FIX #5: Dùng debouncedSave thay vì await saveFullState() để tránh nghẽn DB
   socket.on('student:submit_answer', async (data, callback) => {
     const sbd = socket.data.sbd;
     if (!sbd || !students[sbd]) return;
-
+    
+    // Chỉ nhận khi phase = timer_running hoặc question_sent
     if (gamePhase !== 'timer_running' && gamePhase !== 'question_sent') {
-      if (callback) callback({ success: false, message: 'Không trong thời gian nộp bài' });
+      if(callback) callback({ success: false, message: 'Không trong thời gian nộp bài' });
       return;
     }
 
     if (currentQuestion?.isRescue) {
-      if (students[sbd].status === 'active') {
-        if (callback) callback({ success: false, message: 'Bạn đang an toàn, không cần làm câu cứu trợ!' });
-        return;
-      }
+       // Trong thời gian Cứu Trợ
+       if (students[sbd].status === 'active') {
+          if(callback) callback({ success: false, message: 'Bạn đang an toàn, không cần làm câu cứu trợ!' });
+          return;
+       }
     } else {
-      if (students[sbd].status !== 'active') {
-        if (callback) callback({ success: false, message: 'Bạn không có quyền nộp bài' });
-        return;
-      }
+       // Trong thời gian Thi đấu bình thường
+       if (students[sbd].status !== 'active') {
+          if(callback) callback({ success: false, message: 'Bạn không có quyền nộp bài' });
+          return;
+       }
     }
 
     students[sbd].currentAnswer = data.answer;
-    if (callback) callback({ success: true });
-
-    // Update admin real-time (không cần lưu DB ngay, dùng debounce)
-    io.to('admin_room').emit('admin_state_update', { gamePhase, currentQuestion, students });
-    debouncedSave(); // FIX #5: Gom nhiều lần nộp bài vào 1 lần ghi DB
+    if(callback) callback({ success: true });
+    
+    // Update admin real-time
+    if (adminSocketId) {
+      io.to(adminSocketId).emit('admin_state_update', { gamePhase, currentQuestion, students });
+    }
+    await saveFullState();
   });
 
+  // Sự kiện check disconnect để báo Admin ai offline
   socket.on('disconnect', () => {
+    if (socket.id === adminSocketId) {
+      adminSocketId = null;
+    }
     const sbd = socket.data.sbd;
     if (sbd && students[sbd]) {
+      // Chỉ đánh dấu offline nếu không có socketId mới ghi đè
       if (students[sbd].socketId === socket.id) {
         students[sbd].online = false;
         students[sbd].socketId = null;
@@ -611,9 +633,11 @@ io.on('connection', (socket) => {
 });
 
 // --- PHỤC VỤ FRONTEND TĨNH ---
+// Khi chạy trên Render, thư mục frontend/dist sẽ chứa code đã build
 const distPath = path.join(__dirname, '../frontend/dist');
 app.use(express.static(distPath));
 
+// Xử lý tất cả các route khác (Admin, Stage, Client) và trả về index.html
 app.get('/{*path}', (req, res) => {
   res.sendFile(path.join(distPath, 'index.html'));
 });
