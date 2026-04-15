@@ -121,7 +121,7 @@ const loadFullState = async () => {
   }
 };
 
-// FIX #1: Kết nối DB trước, sau đó mới khởi động server để tránh 502 khi health check
+// KẾT NỐI DB (Không block server khởi động)
 const connectDB = async () => {
   try {
     if (!MONGODB_URI || (!MONGODB_URI.startsWith('mongodb://') && !MONGODB_URI.startsWith('mongodb+srv://'))) {
@@ -132,8 +132,8 @@ const connectDB = async () => {
     });
     isDbConnected = true;
     console.log('[MongoDB] Connected successfully');
-    // FIX #2: Chỉ gọi loadFullState() MỘT lần duy nhất tại đây
-    // Đã xóa mongoose.connection.once('open') để tránh gọi trùng lặp
+    
+    // Gọi loadFullState sau khi kết nối thành công
     await loadFullState();
   } catch (err) {
     isDbConnected = false;
@@ -154,18 +154,19 @@ function getLocalIP() {
   return 'localhost';
 }
 
-// FIX #1: Khởi động server SAU KHI kết nối DB xong
 const PORT = process.env.PORT || 4000;
 
-const startServer = async () => {
-  await connectDB(); // Chờ DB (hoặc timeout) xong mới listen
-
+const startServer = () => {
   // Render.com yêu cầu keepAliveTimeout > 60s để tránh 502
   server.keepAliveTimeout = 120000; // 120 giây
   server.headersTimeout = 125000;   // 125 giây (phải > keepAliveTimeout)
 
+  // MỞ PORT NGAY LẬP TỨC ĐỂ RENDER HEALTH CHECK PASS
   server.listen(PORT, '0.0.0.0', () => {
     console.log(`Backend server is running on 0.0.0.0:${PORT}`);
+    
+    // TIẾN HÀNH KẾT NỐI DB Ở CHẾ ĐỘ NỀN (BACKGROUND)
+    connectDB();
   });
 };
 
@@ -332,7 +333,6 @@ io.on('connection', (socket) => {
     broadcastState();
   });
 
-  // FIX #3: Xóa handler 'admin:show_custom' trùng lặp — chỉ giữ lại 1 handler duy nhất
   socket.on('admin:show_custom', async (data) => {
     if (!socket.rooms.has('admin_room')) return;
     gamePhase = 'showing_custom';
@@ -443,7 +443,6 @@ io.on('connection', (socket) => {
     io.emit('client_play_sound', 'reveal_answer');
   });
 
-  // FIX #4: Đồng nhất auth check sang admin_room thay vì dùng adminSocketId
   socket.on('admin:rescue', async (data, callback) => {
     if (!socket.rooms.has('admin_room')) {
       if (callback) callback({ success: false, message: 'Từ chối: Không có quyền Admin' });
@@ -480,7 +479,6 @@ io.on('connection', (socket) => {
     io.emit('client_play_sound', 'rescue_success');
   });
 
-  // FIX #4: Đồng nhất auth check sang admin_room
   socket.on('admin:eliminate_student', async (data, callback) => {
     if (!socket.rooms.has('admin_room')) {
       if (callback) callback({ success: false, message: 'Bạn không có quyền Admin' });
@@ -499,7 +497,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // FIX #4: Đồng nhất auth check sang admin_room
   socket.on('admin:reset_student', (data) => {
     if (!socket.rooms.has('admin_room')) return;
     const { sbd } = data;
@@ -568,7 +565,6 @@ io.on('connection', (socket) => {
     broadcastState();
   });
 
-  // FIX #5: Dùng debouncedSave thay vì await saveFullState() để tránh nghẽn DB
   socket.on('student:submit_answer', async (data, callback) => {
     const sbd = socket.data.sbd;
     if (!sbd || !students[sbd]) return;
@@ -595,7 +591,7 @@ io.on('connection', (socket) => {
 
     // Update admin real-time (không cần lưu DB ngay, dùng debounce)
     io.to('admin_room').emit('admin_state_update', { gamePhase, currentQuestion, students });
-    debouncedSave(); // FIX #5: Gom nhiều lần nộp bài vào 1 lần ghi DB
+    debouncedSave(); // Gom nhiều lần nộp bài vào 1 lần ghi DB
   });
 
   socket.on('disconnect', () => {
@@ -614,6 +610,7 @@ io.on('connection', (socket) => {
 const distPath = path.join(__dirname, '../frontend/dist');
 app.use(express.static(distPath));
 
-app.get('/{*path}', (req, res) => {
+// BẮT TẤT CẢ CÁC ROUTE VÀ TRẢ VỀ INDEX.HTML (Hỗ trợ SPA React/Vue)
+app.get('*', (req, res) => {
   res.sendFile(path.join(distPath, 'index.html'));
 });
