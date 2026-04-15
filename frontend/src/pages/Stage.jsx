@@ -447,8 +447,6 @@ export default function Stage() {
         }
     });
 
-    // Điểm heuristic = chiều dài câu hỏi + (chiều dài đáp án dài nhất * 2)
-    // Các lệnh MathJax dài như \frac, \sqrt sẽ làm chữ tự động thu nhỏ lại một chút để chống tràn dọc
     const score = qLen + (maxOptLen * 2);
     const hasMedia = questionObj.mediaType !== 'none' && questionObj.mediaUrl;
 
@@ -653,7 +651,7 @@ export default function Stage() {
                           </span>
                        </div>
 
-                       {/* Question Content Wrapper - KHÔNG DÙNG THƯỚC ĐO JAVASCRIPT */}
+                       {/* Question Content Wrapper */}
                        <div className="flex-1 flex flex-col items-center justify-center min-h-0 w-full mt-4 px-2">
                            
                            {/* 1. Đề Bài - Dùng Class Đồng Bộ */}
@@ -693,7 +691,8 @@ export default function Stage() {
                                         'bg-slate-700/50 border-slate-600 text-slate-300'
                                       }`}
                                    >
-                                      <span className="text-yellow-400 font-black mb-1 drop-shadow-sm" style={{ fontSize: '1.2em' }}>{opt}</span>
+                                      {/* TĂNG KÍCH THƯỚC A, B, C, D LÊN 1.8em (To hơn 2 size) và thêm tracking */}
+                                      <span className="text-yellow-400 font-black mb-2 drop-shadow-md tracking-widest" style={{ fontSize: '1.8em' }}>{opt}</span>
                                       
                                       {question[`option${opt}`] && (
                                         <span className={`text-center text-slate-100 whitespace-pre-wrap ${unifiedTextClass}`}>
