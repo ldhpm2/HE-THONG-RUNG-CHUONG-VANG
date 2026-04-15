@@ -3,7 +3,7 @@ import { socket } from '../socket';
 import { parseExcelStudentList, parseExcelQuestions } from '../utils/excelParser';
 import { parseWordQuestions } from '../utils/wordParser';
 import { pickAndDownloadDriveFile } from '../utils/googleDrivePicker';
-import { Upload, Play, Square, Presentation, Eye, UserX, Activity, HeartHandshake, Trash2, XCircle, ChevronLeft, ChevronRight, Save, Plus, RotateCcw, FileDown, Camera, CameraOff, FolderOpen, Loader2, Volume2, VolumeX, Smartphone, ScrollText, MessageSquare, Trophy } from 'lucide-react';
+import { Upload, Play, Square, Presentation, Eye, UserX, Activity, HeartHandshake, Trash2, XCircle, ChevronLeft, ChevronRight, Save, Plus, RotateCcw, FileDown, Camera, CameraOff, FolderOpen, Loader2, Volume2, VolumeX, Smartphone, ScrollText, MessageSquare, Trophy, Music } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { MathJax } from 'better-react-mathjax';
 import { isYouTubeURL, getYouTubeEmbedURL } from '../utils/videoUtils';
@@ -57,6 +57,10 @@ export default function Admin() {
   const canvasRef = useRef(null);
   const frameIntervalRef = useRef(null);
   
+  // --- INTRO MEDIA ---
+  const [introMediaFile, setIntroMediaFile] = useState(null); // { name, type, dataUrl }
+  const introMediaInputRef = useRef(null);
+
   // --- SOUND SYSTEM ---
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
   const audioCtxRef = useRef(null);
@@ -669,6 +673,40 @@ export default function Admin() {
      });
   };
 
+  const handleIntroMediaUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    // Giới hạn ~10MB
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File quá lớn! Vui lòng chọn file dưới 10MB.');
+      e.target.value = '';
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setIntroMediaFile({
+        name: file.name,
+        type: file.type,
+        dataUrl: reader.result
+      });
+      alert(`Đã nạp file giới thiệu: ${file.name}`);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const showIntroWithMedia = () => {
+    // Gửi media trước (nếu có), rồi mới chuyển phase
+    if (introMediaFile) {
+      socket.emit('admin:intro_media', {
+        name: introMediaFile.name,
+        type: introMediaFile.type,
+        dataUrl: introMediaFile.dataUrl
+      });
+    }
+    socket.emit('admin:show_intro');
+  };
+
   const setWelcome = () => socket.emit('admin:set_welcome');
 
   const clearStudents = () => {
@@ -1039,8 +1077,9 @@ export default function Admin() {
               <button onClick={setWelcome} className="bg-slate-700 hover:bg-slate-600 text-white py-4 rounded-xl flex flex-col items-center justify-center font-bold transition active:scale-95 shadow-lg border-2 border-slate-600 border-dashed">
                 <Activity className="mb-2 text-yellow-400"/> 0. Bắt đầu
               </button>
-              <button onClick={() => socket.emit('admin:show_intro')} className="bg-slate-700 hover:bg-slate-600 text-white py-4 rounded-xl flex flex-col items-center justify-center font-bold transition active:scale-95 shadow-lg border-2 border-slate-600">
+              <button onClick={showIntroWithMedia} className="bg-slate-700 hover:bg-slate-600 text-white py-4 rounded-xl flex flex-col items-center justify-center font-bold transition active:scale-95 shadow-lg border-2 border-slate-600">
                 <HeartHandshake className="mb-2 text-pink-400"/> 0.5. Giới thiệu
+                {introMediaFile && <span className="text-[8px] text-green-400 mt-1 truncate max-w-[80px]">🎵 {introMediaFile.name}</span>}
               </button>
               <button onClick={() => socket.emit('admin:show_rules')} className="bg-slate-700 hover:bg-slate-600 text-white py-4 rounded-xl flex flex-col items-center justify-center font-bold transition active:scale-95 shadow-lg border-2 border-slate-600">
                 <ScrollText className="mb-2 text-indigo-400"/> 0.6. Thể lệ
@@ -1145,6 +1184,39 @@ export default function Admin() {
                   </button>
                </div>
             </div>
+
+             {/* NẠP FILE ÂM THANH/VIDEO GIỚI THIỆU */}
+             <div className="mt-6 border-t border-slate-700 pt-6">
+                <h4 className="text-sm font-bold text-slate-400 mb-3 uppercase tracking-wider flex items-center">
+                   <Music size={14} className="mr-2"/> Nhạc / Video Giới Thiệu
+                </h4>
+                <p className="text-xs text-slate-500 mb-2">Nạp file âm thanh hoặc video sẽ tự động phát khi bấm nút "Giới thiệu" trên Stage.</p>
+                <div className="flex gap-2 items-center">
+                   <label className="flex-1 bg-pink-600 hover:bg-pink-500 text-white font-bold py-2.5 px-4 rounded-xl transition-all shadow-md active:scale-95 text-sm flex items-center justify-center gap-2 cursor-pointer">
+                      <Music size={16}/> {introMediaFile ? 'Đổi file' : 'Chọn file âm thanh / video'}
+                      <input
+                        ref={introMediaInputRef}
+                        type="file"
+                        accept="audio/*,video/*"
+                        onChange={handleIntroMediaUpload}
+                        className="hidden"
+                      />
+                   </label>
+                   {introMediaFile && (
+                     <button
+                       onClick={() => setIntroMediaFile(null)}
+                       className="px-3 py-2.5 bg-red-900/40 hover:bg-red-800 text-red-300 rounded-xl border border-red-800 text-sm font-bold transition active:scale-95"
+                     >
+                       Xóa
+                     </button>
+                   )}
+                </div>
+                {introMediaFile && (
+                  <div className="mt-2 px-3 py-2 bg-slate-900/50 rounded-lg border border-slate-700 text-xs text-green-400 font-mono truncate flex items-center gap-2">
+                    <Music size={12}/> {introMediaFile.name}
+                  </div>
+                )}
+             </div>
 
             <div className="mt-6 border-t border-slate-700 pt-6 space-y-3">
                <button 

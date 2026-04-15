@@ -17,7 +17,7 @@ const io = new Server(server, {
     origin: '*',
     methods: ['GET', 'POST']
   },
-  maxHttpBufferSize: 5e6 // 5MB
+  maxHttpBufferSize: 15e6 // 15MB - cho phép truyền file media giới thiệu
 });
 
 // --- MONGODB SETUP ---
@@ -310,6 +310,13 @@ io.on('connection', (socket) => {
     currentQuestion = null;
     console.log(`[Admin] Showing contestants intro by ${socket.id}`);
     broadcastState();
+  });
+
+  socket.on('admin:intro_media', (data) => {
+    if (!socket.rooms.has('admin_room')) return;
+    console.log(`[Admin] Intro media sent by ${socket.id}: ${data.name}`);
+    // Relay to all clients (Stage) except admin
+    socket.broadcast.emit('intro:media_data', data);
   });
 
   socket.on('admin:show_rules', () => {

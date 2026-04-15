@@ -37,6 +37,10 @@ export default function Stage() {
   const mediaRef = useRef(null);        // Ref cho YouTube iframe, Video hoặc Audio tag
   const rafRef = useRef(null);         // requestAnimationFrame id
 
+  // --- INTRO MEDIA ---
+  const [introMediaData, setIntroMediaData] = useState(null); // { name, type, dataUrl }
+  const introMediaRef = useRef(null); // ref cho audio/video element giới thiệu
+
   // Tieng TICK co hoc - khop 1 lan/giay voi dong ho
   const playTick = (urgent = false) => {
     try {
@@ -291,12 +295,30 @@ export default function Stage() {
          }
       });
 
+     // Nhận file media giới thiệu từ Admin
+     socket.on('intro:media_data', (data) => {
+       console.log('[Stage] Received intro media:', data.name);
+       setIntroMediaData(data);
+     });
+
      return () => {
       socket.off('game_state_update');
+      socket.off('intro:media_data');
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       cancelAllTicks();
     };
   }, [isLocalAudioUnlocked]);
+
+  // --- AUTO PLAY/STOP INTRO MEDIA ---
+  useEffect(() => {
+    if (gameState.phase === 'showing_intro' && introMediaData && introMediaRef.current) {
+      introMediaRef.current.currentTime = 0;
+      introMediaRef.current.play().catch(e => console.warn('[Intro Media] Autoplay blocked:', e));
+    } else if (gameState.phase !== 'showing_intro' && introMediaRef.current) {
+      introMediaRef.current.pause();
+      introMediaRef.current.currentTime = 0;
+    }
+  }, [gameState.phase, introMediaData]);
 
   // --- EFFECT: SELF-HEALING AUDIO SYNC -----------------------------------
   // Effect này đảm bảo âm thanh luôn khớp với trạng thái game, dù mở khóa muộn hay toggle admin
@@ -611,6 +633,25 @@ export default function Stage() {
                     {/* Bottom & Top vignette to make fade effect */}
                     <div className="absolute bottom-0 left-0 w-full h-48 bg-gradient-to-t from-black via-black/80 to-transparent pointer-events-none z-10"></div>
                     <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-black via-black/80 to-transparent pointer-events-none z-10"></div>
+                    
+                    {/* Intro Media Player (ẩn - chỉ phát âm thanh) */}
+                    {introMediaData && (
+                      introMediaData.type.startsWith('video') ? (
+                        <video
+                          ref={introMediaRef}
+                          src={introMediaData.dataUrl}
+                          className="hidden"
+                          loop
+                          playsInline
+                        />
+                      ) : (
+                        <audio
+                          ref={introMediaRef}
+                          src={introMediaData.dataUrl}
+                          loop
+                        />
+                      )
+                    )}
                   </motion.div>
                 )}
 
