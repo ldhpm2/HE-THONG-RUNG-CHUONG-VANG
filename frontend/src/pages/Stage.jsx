@@ -434,8 +434,9 @@ export default function Stage() {
   };
 
   // --- HÀM TÍNH TOÁN KÍCH THƯỚC CHỮ HOÀN HẢO (HEURISTIC) ---
+  // Đã được cộng thêm 1 size (0.2rem - 0.5rem tuỳ khung)
   const getUnifiedSizeClass = (questionObj) => {
-    if (!questionObj) return 'text-[clamp(1.5rem,4vh,2.5rem)]';
+    if (!questionObj) return 'text-[clamp(1.8rem,4.5vh,3rem)]';
 
     const qLen = questionObj.content ? questionObj.content.length : 0;
     let maxOptLen = 0;
@@ -451,16 +452,16 @@ export default function Stage() {
     const hasMedia = questionObj.mediaType !== 'none' && questionObj.mediaUrl;
 
     if (hasMedia) {
-        if (score < 150) return 'text-[clamp(1.2rem,3vh,2rem)] leading-snug';
-        if (score < 300) return 'text-[clamp(1rem,2.5vh,1.6rem)] leading-normal';
-        return 'text-[clamp(0.85rem,2vh,1.4rem)] leading-normal';
+        if (score < 150) return 'text-[clamp(1.4rem,3.5vh,2.3rem)] leading-snug';
+        if (score < 300) return 'text-[clamp(1.2rem,3vh,1.9rem)] leading-normal';
+        return 'text-[clamp(1rem,2.5vh,1.6rem)] leading-normal';
     }
 
-    if (score < 120) return 'text-[clamp(1.8rem,4.5vh,3.5rem)] leading-[1.3]';
-    if (score < 250) return 'text-[clamp(1.5rem,3.8vh,2.8rem)] leading-[1.4]';
-    if (score < 400) return 'text-[clamp(1.3rem,3.2vh,2.2rem)] leading-[1.5]';
-    if (score < 600) return 'text-[clamp(1.1rem,2.8vh,1.8rem)] leading-[1.5]';
-    return 'text-[clamp(0.9rem,2.2vh,1.5rem)] leading-[1.5]';
+    if (score < 120) return 'text-[clamp(2.1rem,5vh,4rem)] leading-[1.3]';
+    if (score < 250) return 'text-[clamp(1.8rem,4.5vh,3.2rem)] leading-[1.4]';
+    if (score < 400) return 'text-[clamp(1.5rem,3.8vh,2.6rem)] leading-[1.5]';
+    if (score < 600) return 'text-[clamp(1.3rem,3.2vh,2.1rem)] leading-[1.5]';
+    return 'text-[clamp(1.1rem,2.8vh,1.8rem)] leading-[1.5]';
   };
 
   const unifiedTextClass = getUnifiedSizeClass(question);
@@ -625,7 +626,7 @@ export default function Stage() {
                   </motion.div>
                 )}
 
-                {/* 3. QUESTION / PLAYING SCREEN (ĐÃ ÁP DỤNG ĐỒNG NHẤT CỠ CHỮ) */}
+                {/* 3. QUESTION / PLAYING SCREEN (ĐÃ ÁP DỤNG ĐỒNG NHẤT CỠ CHỮ & CỘNG 1 SIZE) */}
                 {!['idle', 'showing_intro', 'showing_rules', 'showing_custom', 'winner_declared'].includes(phase) && (
                    <motion.div 
                      key={`question-${question?.id || 'none'}`} 
@@ -691,7 +692,7 @@ export default function Stage() {
                                         'bg-slate-700/50 border-slate-600 text-slate-300'
                                       }`}
                                    >
-                                      {/* TĂNG KÍCH THƯỚC A, B, C, D LÊN 1.8em (To hơn 2 size) và thêm tracking */}
+                                      {/* TĂNG KÍCH THƯỚC A, B, C, D LÊN 1.8em (To hơn 2 size) */}
                                       <span className="text-yellow-400 font-black mb-2 drop-shadow-md tracking-widest" style={{ fontSize: '1.8em' }}>{opt}</span>
                                       
                                       {question[`option${opt}`] && (
