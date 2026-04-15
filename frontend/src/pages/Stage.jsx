@@ -9,7 +9,7 @@ import { isYouTubeURL, getYouTubeEmbedURL } from '../utils/videoUtils';
 
 export default function Stage() {
   const [gameState, setGameState] = useState({
-    phase: 'idle',
+    phase: 'idle', // idle, showing_intro, showing_rules, showing_custom, question_sent, timer_running, locked, answer_revealed
     question: null,
     customMessage: '',
     students: JSON.parse(localStorage.getItem('stage_students') || '{}'),
@@ -36,68 +36,79 @@ export default function Stage() {
   const mediaRef = useRef(null);        
   const rafRef = useRef(null);         
 
-  // --- AUTO SCALING REFS & STATE ---
-  const containerRef = useRef(null);
-  const contentRef = useRef(null);
-  const [dynamicFontSize, setDynamicFontSize] = useState(60);
-
-  // --- INTRO & VICTORY MEDIA ---
+  // --- INTRO MEDIA ---
   const [introMediaData, setIntroMediaData] = useState(null); 
   const introMediaRef = useRef(null); 
+
+  // --- VICTORY MEDIA ---
   const [victoryMediaData, setVictoryMediaData] = useState(null); 
   const victoryMediaRef = useRef(null);
 
-  // --- THUẬT TOÁN TỰ ĐỘNG CO GIÃN FONT CHỮ ---
-  useEffect(() => {
-    const { phase, question } = gameState;
-    if (!question || ['idle', 'showing_intro', 'showing_rules', 'showing_custom', 'winner_declared'].includes(phase)) return;
-
-    const adjustFontSize = () => {
-      const container = containerRef.current;
-      const content = contentRef.current;
-      if (!container || !content) return;
-
-      const hasMedia = question.mediaType !== 'none' && question.mediaUrl;
-      // Nếu có hình ảnh/video thì max size nhỏ lại để nhường chỗ, nếu chỉ có chữ thì max size to lên
-      let maxSize = hasMedia ? 42 : 75; 
-      let minSize = 16;
-      let currentSize = maxSize;
-
-      // Bước 1: Áp dụng size lớn nhất
-      content.style.fontSize = `${currentSize}px`;
-
-      // Bước 2: Vòng lặp kiểm tra tràn viền (scrollHeight > clientHeight)
-      // Dùng sai số 15px để tránh thanh cuộn (scrollbar) xuất hiện
-      while (currentSize > minSize && content.scrollHeight > container.clientHeight - 15) {
-        currentSize -= 1; // Giảm dần 1px cho đến khi vừa khít
-        content.style.fontSize = `${currentSize}px`;
+  // Tieng TICK co hoc - khop 1 lan/giay voi dong ho
+  const playTick = (urgent = false) => {
+    try {
+      if (!isLocalAudioUnlocked) return;
+      const ctx = audioCtxRef.current;
+      if (!ctx) return;
+      const t = ctx.currentTime;
+      const dur = 0.025;
+      const buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * dur), ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < data.length; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (data.length * 0.3));
       }
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      const bpf = ctx.createBiquadFilter();
+      bpf.type = 'bandpass';
+      bpf.frequency.value = urgent ? 3000 : 1800;
+      bpf.Q.value = 2;
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(urgent ? 2.5 : 1.5, t);
+      src.connect(bpf); bpf.connect(gain); gain.connect(ctx.destination);
+      src.start(t); src.stop(t + dur);
+      const osc = ctx.createOscillator();
+      const oscGain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = urgent ? 1200 : 800;
+      oscGain.gain.setValueAtTime(0.2, t);
+      oscGain.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
+      osc.connect(oscGain); oscGain.connect(ctx.destination);
+      osc.start(t); osc.stop(t + 0.07);
+    } catch(e) {}
+  };
 
-      setDynamicFontSize(currentSize);
-    };
+  const playGong = () => {
+    try {
+      if (!isLocalAudioUnlocked) return;
+      const ctx = audioCtxRef.current;
+      if (!ctx) return;
+      const t = ctx.currentTime;
+      [0, 0.55, 1.1].forEach((delay, wave) => {
+        const baseFreq = 140 - wave * 8;
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(baseFreq, t + delay);
+        o.frequency.exponentialRampToValueAtTime(baseFreq * 0.85, t + delay + 2);
+        g.gain.setValueAtTime(0, t + delay);
+        g.gain.linearRampToValueAtTime(0.8, t + delay + 0.03);
+        g.gain.exponentialRampToValueAtTime(0.001, t + delay + 2.5);
+        o.connect(g); g.connect(ctx.destination);
+        o.start(t + delay); o.stop(t + delay + 2.5);
+        const o2 = ctx.createOscillator();
+        const g2 = ctx.createGain();
+        o2.type = 'sine';
+        o2.frequency.value = baseFreq * 2.76;
+        g2.gain.setValueAtTime(0, t + delay);
+        g2.gain.linearRampToValueAtTime(0.35, t + delay + 0.03);
+        g2.gain.exponentialRampToValueAtTime(0.001, t + delay + 1.5);
+        o2.connect(g2); g2.connect(ctx.destination);
+        o2.start(t + delay); o2.stop(t + delay + 1.5);
+      });
+    } catch(e) {}
+  };
 
-    // Chạy ngay lập tức khi đổi câu hỏi
-    adjustFontSize();
-
-    // MathJax render công thức toán học bị trễ (bất đồng bộ). 
-    // Do đó phải chạy lại hàm đo kích thước sau vài khoảng thời gian ngắn để đảm bảo đo chuẩn xác sau khi MathJax vẽ xong.
-    const t1 = setTimeout(adjustFontSize, 100);
-    const t2 = setTimeout(adjustFontSize, 500);
-    const t3 = setTimeout(adjustFontSize, 1200);
-
-    // Chạy lại nếu Admin thay đổi kích thước cửa sổ trình duyệt
-    window.addEventListener('resize', adjustFontSize);
-
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
-      window.removeEventListener('resize', adjustFontSize);
-    };
-  }, [gameState.question, gameState.phase]);
-
-
-  // --- AUDIO & LOGIC FUNCTIONS ---
   const playCorrect = () => {
     try {
       if (!isLocalAudioUnlocked) return;
@@ -231,6 +242,7 @@ export default function Stage() {
     };
   }, [isLocalAudioUnlocked]);
 
+  // ── RAF-based countdown ────
   useEffect(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     if (gameState.phase !== 'timer_running' || !timerEndRef.current) return;
@@ -241,6 +253,7 @@ export default function Stage() {
       if (remaining > 0) rafRef.current = requestAnimationFrame(tick);
     };
     rafRef.current = requestAnimationFrame(tick);
+
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
   }, [gameState.phase]);
 
@@ -399,6 +412,7 @@ export default function Stage() {
   const studentsList = Object.values(gameState.students).sort((a,b) => parseInt(a.sbd) - parseInt(b.sbd));
   const { phase, question } = gameState;
 
+  // --- HÀM RENDER MIXED TEXT & LATEX ---
   const renderMixedText = (text) => {
     if (!text) return null;
     const restoreLatex = (str) => typeof str === 'string' ? str.replace(/\f/g, '\\f').replace(/\v/g, '\\v') : str;
@@ -418,6 +432,40 @@ export default function Stage() {
       <MathJax dynamic><span className="whitespace-pre-wrap">{processedText}</span></MathJax>
     );
   };
+
+  // --- HÀM TÍNH TOÁN KÍCH THƯỚC CHỮ HOÀN HẢO (HEURISTIC) ---
+  const getUnifiedSizeClass = (questionObj) => {
+    if (!questionObj) return 'text-[clamp(1.5rem,4vh,2.5rem)]';
+
+    const qLen = questionObj.content ? questionObj.content.length : 0;
+    let maxOptLen = 0;
+
+    ['A', 'B', 'C', 'D'].forEach(opt => {
+        const optText = questionObj[`option${opt}`];
+        if (optText && optText.length > maxOptLen) {
+            maxOptLen = optText.length;
+        }
+    });
+
+    // Điểm heuristic = chiều dài câu hỏi + (chiều dài đáp án dài nhất * 2)
+    // Các lệnh MathJax dài như \frac, \sqrt sẽ làm chữ tự động thu nhỏ lại một chút để chống tràn dọc
+    const score = qLen + (maxOptLen * 2);
+    const hasMedia = questionObj.mediaType !== 'none' && questionObj.mediaUrl;
+
+    if (hasMedia) {
+        if (score < 150) return 'text-[clamp(1.2rem,3vh,2rem)] leading-snug';
+        if (score < 300) return 'text-[clamp(1rem,2.5vh,1.6rem)] leading-normal';
+        return 'text-[clamp(0.85rem,2vh,1.4rem)] leading-normal';
+    }
+
+    if (score < 120) return 'text-[clamp(1.8rem,4.5vh,3.5rem)] leading-[1.3]';
+    if (score < 250) return 'text-[clamp(1.5rem,3.8vh,2.8rem)] leading-[1.4]';
+    if (score < 400) return 'text-[clamp(1.3rem,3.2vh,2.2rem)] leading-[1.5]';
+    if (score < 600) return 'text-[clamp(1.1rem,2.8vh,1.8rem)] leading-[1.5]';
+    return 'text-[clamp(0.9rem,2.2vh,1.5rem)] leading-[1.5]';
+  };
+
+  const unifiedTextClass = getUnifiedSizeClass(question);
 
   return (
     <div className="h-screen bg-[#020617] text-white flex flex-col font-sans overflow-hidden">
@@ -579,7 +627,7 @@ export default function Stage() {
                   </motion.div>
                 )}
 
-                {/* 3. QUESTION / PLAYING SCREEN (VỚI AUTO SCALING) */}
+                {/* 3. QUESTION / PLAYING SCREEN (ĐÃ ÁP DỤNG ĐỒNG NHẤT CỠ CHỮ) */}
                 {!['idle', 'showing_intro', 'showing_rules', 'showing_custom', 'winner_declared'].includes(phase) && (
                    <motion.div 
                      key={`question-${question?.id || 'none'}`} 
@@ -605,76 +653,66 @@ export default function Stage() {
                           </span>
                        </div>
 
-                       {/* CONTAINER ĐO KÍCH THƯỚC */}
-                       <div ref={containerRef} className="flex-1 flex flex-col items-center justify-center min-h-0 w-full mt-4 px-2 relative">
+                       {/* Question Content Wrapper - KHÔNG DÙNG THƯỚC ĐO JAVASCRIPT */}
+                       <div className="flex-1 flex flex-col items-center justify-center min-h-0 w-full mt-4 px-2">
                            
-                           {/* CONTENT WRAPPER - Nhận Dynamic Font Size */}
-                           <div 
-                             ref={contentRef} 
-                             className="w-full flex flex-col items-center justify-center gap-6 my-auto" 
-                             style={{ fontSize: `${dynamicFontSize}px`, transition: 'font-size 0.2s ease-out' }}
-                           >
-                               
-                               {/* Đề Bài - Dùng 1em để đồng bộ size với wrapper */}
-                               <div className="font-semibold text-slate-100 flex-shrink-0 whitespace-pre-wrap text-justify [text-align-last:center] max-w-[95%] px-6 w-full" style={{ fontSize: '1em', lineHeight: '1.4' }}>
-                                   {renderMixedText(question?.content)}
-                               </div>
-      
-                               {/* Media Renderer */}
-                               {question?.mediaType !== 'none' && question?.mediaUrl && (
-                                  <div className="w-full rounded-2xl overflow-hidden border border-slate-700 bg-black/40 flex items-center justify-center relative" style={{ height: '30vh', minHeight: '200px' }}>
-                                     {question.mediaType === 'video' && (
-                                        isYouTubeURL(question.mediaUrl) ? (
-                                          <iframe ref={mediaRef} src={getYouTubeEmbedURL(question.mediaUrl, { mute: gameState.isSoundEnabled ? 0 : 1 })} className="w-full h-full border-0" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen title="YouTube video"/>
-                                        ) : (
-                                          <video ref={mediaRef} src={question.mediaUrl} autoPlay loop muted={!gameState.isSoundEnabled} playsInline className="h-full w-full object-contain" />
-                                        )
-                                     )}
-                                     {question.mediaType === 'image' && <img src={question.mediaUrl} alt="media" className="h-full w-full object-contain shadow-2xl" />}
-                                     {question.mediaType === 'audio' && (
-                                       <div className="flex flex-col items-center gap-4">
-                                         <div className="p-8 bg-slate-900 rounded-full border-4 border-slate-700 animate-pulse"><span className="text-6xl">🎵</span></div>
-                                         <audio src={question.mediaUrl} autoPlay controls muted={!gameState.isSoundEnabled} className="opacity-50 hover:opacity-100 transition-opacity" />
-                                       </div>
-                                     )}
-                                  </div>
-                               )}
-      
-                               {/* Đáp án Trắc nghiệm - Dùng em để đồng bộ với đề bài */}
-                               {question?.type === 'mcq' && (
-                                 <div className="flex-shrink-0 grid grid-cols-2 gap-4 pb-2 w-full max-w-[95%]">
-                                    {['A', 'B', 'C', 'D'].map(opt => (
-                                       <div 
-                                          key={opt} 
-                                          className={`p-3 rounded-2xl border-4 flex flex-col items-center justify-center transition-all duration-1000 ${
-                                            phase === 'answer_revealed' && question.correct === opt ? 'bg-green-500 border-green-400 text-white shadow-[0_0_40px_rgba(34,197,94,0.6)] scale-[1.03]' :
-                                            phase === 'answer_revealed' ? 'bg-slate-800 border-slate-700 text-slate-600 opacity-30 font-black' :
-                                            'bg-slate-700/50 border-slate-600 text-slate-300'
-                                          }`}
-                                       >
-                                          {/* Chữ cái A, B, C, D */}
-                                          <span className="text-yellow-400 font-black leading-none mb-1 drop-shadow-sm" style={{ fontSize: '1.3em' }}>{opt}</span>
-                                          
-                                          {/* Text Đáp Án */}
-                                          {question[`option${opt}`] && (
-                                            <span className="mt-1 text-center text-slate-100 font-medium whitespace-pre-wrap" style={{ fontSize: '1em', lineHeight: '1.3' }}>
-                                              {renderMixedText(question[`option${opt}`])}
-                                            </span>
-                                          )}
-                                       </div>
-                                    ))}
-                                 </div>
-                               )}
-                               
-                               {/* Đáp án tự luận */}
-                               {question?.type === 'short' && phase === 'answer_revealed' && (
-                                 <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex-shrink-0 self-center mt-6 px-12 py-4 bg-green-500 rounded-full border-4 border-green-400 shadow-[0_0_50px_rgba(34,197,94,0.6)] text-center">
-                                    <span className="text-green-900 font-bold uppercase tracking-widest block mb-1" style={{ fontSize: '0.4em' }}>Đáp án chính xác</span>
-                                    <span className="leading-none font-black text-white" style={{ fontSize: '1.6em' }}>{question.correct}</span>
-                                 </motion.div>
-                               )}
-
+                           {/* 1. Đề Bài - Dùng Class Đồng Bộ */}
+                           <div className={`font-semibold text-slate-100 flex-shrink-0 whitespace-pre-wrap text-justify [text-align-last:center] max-w-[95%] px-6 w-full ${unifiedTextClass}`}>
+                               {renderMixedText(question?.content)}
                            </div>
+  
+                           {/* 2. Media Renderer */}
+                           {question?.mediaType !== 'none' && question?.mediaUrl && (
+                              <div className="w-full max-w-4xl mt-4 rounded-2xl overflow-hidden border border-slate-700 bg-black/40 flex items-center justify-center relative" style={{ height: '35vh', minHeight: '200px' }}>
+                                 {question.mediaType === 'video' && (
+                                    isYouTubeURL(question.mediaUrl) ? (
+                                      <iframe ref={mediaRef} src={getYouTubeEmbedURL(question.mediaUrl, { mute: gameState.isSoundEnabled ? 0 : 1 })} className="w-full h-full border-0" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen title="YouTube video"/>
+                                    ) : (
+                                      <video ref={mediaRef} src={question.mediaUrl} autoPlay loop muted={!gameState.isSoundEnabled} playsInline className="h-full w-full object-contain" />
+                                    )
+                                 )}
+                                 {question.mediaType === 'image' && <img src={question.mediaUrl} alt="media" className="h-full w-full object-contain shadow-2xl" />}
+                                 {question.mediaType === 'audio' && (
+                                   <div className="flex flex-col items-center gap-4">
+                                     <div className="p-8 bg-slate-900 rounded-full border-4 border-slate-700 animate-pulse"><span className="text-6xl">🎵</span></div>
+                                     <audio src={question.mediaUrl} autoPlay controls muted={!gameState.isSoundEnabled} className="opacity-50 hover:opacity-100 transition-opacity" />
+                                   </div>
+                                 )}
+                              </div>
+                           )}
+  
+                           {/* 3. Đáp án Trắc nghiệm - Dùng Class Đồng Bộ */}
+                           {question?.type === 'mcq' && (
+                             <div className="flex-shrink-0 grid grid-cols-2 gap-4 mt-6 w-full max-w-[95%]">
+                                {['A', 'B', 'C', 'D'].map(opt => (
+                                   <div 
+                                      key={opt} 
+                                      className={`p-3 rounded-2xl border-4 flex flex-col items-center justify-center transition-all duration-1000 ${
+                                        phase === 'answer_revealed' && question.correct === opt ? 'bg-green-500 border-green-400 text-white shadow-[0_0_40px_rgba(34,197,94,0.6)] scale-[1.03]' :
+                                        phase === 'answer_revealed' ? 'bg-slate-800 border-slate-700 text-slate-600 opacity-30 font-black' :
+                                        'bg-slate-700/50 border-slate-600 text-slate-300'
+                                      }`}
+                                   >
+                                      <span className="text-yellow-400 font-black mb-1 drop-shadow-sm" style={{ fontSize: '1.2em' }}>{opt}</span>
+                                      
+                                      {question[`option${opt}`] && (
+                                        <span className={`text-center text-slate-100 whitespace-pre-wrap ${unifiedTextClass}`}>
+                                          {renderMixedText(question[`option${opt}`])}
+                                        </span>
+                                      )}
+                                   </div>
+                                ))}
+                             </div>
+                           )}
+                           
+                           {/* Đáp án tự luận */}
+                           {question?.type === 'short' && phase === 'answer_revealed' && (
+                             <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex-shrink-0 self-center mt-6 px-12 py-4 bg-green-500 rounded-full border-4 border-green-400 shadow-[0_0_50px_rgba(34,197,94,0.6)] text-center">
+                                <span className="text-green-900 font-bold uppercase tracking-widest block mb-1 text-sm">Đáp án chính xác</span>
+                                <span className="leading-none font-black text-white text-6xl">{question.correct}</span>
+                             </motion.div>
+                           )}
+
                        </div>
                    </motion.div>
                 )}
