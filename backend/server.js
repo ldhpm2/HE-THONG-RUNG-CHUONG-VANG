@@ -162,8 +162,13 @@ function getLocalIP() {
 
 // Khởi tạo server
 const PORT = process.env.PORT || 4000;
-server.listen(PORT, () => {
-  console.log(`Backend server is running on port ${PORT}`);
+
+// Render.com yêu cầu keepAliveTimeout > 60s để tránh 502
+server.keepAliveTimeout = 120000; // 120 giây
+server.headersTimeout = 125000;   // 125 giây (phải > keepAliveTimeout)
+
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`Backend server is running on 0.0.0.0:${PORT}`);
 });
 
 
@@ -620,6 +625,6 @@ const distPath = path.join(__dirname, '../frontend/dist');
 app.use(express.static(distPath));
 
 // Xử lý tất cả các route khác (Admin, Stage, Client) và trả về index.html
-app.get('/*path', (req, res) => {
+app.get('/{*path}', (req, res) => {
   res.sendFile(path.join(distPath, 'index.html'));
 });
