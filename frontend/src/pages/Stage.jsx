@@ -533,11 +533,11 @@ export default function Stage() {
 
   // Tính toán kích thước chữ nội dung câu hỏi (Tối ưu hóa tránh tràn)
   const getDynamicFontSize = (textLength) => {
-    if (!textLength) return 'text-[clamp(1.2rem,3vh,2.5rem)]';
-    if (textLength <= 100) return 'text-[clamp(1.1rem,4vh,3.2rem)] leading-[1.1] font-black';
-    if (textLength <= 250) return 'text-[clamp(1rem,3.4vh,2.6rem)] leading-[1.2] font-extrabold';
-    if (textLength <= 450) return 'text-[clamp(0.9rem,2.8vh,2.1rem)] leading-snug';
-    return 'text-[clamp(0.85rem,2.4vh,1.7rem)] leading-snug';
+    if (!textLength) return 'text-[clamp(1.5rem,4vh,3.0rem)]';
+    if (textLength <= 100) return 'text-[clamp(1.5rem,5vh,4.0rem)] leading-[1.1] font-black';
+    if (textLength <= 250) return 'text-[clamp(1.3rem,5.5vh,3.2rem)] leading-[1.2] font-extrabold';
+    if (textLength <= 450) return 'text-[clamp(1.1rem,3.5vh,2.8rem)] leading-snug';
+    return 'text-[clamp(1rem,3vh,2.2rem)] leading-snug';
   };
 
   // Tính toán kích thước chữ phương án (Có xét đến độ phức tạp LaTeX)
