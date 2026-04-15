@@ -319,6 +319,12 @@ io.on('connection', (socket) => {
     socket.broadcast.emit('intro:media_data', data);
   });
 
+  socket.on('admin:victory_media', (data) => {
+    if (!socket.rooms.has('admin_room')) return;
+    console.log(`[Admin] Victory media sent by ${socket.id}: ${data.name}`);
+    socket.broadcast.emit('victory:media_data', data);
+  });
+
   socket.on('admin:show_rules', () => {
     if (!socket.rooms.has('admin_room')) return;
     gamePhase = 'showing_rules';

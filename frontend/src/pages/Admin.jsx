@@ -61,6 +61,10 @@ export default function Admin() {
   const [introMediaFile, setIntroMediaFile] = useState(null); // { name, type, dataUrl }
   const introMediaInputRef = useRef(null);
 
+  // --- VICTORY MEDIA ---
+  const [victoryMediaFile, setVictoryMediaFile] = useState(null); // { name, type, dataUrl }
+  const victoryMediaInputRef = useRef(null);
+
   // --- SOUND SYSTEM ---
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
   const audioCtxRef = useRef(null);
@@ -653,6 +657,13 @@ export default function Admin() {
   
   const declareWinner = () => {
     if(!window.confirm('Xác nhận CHÚC MỪNG CHIẾN THẮNG? Màn hình sẽ chuyển sang hiệu ứng vinh danh.')) return;
+    if (victoryMediaFile) {
+      socket.emit('admin:victory_media', {
+        name: victoryMediaFile.name,
+        type: victoryMediaFile.type,
+        dataUrl: victoryMediaFile.dataUrl
+      });
+    }
     socket.emit('admin:declare_winner');
   };
 
@@ -690,6 +701,27 @@ export default function Admin() {
         dataUrl: reader.result
       });
       alert(`Đã nạp file giới thiệu: ${file.name}`);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleVictoryMediaUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File quá lớn! Vui lòng chọn file dưới 10MB.');
+      e.target.value = '';
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setVictoryMediaFile({
+        name: file.name,
+        type: file.type,
+        dataUrl: reader.result
+      });
+      alert(`Đã nạp file chúc mừng: ${file.name}`);
     };
     reader.readAsDataURL(file);
     e.target.value = '';
@@ -1148,6 +1180,7 @@ export default function Admin() {
                 <div className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full animate-bounce font-bold shadow-lg">WIN</div>
                 <Trophy className="mb-2 w-6 h-6"/>
                 CHÚC MỪNG CHIẾN THẮNG
+                {victoryMediaFile && <span className="text-[8px] text-green-300 mt-1 truncate max-w-[80px]">🎵 {victoryMediaFile.name}</span>}
               </button>
            </div>
            
@@ -1214,6 +1247,39 @@ export default function Admin() {
                 {introMediaFile && (
                   <div className="mt-2 px-3 py-2 bg-slate-900/50 rounded-lg border border-slate-700 text-xs text-green-400 font-mono truncate flex items-center gap-2">
                     <Music size={12}/> {introMediaFile.name}
+                  </div>
+                )}
+             </div>
+
+             {/* NẠP FILE ÂM THANH CHÚC MỪnG CHIẾN THẮNG */}
+             <div className="mt-6 border-t border-slate-700 pt-6">
+                <h4 className="text-sm font-bold text-slate-400 mb-3 uppercase tracking-wider flex items-center">
+                   <Trophy size={14} className="mr-2 text-yellow-500"/> Nhạc Chúc Mừng Chiến Thắng
+                </h4>
+                <p className="text-xs text-slate-500 mb-2">Nạp file âm thanh sẽ tự động phát khi bấm nút "Chúc Mừng Chiến Thắng".</p>
+                <div className="flex gap-2 items-center">
+                   <label className="flex-1 bg-amber-600 hover:bg-amber-500 text-white font-bold py-2.5 px-4 rounded-xl transition-all shadow-md active:scale-95 text-sm flex items-center justify-center gap-2 cursor-pointer">
+                      <Trophy size={16}/> {victoryMediaFile ? 'Đổi file' : 'Chọn file âm thanh / video'}
+                      <input
+                        ref={victoryMediaInputRef}
+                        type="file"
+                        accept="audio/*,video/*"
+                        onChange={handleVictoryMediaUpload}
+                        className="hidden"
+                      />
+                   </label>
+                   {victoryMediaFile && (
+                     <button
+                       onClick={() => setVictoryMediaFile(null)}
+                       className="px-3 py-2.5 bg-red-900/40 hover:bg-red-800 text-red-300 rounded-xl border border-red-800 text-sm font-bold transition active:scale-95"
+                     >
+                       Xóa
+                     </button>
+                   )}
+                </div>
+                {victoryMediaFile && (
+                  <div className="mt-2 px-3 py-2 bg-slate-900/50 rounded-lg border border-slate-700 text-xs text-yellow-400 font-mono truncate flex items-center gap-2">
+                    <Trophy size={12}/> {victoryMediaFile.name}
                   </div>
                 )}
              </div>

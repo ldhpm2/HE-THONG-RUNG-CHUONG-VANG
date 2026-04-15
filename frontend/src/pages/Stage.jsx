@@ -41,6 +41,10 @@ export default function Stage() {
   const [introMediaData, setIntroMediaData] = useState(null); // { name, type, dataUrl }
   const introMediaRef = useRef(null); // ref cho audio/video element giới thiệu
 
+  // --- VICTORY MEDIA ---
+  const [victoryMediaData, setVictoryMediaData] = useState(null); // { name, type, dataUrl }
+  const victoryMediaRef = useRef(null);
+
   // Tieng TICK co hoc - khop 1 lan/giay voi dong ho
   const playTick = (urgent = false) => {
     try {
@@ -301,9 +305,16 @@ export default function Stage() {
        setIntroMediaData(data);
      });
 
+     // Nhận file media chúc mừng chiến thắng từ Admin
+     socket.on('victory:media_data', (data) => {
+       console.log('[Stage] Received victory media:', data.name);
+       setVictoryMediaData(data);
+     });
+
      return () => {
       socket.off('game_state_update');
       socket.off('intro:media_data');
+      socket.off('victory:media_data');
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       cancelAllTicks();
     };
@@ -319,6 +330,17 @@ export default function Stage() {
       introMediaRef.current.currentTime = 0;
     }
   }, [gameState.phase, introMediaData]);
+
+  // --- AUTO PLAY/STOP VICTORY MEDIA ---
+  useEffect(() => {
+    if (gameState.phase === 'winner_declared' && victoryMediaData && victoryMediaRef.current) {
+      victoryMediaRef.current.currentTime = 0;
+      victoryMediaRef.current.play().catch(e => console.warn('[Victory Media] Autoplay blocked:', e));
+    } else if (gameState.phase !== 'winner_declared' && victoryMediaRef.current) {
+      victoryMediaRef.current.pause();
+      victoryMediaRef.current.currentTime = 0;
+    }
+  }, [gameState.phase, victoryMediaData]);
 
   // --- EFFECT: SELF-HEALING AUDIO SYNC -----------------------------------
   // Effect này đảm bảo âm thanh luôn khớp với trạng thái game, dù mở khóa muộn hay toggle admin
@@ -929,6 +951,25 @@ export default function Stage() {
                           Quán quân Rung Chuông Vàng
                         </motion.p>
                     </div>
+
+                    {/* Victory Media Player (ẩn - chỉ phát âm thanh) */}
+                    {victoryMediaData && (
+                      victoryMediaData.type.startsWith('video') ? (
+                        <video
+                          ref={victoryMediaRef}
+                          src={victoryMediaData.dataUrl}
+                          className="hidden"
+                          loop
+                          playsInline
+                        />
+                      ) : (
+                        <audio
+                          ref={victoryMediaRef}
+                          src={victoryMediaData.dataUrl}
+                          loop
+                        />
+                      )
+                    )}
                   </motion.div>
                 )}
 
