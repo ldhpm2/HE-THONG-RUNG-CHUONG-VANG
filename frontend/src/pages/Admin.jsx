@@ -60,10 +60,12 @@ export default function Admin() {
   // --- INTRO MEDIA ---
   const [introMediaFile, setIntroMediaFile] = useState(null); // { name, type, dataUrl }
   const introMediaInputRef = useRef(null);
+  const introAudioRef = useRef(null); // Phát nhạc cục bộ trên máy Admin
 
   // --- VICTORY MEDIA ---
   const [victoryMediaFile, setVictoryMediaFile] = useState(null); // { name, type, dataUrl }
   const victoryMediaInputRef = useRef(null);
+  const victoryAudioRef = useRef(null); // Phát nhạc cục bộ trên máy Admin
 
   // --- SOUND SYSTEM ---
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
@@ -687,56 +689,37 @@ export default function Admin() {
   const handleIntroMediaUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    // Giới hạn ~10MB
-    if (file.size > 10 * 1024 * 1024) {
-      alert('File quá lớn! Vui lòng chọn file dưới 10MB.');
-      e.target.value = '';
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      setIntroMediaFile({
-        name: file.name,
-        type: file.type,
-        dataUrl: reader.result
-      });
-      alert(`Đã nạp file giới thiệu: ${file.name}`);
-    };
-    reader.readAsDataURL(file);
+    // Tạo ObjectURL - chỉ tồn tại trong browser này, không gửi lên server
+    const objectUrl = URL.createObjectURL(file);
+    setIntroMediaFile({
+      name: file.name,
+      type: file.type,
+      dataUrl: objectUrl
+    });
     e.target.value = '';
   };
 
   const handleVictoryMediaUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > 10 * 1024 * 1024) {
-      alert('File quá lớn! Vui lòng chọn file dưới 10MB.');
-      e.target.value = '';
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      setVictoryMediaFile({
-        name: file.name,
-        type: file.type,
-        dataUrl: reader.result
-      });
-      alert(`Đã nạp file chúc mừng: ${file.name}`);
-    };
-    reader.readAsDataURL(file);
+    const objectUrl = URL.createObjectURL(file);
+    setVictoryMediaFile({
+      name: file.name,
+      type: file.type,
+      dataUrl: objectUrl
+    });
     e.target.value = '';
   };
 
   const showIntroWithMedia = () => {
-    // Gửi media trước (nếu có), rồi mới chuyển phase
-    if (introMediaFile) {
-      socket.emit('admin:intro_media', {
-        name: introMediaFile.name,
-        type: introMediaFile.type,
-        dataUrl: introMediaFile.dataUrl
-      });
-    }
+    // Chỉ gửi lệnh đổi phase, không gửi file qua mạng (tránh crash server)
     socket.emit('admin:show_intro');
+    // Phát nhạc cục bộ trên máy Admin nếu có file
+    if (introMediaFile && introAudioRef.current) {
+      introAudioRef.current.src = introMediaFile.dataUrl;
+      introAudioRef.current.currentTime = 0;
+      introAudioRef.current.play().catch(e => console.warn('Intro play blocked:', e));
+    }
   };
 
   const setWelcome = () => socket.emit('admin:set_welcome');
