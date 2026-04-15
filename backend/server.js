@@ -51,6 +51,16 @@ let customMessage = '';
 let gamePhase = 'idle';
 let isSoundEnabled = true;
 
+// BIẾN QUẢN LÝ TỰ ĐỘNG KHÓA KHI HẾT GIỜ
+let autoLockTimeout = null;
+
+const clearAutoLock = () => {
+  if (autoLockTimeout) {
+    clearTimeout(autoLockTimeout);
+    autoLockTimeout = null;
+  }
+};
+
 // --- PERSISTENCE HELPERS (MongoDB) ---
 
 // FIX #5: Debounce saveFullState để tránh ghi DB liên tục khi nhiều học sinh nộp bài cùng lúc
@@ -274,6 +284,7 @@ io.on('connection', (socket) => {
       return;
     }
     try {
+      clearAutoLock();
       students = {};
       gamePhase = 'idle';
       currentQuestion = null;
@@ -298,6 +309,7 @@ io.on('connection', (socket) => {
 
   socket.on('admin:set_welcome', () => {
     if (!socket.rooms.has('admin_room')) return;
+    clearAutoLock();
     gamePhase = 'idle';
     currentQuestion = null;
     isSoundEnabled = true;
@@ -307,6 +319,7 @@ io.on('connection', (socket) => {
 
   socket.on('admin:show_intro', () => {
     if (!socket.rooms.has('admin_room')) return;
+    clearAutoLock();
     gamePhase = 'showing_intro';
     currentQuestion = null;
     console.log(`[Admin] Showing contestants intro by ${socket.id}`);
@@ -327,6 +340,7 @@ io.on('connection', (socket) => {
 
   socket.on('admin:show_rules', () => {
     if (!socket.rooms.has('admin_room')) return;
+    clearAutoLock();
     gamePhase = 'showing_rules';
     currentQuestion = null;
     console.log(`[Admin] Showing rules by ${socket.id}`);
@@ -335,6 +349,7 @@ io.on('connection', (socket) => {
 
   socket.on('admin:show_custom', async (data) => {
     if (!socket.rooms.has('admin_room')) return;
+    clearAutoLock();
     gamePhase = 'showing_custom';
     customMessage = data.message || '';
     currentQuestion = null;
@@ -345,6 +360,7 @@ io.on('connection', (socket) => {
 
   socket.on('admin:push_question', async (data) => {
     if (!socket.rooms.has('admin_room')) return;
+    clearAutoLock();
     currentQuestion = {
       ...data.question,
       isRescue: !!data.isRescue,
@@ -366,12 +382,28 @@ io.on('connection', (socket) => {
     console.log(`[Admin] Timer started by ${socket.id}`);
     broadcastState();
     io.emit('client_play_sound', 'timer_start');
+
+    // TỰ ĐỘNG KHÓA ĐÁP ÁN KHI HẾT GIỜ
+    clearAutoLock();
+    const duration = currentQuestion?.time || 15; // Mặc định 15s nếu không có dữ liệu
+    
+    autoLockTimeout = setTimeout(async () => {
+      if (gamePhase === 'timer_running') {
+        gamePhase = 'locked';
+        console.log(`[System] Auto-locked after ${duration}s`);
+        await saveFullState();
+        broadcastState();
+        io.emit('client_play_sound', 'timeout');
+      }
+    }, duration * 1000);
   });
 
-  socket.on('admin:lock', () => {
+  socket.on('admin:lock', async () => {
     if (!socket.rooms.has('admin_room')) return;
+    clearAutoLock(); // Hủy tự động khóa nếu Admin đã bấm tay sớm
     gamePhase = 'locked';
-    console.log(`[Admin] Answers locked by ${socket.id}`);
+    console.log(`[Admin] Answers locked manually by ${socket.id}`);
+    await saveFullState();
     broadcastState();
     io.emit('client_play_sound', 'timeout');
   });
@@ -388,6 +420,7 @@ io.on('connection', (socket) => {
 
   socket.on('admin:declare_winner', async () => {
     if (!socket.rooms.has('admin_room')) return;
+    clearAutoLock();
     gamePhase = 'winner_declared';
     currentQuestion = null;
     console.log(`[Admin] WINNER DECLARED by ${socket.id}`);
@@ -398,6 +431,7 @@ io.on('connection', (socket) => {
 
   socket.on('admin:reveal_answer', async () => {
     if (!socket.rooms.has('admin_room')) return;
+    clearAutoLock();
     gamePhase = 'answer_revealed';
     console.log(`[Admin] Answer revealed by ${socket.id}`);
 
@@ -407,6 +441,7 @@ io.on('connection', (socket) => {
     // Bỏ qua nếu là câu hỏi dành cho khán giả
     if (currentQuestion?.isAudience) {
       broadcastState();
+      io.emit('client_play_sound', 'reveal_answer');
       return;
     }
 
@@ -448,6 +483,7 @@ io.on('connection', (socket) => {
       if (callback) callback({ success: false, message: 'Từ chối: Không có quyền Admin' });
       return;
     }
+    clearAutoLock();
     const targetStr = (data.target || data.count || '').toString().toLowerCase().trim();
     console.log(`[Admin] Rescue command received: ${targetStr}`);
 
@@ -569,8 +605,9 @@ io.on('connection', (socket) => {
     const sbd = socket.data.sbd;
     if (!sbd || !students[sbd]) return;
 
-    if (gamePhase !== 'timer_running' && gamePhase !== 'question_sent') {
-      if (callback) callback({ success: false, message: 'Không trong thời gian nộp bài' });
+    // BẢO MẬT: Bắt buộc chỉ nhận đáp án khi "timer_running"
+    if (gamePhase !== 'timer_running') {
+      if (callback) callback({ success: false, message: 'Chưa tính giờ hoặc đã hết thời gian nộp bài!' });
       return;
     }
 
