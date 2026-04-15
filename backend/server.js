@@ -611,6 +611,6 @@ const distPath = path.join(__dirname, '../frontend/dist');
 app.use(express.static(distPath));
 
 // BẮT TẤT CẢ CÁC ROUTE VÀ TRẢ VỀ INDEX.HTML (Hỗ trợ SPA React/Vue)
-app.get('*', (req, res) => {
+app.get(/.*/, (req, res) => {
   res.sendFile(path.join(distPath, 'index.html'));
 });
