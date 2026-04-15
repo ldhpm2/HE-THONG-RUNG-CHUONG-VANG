@@ -497,7 +497,7 @@ export default function Stage() {
       return str.replace(/\f/g, '\\f').replace(/\v/g, '\\v');
     };
 
-    // Tách phần "Câu X." ở đầu đề bài để tô màu đỏ
+    // Tách phần "Câu X." ở đầu đề bài để tô màu Xanh lơ (Cyan)
     const match = text.match(/^(Câu\s+\d+[\.:])\s*(.*)/si);
     
     if (match) {
@@ -512,7 +512,8 @@ export default function Stage() {
         return (
           <MathJax dynamic>
             <span className="whitespace-pre-wrap">
-              <span className="text-red-500 font-extrabold">{cauPart} </span>
+              {/* ĐỔI MÀU CÂU X TẠI ĐÂY */}
+              <span className="text-cyan-400 font-extrabold drop-shadow-md">{cauPart} </span>
               {restPart}
             </span>
           </MathJax>
@@ -585,11 +586,11 @@ export default function Stage() {
       </header>
 
       <div className="flex-1 flex flex-row p-4 pt-20 gap-6 relative overflow-hidden">
-          
-          {/* MAIN STAGE (LEFT PANEL - 3/4) */}
-          <div className="w-3/4 flex flex-col items-center justify-center relative min-h-0">
+         
+         {/* MAIN STAGE (LEFT PANEL - 3/4) */}
+         <div className="w-3/4 flex flex-col items-center justify-center relative min-h-0">
              <AnimatePresence mode="wait">
-                
+               
                 {/* 1. INTRO SCREEN (SCROLLING LIST) */}
                 {phase === 'showing_intro' && (
                   <motion.div 
@@ -1011,6 +1012,7 @@ export default function Stage() {
                        <div className="flex-1 flex flex-col items-center justify-start min-h-0 overflow-hidden gap-2 mt-4 px-2">
                            {/* 1. Text Block - thu nhỏ khi có media để nhường chỗ cho ảnh */}
 
+                           {/* Đổi màu đề bài: Mặc định slate-100 */}
                            <div className={`font-semibold text-slate-100 flex-shrink-0 whitespace-pre-wrap text-justify [text-align-last:center] max-w-[95%] px-6 ${
                              (question?.mediaType !== 'none' && question?.mediaUrl)
                                ? 'text-[clamp(1rem,2.8vh,2rem)] leading-snug'
@@ -1076,11 +1078,14 @@ export default function Stage() {
                                         'bg-slate-700/50 border-slate-600 text-slate-300'
                                       }`}
                                    >
+                                      {/* Đổi màu A, B, C, D thành yellow-400 cho rực rỡ hơn */}
                                       <span className={`${
                                         (question.mediaType !== 'none' && question.mediaUrl) ? 'text-2xl' : 'text-[clamp(1.5rem,5vh,3.5rem)]'
-                                      } text-yellow-500 font-black leading-none mb-1`}>{opt}</span>
+                                      } text-yellow-400 font-black leading-none mb-1 drop-shadow-sm`}>{opt}</span>
+                                      
+                                      {/* Đổi màu text đáp án thành text-slate-100 để chống lóa */}
                                       {question[`option${opt}`] && (
-                                        <span className={`mt-0.5 text-center text-white whitespace-pre-wrap ${
+                                        <span className={`mt-0.5 text-center text-slate-100 font-medium whitespace-pre-wrap ${
                                           (question.mediaType !== 'none' && question.mediaUrl)
                                             ? 'text-[clamp(1.1rem,2.5vh,1.9rem)]'
                                             : getDynamicOptionSize(question[`option${opt}`])
@@ -1103,10 +1108,10 @@ export default function Stage() {
                    </motion.div>
                 )}
              </AnimatePresence>
-          </div>
+         </div>
 
-          {/* LƯỚI THÍ SINH (RIGHT PANEL - 1/4) */}
-          <div className="w-1/4 flex flex-col bg-slate-900/50 rounded-2xl border border-slate-800 p-3 shadow-2xl backdrop-blur-md overflow-hidden text-white">
+         {/* LƯỚI THÍ SINH (RIGHT PANEL - 1/4) */}
+         <div className="w-1/4 flex flex-col bg-slate-900/50 rounded-2xl border border-slate-800 p-3 shadow-2xl backdrop-blur-md overflow-hidden text-white">
              <div className="flex flex-col mb-4 flex-shrink-0">
                <h2 className="text-2xl font-black uppercase text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-yellow-500 tracking-tight mb-3 drop-shadow-[0_0_10px_rgba(234,179,8,0.3)] text-center w-full">Sàn Thi Đấu</h2>
                <div className="flex justify-between items-center text-[10px] font-bold opacity-80 border-b border-slate-800 pb-2">
@@ -1121,37 +1126,37 @@ export default function Stage() {
                </div>
              </div>
              
-              {/* Danh sách thí sinh dạng lưới 6 cột (Chỉ hiện SBD) */}
-              <div className="flex-1 overflow-y-auto pr-0.5 custom-scrollbar">
-                <div className="grid grid-cols-6 gap-1 content-start font-sans">
-                  {studentsList.length > 0 ? studentsList.map((st, i) => (
-                    <motion.div
-                      key={st.sbd}
-                      initial={{ scale: 0.5, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      transition={{ delay: i * 0.002 }}
-                      className={`aspect-square rounded-md flex items-center justify-center font-black text-[18px] md:text-[22px] border-2 transition-all duration-500 ${
-                        st.status === 'active' 
-                          ? 'bg-green-500 text-slate-900 border-green-400 shadow-[0_4px_10px_rgba(34,197,94,0.3)]' 
-                          : 'bg-red-900/40 text-red-500 border-red-800 opacity-40 shadow-none'
-                      } ${phase === 'locked' && st.status==='active' && st.hasAnswered ? 'ring-2 ring-yellow-400 scale-110 z-10' : ''}`}
-                    >
-                      <div className="flex flex-col items-center leading-none mt-0.5">
-                        <span>{st.sbd}</span>
-                        {st.online && (
-                          <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full mt-0.5 shadow-[0_0_5px_rgba(250,204,21,0.8)]"></div>
-                        )}
-                      </div>
-                      {st.status === 'active' && st.hasAnswered && phase !== 'idle' && (
-                        <div className="absolute top-0 right-0 w-2.5 h-2.5 bg-yellow-400 rounded-full translate-x-1/3 -translate-y-1/3 shadow-[0_0_8px_rgba(250,204,21,1)] border border-slate-900"></div>
-                      )}
-                    </motion.div>
-                  )) : (
-                    <div className="col-span-6 p-4 text-center text-slate-600 italic text-[10px]">Trống</div>
-                  )}
-                </div>
-              </div>
-          </div>
+             {/* Danh sách thí sinh dạng lưới 6 cột (Chỉ hiện SBD) */}
+             <div className="flex-1 overflow-y-auto pr-0.5 custom-scrollbar">
+               <div className="grid grid-cols-6 gap-1 content-start font-sans">
+                 {studentsList.length > 0 ? studentsList.map((st, i) => (
+                   <motion.div
+                     key={st.sbd}
+                     initial={{ scale: 0.5, opacity: 0 }}
+                     animate={{ scale: 1, opacity: 1 }}
+                     transition={{ delay: i * 0.002 }}
+                     className={`aspect-square rounded-md flex items-center justify-center font-black text-[18px] md:text-[22px] border-2 transition-all duration-500 ${
+                       st.status === 'active' 
+                         ? 'bg-green-500 text-slate-900 border-green-400 shadow-[0_4px_10px_rgba(34,197,94,0.3)]' 
+                         : 'bg-red-900/40 text-red-500 border-red-800 opacity-40 shadow-none'
+                     } ${phase === 'locked' && st.status==='active' && st.hasAnswered ? 'ring-2 ring-yellow-400 scale-110 z-10' : ''}`}
+                   >
+                     <div className="flex flex-col items-center leading-none mt-0.5">
+                       <span>{st.sbd}</span>
+                       {st.online && (
+                         <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full mt-0.5 shadow-[0_0_5px_rgba(250,204,21,0.8)]"></div>
+                       )}
+                     </div>
+                     {st.status === 'active' && st.hasAnswered && phase !== 'idle' && (
+                       <div className="absolute top-0 right-0 w-2.5 h-2.5 bg-yellow-400 rounded-full translate-x-1/3 -translate-y-1/3 shadow-[0_0_8px_rgba(250,204,21,1)] border border-slate-900"></div>
+                     )}
+                   </motion.div>
+                 )) : (
+                   <div className="col-span-6 p-4 text-center text-slate-600 italic text-[10px]">Trống</div>
+                 )}
+               </div>
+             </div>
+         </div>
       </div>
       
       {/* Progress Bar under Stage content */}
