@@ -71,7 +71,8 @@ export default function Admin() {
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
   const audioCtxRef = useRef(null);
   const scheduledTicksRef = useRef([]);
-
+  const timerEndRef = useRef(null);      // Lưu mốc timestamp (ms) hết giờ
+  const lastScheduledRef = useRef(null); // Tránh schedule lặp lại âm thanh
   const [serverInfo, setServerInfo] = useState({ ip: 'localhost', port: '4000', url: '' });
 
   const playTick = (urgent = false) => {
@@ -234,13 +235,35 @@ export default function Admin() {
     setIsAudioEnabled(!isAudioEnabled);
   };
 
+  // EFFECT: ĐỒNG BỘ ÂM THANH MÁY ADMIN (Self-healing mechanism)
   useEffect(() => {
+    // 1. Đồng bộ Tiếng Tích Tắc Đếm Ngược
+    const shouldPlayTicks = gameState.phase === 'timer_running' && isAudioEnabled && timerEndRef.current;
+
+    if (shouldPlayTicks) {
+      // Lấy thời gian còn lại thực tế dựa trên mốc đã lưu và giờ hệ thống hiện tại
+      const remaining = Math.max(0, Math.ceil((timerEndRef.current - Date.now()) / 1000));
+      
+      // Nếu chưa xếp lịch (schedule) cho mốc thời gian này thì mới chạy
+      if (remaining > 0 && lastScheduledRef.current !== timerEndRef.current) {
+        lastScheduledRef.current = timerEndRef.current;
+        cancelAllTicks();
+        scheduleAllTicks(remaining, 5);
+      }
+    } else {
+      // Hủy lịch âm thanh nếu bị khóa, hết giờ hoặc tắt loa
+      if (lastScheduledRef.current !== null) {
+        lastScheduledRef.current = null;
+        cancelAllTicks();
+      }
+    }
+
+    // 2. Đồng bộ Tiếng Bíp báo Đáp Án đúng
     if (isAudioEnabled && gameState.phase === 'answer_revealed') {
       cancelAllTicks();
       playCorrect();
     }
   }, [gameState.phase, isAudioEnabled]);
-
   useEffect(() => {
     const handleConnect = () => {
       setIsConnected(true);
@@ -273,12 +296,25 @@ export default function Admin() {
     if (socket.connected) handleConnect();
 
     socket.on('admin_state_update', (data) => {
-      setGameState({
-        phase: data.gamePhase,
-        question: data.currentQuestion,
-        students: data.students,
-        isSoundEnabled: data.isSoundEnabled,
-        customMessage: data.customMessage || ''
+      setGameState(prevState => {
+        // Ghi nhận mốc thời gian kết thúc khi server báo bắt đầu chạy timer
+        if (data.gamePhase === 'timer_running' && prevState.phase !== 'timer_running') {
+            const duration = data.currentQuestion?.time || 30; // Mặc định 30s nếu thiếu data
+            timerEndRef.current = Date.now() + duration * 1000;
+        }
+
+        // Xóa mốc thời gian nếu không ở phase đếm ngược
+        if (['locked', 'idle', 'question_sent', 'showing_intro', 'showing_rules', 'showing_custom'].includes(data.gamePhase)) {
+            timerEndRef.current = null;
+        }
+
+        return {
+          phase: data.gamePhase,
+          question: data.currentQuestion,
+          students: data.students,
+          isSoundEnabled: data.isSoundEnabled,
+          customMessage: data.customMessage || ''
+        };
       });
     });
 
