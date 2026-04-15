@@ -7,7 +7,6 @@ import { QRCodeSVG } from 'qrcode.react';
 import { Volume2, VolumeX, Camera, CameraOff, ScrollText, MessageSquare } from 'lucide-react';
 import { isYouTubeURL, getYouTubeEmbedURL } from '../utils/videoUtils';
 
-
 export default function Stage() {
   const [gameState, setGameState] = useState({
     phase: 'idle', // idle, showing_intro, showing_rules, showing_custom, question_sent, timer_running, locked, answer_revealed
@@ -343,7 +342,6 @@ export default function Stage() {
   }, [gameState.phase, victoryMediaData]);
 
   // --- EFFECT: SELF-HEALING AUDIO SYNC -----------------------------------
-  // Effect này đảm bảo âm thanh luôn khớp với trạng thái game, dù mở khóa muộn hay toggle admin
   useEffect(() => {
     // 1. Đồng bộ Tiếng Tích Tắc
     const shouldPlayTicks = gameState.phase === 'timer_running' && gameState.isSoundEnabled && isLocalAudioUnlocked && timerEndRef.current;
@@ -369,11 +367,9 @@ export default function Stage() {
       const isMuted = !gameState.isSoundEnabled;
       console.log(`[Audio] Syncing Media Sound: ${isMuted ? 'MUTED' : 'UNMUTED'}`);
       
-      // Nếu là Video/Audio tag chuẩn
       if (mediaRef.current.tagName === 'VIDEO' || mediaRef.current.tagName === 'AUDIO') {
         mediaRef.current.muted = isMuted;
       } 
-      // Nếu là YouTube Iframe
       else if (mediaRef.current.tagName === 'IFRAME') {
         const command = isMuted ? 'mute' : 'unmute';
         mediaRef.current.contentWindow.postMessage(JSON.stringify({
@@ -456,7 +452,6 @@ export default function Stage() {
           }
           pendingCandidatesRef.current = [];
         } else if (data.candidate) {
-          // Queue if remote description not yet set
           if (pcRef.current.remoteDescription) {
             await pcRef.current.addIceCandidate(new RTCIceCandidate(data.candidate));
           } else {
@@ -489,6 +484,7 @@ export default function Stage() {
   const studentsList = Object.values(gameState.students).sort((a,b) => parseInt(a.sbd) - parseInt(b.sbd));
   const { phase, question } = gameState;
 
+  // --- HÀM RENDER MIXED TEXT & LATEX ---
   const renderMixedText = (text) => {
     if (!text) return null;
     
@@ -512,7 +508,6 @@ export default function Stage() {
         return (
           <MathJax dynamic>
             <span className="whitespace-pre-wrap">
-              {/* ĐỔI MÀU CÂU X TẠI ĐÂY */}
               <span className="text-cyan-400 font-extrabold drop-shadow-md">{cauPart} </span>
               {restPart}
             </span>
@@ -532,31 +527,22 @@ export default function Stage() {
     );
   };
 
-  // Tính toán kích thước chữ nội dung câu hỏi (Tối ưu hóa tránh tràn)
-  const getDynamicFontSize = (textLength) => {
-    if (!textLength) return 'text-[clamp(1.5rem,4vh,3.0rem)]';
-    if (textLength <= 100) return 'text-[clamp(1.5rem,5vh,4.0rem)] leading-[1.1] font-black';
-    if (textLength <= 250) return 'text-[clamp(1.3rem,5.5vh,3.2rem)] leading-[1.2] font-extrabold';
-    if (textLength <= 450) return 'text-[clamp(1.1rem,3.5vh,2.8rem)] leading-snug';
-    return 'text-[clamp(1rem,3vh,2.2rem)] leading-snug';
-  };
-
-  // Tính toán kích thước chữ phương án (Có xét đến độ phức tạp LaTeX)
-  const getDynamicOptionSize = (text) => {
-    if (typeof text !== 'string') return 'text-[clamp(0.9rem,2.2vh,1.6rem)]';
-    const textLength = text.length;
+  // --- HÀM TÍNH SIZE ĐỒNG NHẤT CHO CẢ CÂU HỎI VÀ ĐÁP ÁN ---
+  // Thay thế 2 hàm cũ (getDynamicFontSize và getDynamicOptionSize) bằng 1 hàm duy nhất
+  const getUnifiedSize = (text) => {
+    if (typeof text !== 'string') return 'text-[clamp(1.5rem,4vh,2.8rem)]';
+    const len = text.length;
     
-    // Kiểm tra độ phức tạp của LaTeX (cases, matrix, vec, frac, etc.)
-    const isComplex = /\\begin|\\cases|\\matrix|\\frac|\\vec|\\\\/i.test(text);
-    
+    // Nếu có chứa công thức phức tạp (phân số, ma trận, hệ phương trình, tích phân...), giữ font to để dễ nhìn
+    const isComplex = /\\begin|\\cases|\\matrix|\\frac|\\int|\\sum|\\lim/i.test(text);
     if (isComplex) {
-       if (textLength <= 80) return 'text-[clamp(0.95rem,2.5vh,1.8rem)] leading-tight font-bold';
-       return 'text-[clamp(0.85rem,2.1vh,1.5rem)] leading-tight';
+       return 'text-[clamp(1.5rem,4vh,2.8rem)] leading-relaxed font-bold';
     }
 
-    if (textLength <= 40) return 'text-[clamp(1.1rem,3.2vh,2.4rem)] leading-tight font-bold';
-    if (textLength <= 90) return 'text-[clamp(1rem,2.6vh,1.9rem)] leading-snug';
-    return 'text-[clamp(0.85rem,2.2vh,1.6rem)] leading-snug';
+    // Phân cấp size dựa trên độ dài để chống tràn màn hình, nhưng mốc (clamp) áp dụng chung
+    if (len <= 150) return 'text-[clamp(1.5rem,4vh,2.8rem)] leading-snug font-bold';
+    if (len <= 350) return 'text-[clamp(1.3rem,3.5vh,2.4rem)] leading-snug font-semibold';
+    return 'text-[clamp(1.1rem,3vh,2rem)] leading-snug font-medium';
   };
 
   return (
@@ -621,7 +607,6 @@ export default function Stage() {
                         }}
                         className="flex flex-col gap-8"
                       >
-                        {/* Title at start of scroll */}
                         <div className="text-center py-10">
                            <p className="text-yellow-500 text-2xl font-black uppercase tracking-[0.4em]">Sẵn sàng tham chiến</p>
                         </div>
@@ -644,7 +629,6 @@ export default function Stage() {
                           </div>
                         ))}
                         
-                        {/* Message at end of list */}
                         <div className="mt-32 py-32 text-center flex flex-col items-center">
                           <div className="text-8xl mb-10">🔔</div>
                           <p className="text-5xl font-black text-white italic tracking-[0.2em] uppercase mb-4">Tất cả đã sẵn sàng!</p>
@@ -653,26 +637,14 @@ export default function Stage() {
                       </motion.div>
                     </div>
                     
-                    {/* Bottom & Top vignette to make fade effect */}
                     <div className="absolute bottom-0 left-0 w-full h-48 bg-gradient-to-t from-black via-black/80 to-transparent pointer-events-none z-10"></div>
                     <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-black via-black/80 to-transparent pointer-events-none z-10"></div>
                     
-                    {/* Intro Media Player (ẩn - chỉ phát âm thanh) */}
                     {introMediaData && (
                       introMediaData.type.startsWith('video') ? (
-                        <video
-                          ref={introMediaRef}
-                          src={introMediaData.dataUrl}
-                          className="hidden"
-                          loop
-                          playsInline
-                        />
+                        <video ref={introMediaRef} src={introMediaData.dataUrl} className="hidden" loop playsInline />
                       ) : (
-                        <audio
-                          ref={introMediaRef}
-                          src={introMediaData.dataUrl}
-                          loop
-                        />
+                        <audio ref={introMediaRef} src={introMediaData.dataUrl} loop />
                       )
                     )}
                   </motion.div>
@@ -688,7 +660,6 @@ export default function Stage() {
                       className="w-full h-full flex flex-col items-center justify-center p-8"
                     >
                         <div className="flex gap-16 items-center justify-center mb-12">
-                           {/* Bell Icon Area */}
                            <div className="w-64 h-64 border-2 border-yellow-600/30 rounded-full flex items-center justify-center bg-slate-900/40 relative shadow-[0_0_100px_rgba(234,179,8,0.05)]">
                                <div className="w-56 h-56 border-4 border-yellow-500/80 rounded-full flex items-center justify-center bg-gradient-to-b from-slate-800 to-slate-900 shadow-inner">
                                   <motion.span 
@@ -699,12 +670,10 @@ export default function Stage() {
                                     🔔
                                   </motion.span>
                                </div>
-                               {/* Decorative rings */}
                                <div className="absolute inset-0 border border-yellow-500/20 rounded-full scale-110"></div>
                                <div className="absolute inset-0 border border-yellow-500/10 rounded-full scale-125"></div>
                            </div>
 
-                           {/* QR Code Area */}
                            <div className="bg-white p-5 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] border-[6px] border-yellow-500 flex flex-col items-center transform hover:scale-105 transition-transform duration-500">
                              <div className="bg-white p-2 rounded-xl">
                                 <QRCodeSVG value={window.location.origin} size={200} />
@@ -721,11 +690,10 @@ export default function Stage() {
                            </h2>
                            
                            <div className="flex flex-col items-center gap-6">
-                                {/* Sound Status Indicator & Unlocker */}
                                 <div className="flex justify-center">
                                   <button 
                                     onClick={(e) => {
-                                      e.stopPropagation(); // Ngăn sự kiện click toàn trang chạy 2 lần
+                                      e.stopPropagation();
                                       handleUnlockAudio();
                                       sessionStorage.setItem('isLocalAudioUnlocked', 'true');
                                     }}
@@ -770,7 +738,6 @@ export default function Stage() {
                     exit={{ opacity: 0, scale: 1.1 }}
                     className="w-full h-full flex flex-col items-center justify-center p-4 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-900/40 via-slate-950 to-black rounded-3xl border border-indigo-500/30 shadow-[0_0_100px_rgba(79,70,229,0.1)] relative overflow-hidden"
                   >
-                    {/* Background Decorative Elements */}
                     <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none opacity-20">
                        <div className="absolute -top-24 -left-24 w-96 h-96 bg-indigo-600 rounded-full blur-[120px]"></div>
                        <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-purple-600 rounded-full blur-[120px]"></div>
@@ -839,7 +806,6 @@ export default function Stage() {
                     exit={{ opacity: 0, scale: 0.95 }}
                     className="w-full h-full flex flex-col items-center justify-center p-12 bg-slate-950 rounded-3xl border border-blue-500/20 shadow-2xl relative overflow-hidden"
                   >
-                    {/* Background Detail */}
                     <div className="absolute inset-0 opacity-10 pointer-events-none">
                        <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-600 rounded-full blur-[160px] opacity-20"></div>
@@ -889,7 +855,6 @@ export default function Stage() {
                     exit={{ opacity: 0, scale: 1.2 }}
                     className="w-full h-full flex flex-col items-center justify-center p-12 bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 rounded-3xl border-4 border-yellow-500/50 shadow-[0_0_50px_rgba(234,179,8,0.3)] relative overflow-hidden"
                   >
-                    {/* Confetti Elements */}
                     {[...Array(20)].map((_, i) => (
                       <motion.div
                         key={i}
@@ -929,7 +894,7 @@ export default function Stage() {
                               className="w-64 h-64 md:w-80 md:h-80 object-contain drop-shadow-[0_0_30px_rgba(234,179,8,0.8)]"
                               onError={(e) => {
                                 e.target.onerror = null;
-                                e.target.src = "https://cdn-icons-png.flaticon.com/512/311/311081.png"; // Fallback emoji bell
+                                e.target.src = "https://cdn-icons-png.flaticon.com/512/311/311081.png"; 
                               }}
                            />
                         </motion.div>
@@ -953,22 +918,11 @@ export default function Stage() {
                         </motion.p>
                     </div>
 
-                    {/* Victory Media Player (ẩn - chỉ phát âm thanh) */}
                     {victoryMediaData && (
                       victoryMediaData.type.startsWith('video') ? (
-                        <video
-                          ref={victoryMediaRef}
-                          src={victoryMediaData.dataUrl}
-                          className="hidden"
-                          loop
-                          playsInline
-                        />
+                        <video ref={victoryMediaRef} src={victoryMediaData.dataUrl} className="hidden" loop playsInline />
                       ) : (
-                        <audio
-                          ref={victoryMediaRef}
-                          src={victoryMediaData.dataUrl}
-                          loop
-                        />
+                        <audio ref={victoryMediaRef} src={victoryMediaData.dataUrl} loop />
                       )
                     )}
                   </motion.div>
@@ -983,7 +937,7 @@ export default function Stage() {
                      exit={{ opacity: 0, x: -100 }}
                      className="w-full h-full flex flex-col bg-slate-800/80 rounded-3xl border border-slate-700 p-6 pt-10 shadow-2xl backdrop-blur-md relative overflow-hidden"
                    >
-                       {/* Status Badge (Top Left Corner Inside) */}
+                       {/* Status Badge */}
                        <div className="absolute top-4 left-6 z-30">
                           {question?.isRescue && (
                             <div className="bg-purple-600 text-white px-6 py-2 rounded-full font-black shadow-lg border-2 border-purple-400 animate-pulse uppercase tracking-widest text-xl">
@@ -997,7 +951,7 @@ export default function Stage() {
                           )}
                        </div>
 
-                       {/* Timer Circle (Top Right Corner Inside) */}
+                       {/* Timer Circle */}
                        <div className="absolute top-0 right-0 w-20 h-20 bg-slate-900/80 rounded-full border-4 border-slate-600 flex items-center justify-center z-20 shadow-xl backdrop-blur-sm">
                           <span className={`text-4xl font-black font-mono tracking-tighter ${
                             phase === 'timer_running' && timeLeft <= 5 ? 'text-red-500 animate-ping' : 
@@ -1008,22 +962,21 @@ export default function Stage() {
                           </span>
                        </div>
 
-                       {/* Question Content Wrapper - Priority Based Layout */}
+                       {/* Question Content Wrapper */}
                        <div className="flex-1 flex flex-col items-center justify-start min-h-0 overflow-hidden gap-2 mt-4 px-2">
-                           {/* 1. Text Block - thu nhỏ khi có media để nhường chỗ cho ảnh */}
-
-                           {/* Đổi màu đề bài: Mặc định slate-100 */}
+                           
+                           {/* 1. Text Block Đề Bài (ÁP DỤNG GETUNIFIEDSIZE) */}
                            <div className={`font-semibold text-slate-100 flex-shrink-0 whitespace-pre-wrap text-justify [text-align-last:center] max-w-[95%] px-6 ${
                              (question?.mediaType !== 'none' && question?.mediaUrl)
-                               ? 'text-[clamp(1rem,2.8vh,2rem)] leading-snug'
-                               : getDynamicFontSize(question?.content?.length)
+                               ? 'text-[clamp(1.2rem,3vh,2.2rem)] leading-snug font-semibold'
+                               : getUnifiedSize(question?.content)
                            }`}>
                                {renderMixedText(question?.content)}
                            </div>
   
-                           {/* 2. Media Renderer - min-h-[40vh] để ảnh luôn đủ lớn */}
+                           {/* 2. Media Renderer */}
                            {question?.mediaType !== 'none' && question?.mediaUrl && (
-                              <div className="flex-1 min-h-[40vh] w-full rounded-2xl overflow-hidden border border-slate-700 bg-black/40 flex items-center justify-center relative">
+                              <div className="flex-1 min-h-[35vh] w-full rounded-2xl overflow-hidden border border-slate-700 bg-black/40 flex items-center justify-center relative">
                                  {question.mediaType === 'video' && (
                                     isYouTubeURL(question.mediaUrl) ? (
                                       <iframe 
@@ -1064,7 +1017,7 @@ export default function Stage() {
                               </div>
                            )}
   
-                           {/* 3. Answer Options - thu nhỏ khi có media */}
+                           {/* 3. Answer Options (ÁP DỤNG GETUNIFIEDSIZE) */}
                            {question?.type === 'mcq' && (
                              <div className="flex-shrink-0 grid grid-cols-2 gap-2 pb-2 transition-all duration-500 w-full">
                                 {['A', 'B', 'C', 'D'].map(opt => (
@@ -1078,17 +1031,17 @@ export default function Stage() {
                                         'bg-slate-700/50 border-slate-600 text-slate-300'
                                       }`}
                                    >
-                                      {/* Đổi màu A, B, C, D thành yellow-400 cho rực rỡ hơn */}
+                                      {/* Chữ cái A, B, C, D */}
                                       <span className={`${
-                                        (question.mediaType !== 'none' && question.mediaUrl) ? 'text-2xl' : 'text-[clamp(1.5rem,5vh,3.5rem)]'
-                                      } text-yellow-400 font-black leading-none mb-1 drop-shadow-sm`}>{opt}</span>
+                                        (question.mediaType !== 'none' && question.mediaUrl) ? 'text-2xl' : 'text-[clamp(1.8rem,4.5vh,3rem)]'
+                                      } text-yellow-400 font-black leading-none mb-2 drop-shadow-sm`}>{opt}</span>
                                       
-                                      {/* Đổi màu text đáp án thành text-slate-100 để chống lóa */}
+                                      {/* Text đáp án dùng chung hàm getUnifiedSize */}
                                       {question[`option${opt}`] && (
-                                        <span className={`mt-0.5 text-center text-slate-100 font-medium whitespace-pre-wrap ${
+                                        <span className={`mt-0.5 text-center text-slate-100 whitespace-pre-wrap ${
                                           (question.mediaType !== 'none' && question.mediaUrl)
-                                            ? 'text-[clamp(1.1rem,2.5vh,1.9rem)]'
-                                            : getDynamicOptionSize(question[`option${opt}`])
+                                            ? 'text-[clamp(1.2rem,3vh,2.2rem)] font-semibold'
+                                            : getUnifiedSize(question[`option${opt}`])
                                         }`}>
                                           {renderMixedText(question[`option${opt}`])}
                                         </span>
@@ -1117,7 +1070,7 @@ export default function Stage() {
                <div className="flex justify-between items-center text-[10px] font-bold opacity-80 border-b border-slate-800 pb-2">
                   <div className="flex gap-3">
                     <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]"></div> Đang Thi</div>
-                    <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm bg-red-600 shadow-[0_0_5px_rgba(220,38,38,0.5)]"></div> Loại</div>
+                    <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm bg-red-900 shadow-[0_0_5px_rgba(153,27,27,0.5)]"></div> Loại</div>
                     <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-yellow-400 shadow-[0_0_5px_rgba(250,204,21,0.5)]"></div> Đăng Nhập</div>
                   </div>
                   <div className="bg-slate-800/50 px-2 py-0.5 rounded text-slate-300 font-mono">
@@ -1126,7 +1079,7 @@ export default function Stage() {
                </div>
              </div>
              
-             {/* Danh sách thí sinh dạng lưới 6 cột (Chỉ hiện SBD) */}
+             {/* Danh sách thí sinh dạng lưới */}
              <div className="flex-1 overflow-y-auto pr-0.5 custom-scrollbar">
                <div className="grid grid-cols-6 gap-1 content-start font-sans">
                  {studentsList.length > 0 ? studentsList.map((st, i) => (
@@ -1137,8 +1090,8 @@ export default function Stage() {
                      transition={{ delay: i * 0.002 }}
                      className={`aspect-square rounded-md flex items-center justify-center font-black text-[18px] md:text-[22px] border-2 transition-all duration-500 ${
                        st.status === 'active' 
-                         ? 'bg-green-500 text-slate-900 border-green-400 shadow-[0_4px_10px_rgba(34,197,94,0.3)]' 
-                         : 'bg-red-900/40 text-red-500 border-red-800 opacity-40 shadow-none'
+                         ? 'bg-green-500 text-green-950 border-green-400 shadow-[0_4px_10px_rgba(34,197,94,0.3)]' 
+                         : 'bg-red-900 text-red-200 border-red-800 shadow-[inset_0_2px_4px_rgba(0,0,0,0.6)]'
                      } ${phase === 'locked' && st.status==='active' && st.hasAnswered ? 'ring-2 ring-yellow-400 scale-110 z-10' : ''}`}
                    >
                      <div className="flex flex-col items-center leading-none mt-0.5">
@@ -1159,7 +1112,7 @@ export default function Stage() {
          </div>
       </div>
       
-      {/* Progress Bar under Stage content */}
+      {/* Progress Bar */}
       <div className="h-2 w-full bg-slate-900 border-t border-slate-800 flex-shrink-0">
          {phase === 'timer_running' && (
             <motion.div 
@@ -1180,40 +1133,22 @@ export default function Stage() {
             exit={{ opacity: 0, scale: 0.9 }}
             className="fixed inset-0 z-[200] bg-black flex items-center justify-center"
           >
-             {/* Background: Luôn hiện ảnh JPEG dự phòng nếu có */}
              {lastFrame && (
-               <img 
-                 src={lastFrame} 
-                 alt="Admin Live Feed Fallback" 
-                 className={`absolute inset-0 w-full h-full object-contain ${webRtcConnected ? 'opacity-0 z-0' : 'opacity-100 z-10'}`} 
-               />
+               <img src={lastFrame} alt="Admin Live Feed Fallback" className={`absolute inset-0 w-full h-full object-contain ${webRtcConnected ? 'opacity-0 z-0' : 'opacity-100 z-10'}`} />
              )}
-
-             {/* Foreground: Hiện Video mượt mà khi WebRTC đã kết nối */}
              {remoteStream && (
-               <video 
-                 ref={remoteVideoRef} 
-                 autoPlay 
-                 muted
-                 playsInline 
-                 className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-1000 ${webRtcConnected ? 'opacity-100 z-20' : 'opacity-0 z-0'}`}
-               />
+               <video ref={remoteVideoRef} autoPlay muted playsInline className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-1000 ${webRtcConnected ? 'opacity-100 z-20' : 'opacity-0 z-0'}`} />
              )}
-
-             {/* Loader khi hoàn toàn chưa có gì */}
              {!lastFrame && !remoteStream && (
                <div className="flex flex-col items-center justify-center gap-4 text-white/50">
                  <Camera size={48} className="animate-pulse" />
                  <span className="text-xl font-bold tracking-widest">Đang khởi tạo camera...</span>
                </div>
              )}
-             
              <div className="absolute top-8 left-8 flex items-center gap-4 bg-red-600 px-6 py-2 rounded-full shadow-2xl animate-pulse z-50">
                 <Camera className="text-white" size={24}/>
                 <span className="text-white font-black uppercase tracking-widest text-xl">TRỰC TIẾP TỪ BAN TỔ CHỨC</span>
              </div>
-             
-             {/* Decorative Corner Borders */}
              <div className="absolute top-4 left-4 w-20 h-20 border-t-4 border-l-4 border-white/50 rounded-tl-3xl"></div>
              <div className="absolute top-4 right-4 w-20 h-20 border-t-4 border-r-4 border-white/50 rounded-tr-3xl"></div>
              <div className="absolute bottom-4 left-4 w-20 h-20 border-b-4 border-l-4 border-white/50 rounded-bl-3xl"></div>
@@ -1221,7 +1156,6 @@ export default function Stage() {
           </motion.div>
         )}
       </AnimatePresence>
-
     </div>
   );
 }
