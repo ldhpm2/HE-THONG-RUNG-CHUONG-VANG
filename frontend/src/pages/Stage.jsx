@@ -60,7 +60,6 @@ export default function Stage() {
     setFontSizeModifier(0);
   }, [gameState.question?.id]);
 
-
   const playTick = (urgent = false) => {
     try {
       if (!isLocalAudioUnlocked) return;
@@ -294,7 +293,7 @@ export default function Stage() {
           };
         });
          if (data.gamePhase === 'winner_declared' && gameState.phase !== 'winner_declared') {
-            // Sẽ gọi qua client_play_sound để tránh bị lỗi
+            // Nhạc phát ngầm
          }
       });
 
@@ -311,20 +310,23 @@ export default function Stage() {
   }, [isLocalAudioUnlocked]);
 
   useEffect(() => {
-    if (gameState.phase === 'showing_intro' && introMediaData && introMediaRef.current) {
-      introMediaRef.current.currentTime = 0;
-      introMediaRef.current.play().catch(e => console.warn(e));
-    } else if (gameState.phase !== 'showing_intro' && introMediaRef.current) {
-      introMediaRef.current.pause();
+    const media = introMediaRef.current;
+    if (gameState.phase === 'showing_intro' && introMediaData && media) {
+      media.currentTime = 0;
+      media.play().catch(e => console.warn(e));
+    } else if (media) {
+      media.pause();
     }
   }, [gameState.phase, introMediaData]);
 
   useEffect(() => {
-    if (gameState.phase === 'winner_declared' && victoryMediaData && victoryMediaRef.current) {
-      victoryMediaRef.current.currentTime = 0;
-      victoryMediaRef.current.play().catch(e => console.warn(e));
-    } else if (gameState.phase !== 'winner_declared' && victoryMediaRef.current) {
-      victoryMediaRef.current.pause();
+    const media = victoryMediaRef.current;
+    if (gameState.phase === 'winner_declared' && victoryMediaData && media) {
+      media.currentTime = 0;
+      media.play().catch(e => console.warn(e));
+    } else if (media) {
+      media.pause();
+      media.currentTime = 0;
     }
   }, [gameState.phase, victoryMediaData]);
 
@@ -360,7 +362,6 @@ export default function Stage() {
       socket.on('client_play_sound', (data) => {
          if (data === 'reveal_answer') playCorrect();
          if (data === 'victory') {
-             // NẾU KHÔNG CÓ NHẠC XỊN, MỚI PHÁT NHẠC MẶC ĐỊNH
              if (!victoryMediaData) playVictory();
          }
       });
@@ -503,10 +504,22 @@ export default function Stage() {
   return (
     <div className="h-screen bg-[#020617] text-white flex flex-col font-sans overflow-hidden">
       
-      {/* KHU VỰC PRELOAD AUDIO: Thẻ Audio luôn tồn tại để tránh bị mất khi đổi màn hình */}
+      <style>{`
+        .math-nowrap, .math-nowrap * {
+            white-space: nowrap !important;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+      `}</style>
+
       <div className="hidden">
          {introMediaData && (introMediaData.type.startsWith('video') ? <video ref={introMediaRef} src={introMediaData.dataUrl} loop playsInline /> : <audio ref={introMediaRef} src={introMediaData.dataUrl} loop />)}
-         {victoryMediaData && (victoryMediaData.type.startsWith('video') ? <video ref={victoryMediaRef} src={victoryMediaData.dataUrl} loop playsInline /> : <audio ref={victoryMediaRef} src={victoryMediaData.dataUrl} loop />)}
+         {victoryMediaData && (victoryMediaData.type.startsWith('video') ? <video ref={victoryMediaRef} src={victoryMediaData.dataUrl} playsInline /> : <audio ref={victoryMediaRef} src={victoryMediaData.dataUrl} />)}
       </div>
 
       <header className="fixed top-0 left-0 w-full h-[85px] md:h-[110px] flex items-center justify-center bg-slate-950 shadow-[0_15px_40px_rgba(0,0,0,0.8)] border-b-2 border-slate-700 z-[100] backdrop-blur-md">
@@ -526,11 +539,14 @@ export default function Stage() {
              <AnimatePresence mode="wait">
                 {phase === 'showing_intro' && (
                   <motion.div key="intro" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full h-full flex flex-col items-center relative overflow-hidden bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black rounded-b-3xl rounded-t-none border-x border-b border-slate-700 shadow-2xl">
-                    <div className="absolute top-10 left-0 w-full z-20 flex flex-col items-center text-center">
-                      <h2 className="text-5xl font-black uppercase tracking-[0.2em] mb-4 text-transparent bg-clip-text bg-gradient-to-b from-yellow-100 via-yellow-400 to-yellow-600 drop-shadow-[0_5px_15px_rgba(250,204,21,0.5)]">Danh Sách Thí Sinh</h2>
-                      <div className="h-1 w-64 bg-yellow-500/50 rounded-full blur-sm"></div>
+                    <div className="absolute top-8 left-0 w-full z-20 flex flex-col items-center text-center">
+                      {/* KHUNG VIỀN ĐÃ ĐƯỢC THU HẸP CHIỀU CAO (py-3 và padding ôm sát) */}
+                      <div className="bg-slate-900/80 border-y-2 border-yellow-500/50 px-16 py-3 shadow-[0_5px_30px_rgba(234,179,8,0.2)] backdrop-blur-md">
+                         <h2 className="text-4xl md:text-5xl font-black uppercase tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-b from-yellow-100 via-yellow-400 to-yellow-600 drop-shadow-[0_2px_10px_rgba(250,204,21,0.5)] leading-none">Danh Sách Thí Sinh</h2>
+                      </div>
                     </div>
-                    <div className="flex-1 w-full max-w-6xl mt-48 overflow-hidden relative">
+                    {/* ĐẨY DANH SÁCH LÊN TRÊN BẰNG CÁCH GIẢM mt-48 XUỐNG mt-32 */}
+                    <div className="flex-1 w-full max-w-6xl mt-32 overflow-hidden relative">
                       <motion.div initial={{ y: "100vh" }} animate={{ y: "-100%" }} transition={{ duration: Math.max(30, studentsList.length * 3.5), ease: "linear", repeat: Infinity, repeatDelay: 2 }} className="flex flex-col gap-8">
                         <div className="text-center py-10"><p className="text-yellow-500 text-2xl font-black uppercase tracking-[0.4em]">Sẵn sàng tham chiến</p></div>
                         {studentsList.map((s, idx) => (
