@@ -500,21 +500,21 @@ export default function Stage() {
   return (
     <div className="h-screen bg-[#020617] text-white flex flex-col font-sans overflow-hidden">
       
-      {/* HEADER LOGO ĐÃ FIX KÍCH THƯỚC */}
-      <header className="fixed top-0 left-0 w-full h-20 md:h-24 flex items-center justify-center bg-slate-950 shadow-[0_4px_30px_rgba(0,0,0,1)] border-b border-slate-800 z-[100] backdrop-blur-md">
-         <div className="flex items-center gap-6 md:gap-8">
-            <motion.img src={logoBell} alt="Logo" className="w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 drop-shadow-[0_0_20px_rgba(250,204,21,0.7)]" animate={{ rotate: [0, -10, 10, -10, 10, 0] }} transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}/>
+      {/* HEADER LOGO KHỔNG LỒ */}
+      <header className="fixed top-0 left-0 w-full h-[90px] md:h-[130px] flex items-center justify-center bg-slate-950 shadow-[0_15px_40px_rgba(0,0,0,0.8)] border-b-2 border-slate-700 z-[100] backdrop-blur-md">
+         <div className="flex items-center gap-6 md:gap-12">
+            <motion.img src={logoBell} alt="Logo" className="w-12 h-12 md:w-20 md:h-20 lg:w-24 lg:h-24 drop-shadow-[0_0_25px_rgba(250,204,21,0.8)]" animate={{ rotate: [0, -10, 10, -10, 10, 0] }} transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}/>
             
-            <h1 className="text-3xl md:text-4xl lg:text-5xl xl:text-[3.2rem] font-black italic tracking-tighter uppercase text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 via-yellow-400 to-yellow-600 drop-shadow-[0_4px_20px_rgba(250,204,21,0.6)]">
+            <h1 className="text-4xl md:text-6xl lg:text-7xl xl:text-[5.5rem] font-black italic tracking-tighter uppercase text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 via-yellow-400 to-yellow-600 drop-shadow-[0_5px_20px_rgba(250,204,21,0.8)]">
               RUNG CHUÔNG VÀNG
             </h1>
 
-            <motion.img src={logoBell} alt="Logo" className="w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 drop-shadow-[0_0_20px_rgba(250,204,21,0.7)]" animate={{ rotate: [0, 10, -10, 10, -10, 0] }} transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}/>
+            <motion.img src={logoBell} alt="Logo" className="w-12 h-12 md:w-20 md:h-20 lg:w-24 lg:h-24 drop-shadow-[0_0_25px_rgba(250,204,21,0.8)]" animate={{ rotate: [0, 10, -10, 10, -10, 0] }} transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}/>
          </div>
       </header>
 
-      {/* ĐÃ FIX pt-28 ĐỂ KHÔNG BỊ ĐÈ */}
-      <div className="flex-1 flex flex-row p-4 pt-28 gap-6 relative overflow-hidden">
+      {/* KHỐI NỘI DUNG CHẠM KHÍT VIỀN HEADER */}
+      <div className="flex-1 flex flex-row px-6 pb-6 pt-[90px] md:pt-[130px] gap-6 relative overflow-hidden">
          <div className="w-3/4 flex flex-col items-center justify-center relative min-h-0">
              <AnimatePresence mode="wait">
                 {phase === 'showing_intro' && (
