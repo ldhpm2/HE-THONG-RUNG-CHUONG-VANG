@@ -699,9 +699,8 @@ export default function Admin() {
     e.target.value = '';
   };
 
-  // NÚT PHÁT GIỚI THIỆU: Chỉ gửi lệnh và file sang Stage. KHÔNG PHÁT Ở ADMIN.
   const showIntroWithMedia = () => {
-    if (introMediaFile) socket.emit('admin:intro_media', introMediaFile); // Gửi thêm 1 lần phòng hờ
+    if (introMediaFile) socket.emit('admin:intro_media', introMediaFile); 
     socket.emit('admin:show_intro');
   };
 
