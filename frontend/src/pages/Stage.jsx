@@ -489,13 +489,17 @@ export default function Stage() {
 
   return (
     <div className="h-screen bg-[#020617] text-white flex flex-col font-sans overflow-hidden">
-      <header className="fixed top-0 left-0 w-full flex items-center justify-center py-2 bg-slate-950 shadow-[0_4px_30px_rgba(0,0,0,1)] border-b border-slate-800 z-[100] backdrop-blur-md">
-         <div className="flex items-center gap-4">
-            <motion.img src={logoBell} alt="Logo" className="w-10 h-10 md:w-14 md:h-14 drop-shadow-[0_0_20px_rgba(250,204,21,0.7)]" animate={{ rotate: [0, -10, 10, -10, 10, 0] }} transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}/>
-            <h1 className="text-2xl md:text-3xl lg:text-5xl font-black italic tracking-tighter uppercase text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 via-yellow-400 to-yellow-600 drop-shadow-[0_2px_15px_rgba(250,204,21,0.5)]">
-              RUNG CHUÔNG VÀNG <span className="text-[10px] opacity-20">v6</span>
+
+     {/* HEADER LOGO */}
+      <header className="fixed top-0 left-0 w-full flex items-center justify-center py-4 bg-slate-950 shadow-[0_4px_30px_rgba(0,0,0,1)] border-b border-slate-800 z-[100] backdrop-blur-md">
+         <div className="flex items-center gap-6 md:gap-8">
+            <motion.img src={logoBell} alt="Logo" className="w-12 h-12 md:w-16 md:h-16 lg:w-20 lg:h-20 drop-shadow-[0_0_20px_rgba(250,204,21,0.7)]" animate={{ rotate: [0, -10, 10, -10, 10, 0] }} transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}/>
+            
+            <h1 className="text-3xl md:text-5xl lg:text-6xl xl:text-7xl font-black italic tracking-tighter uppercase text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 via-yellow-400 to-yellow-600 drop-shadow-[0_4px_20px_rgba(250,204,21,0.6)]">
+              RUNG CHUÔNG VÀNG
             </h1>
-            <motion.img src={logoBell} alt="Logo" className="w-10 h-10 md:w-14 md:h-14 drop-shadow-[0_0_20px_rgba(250,204,21,0.7)]" animate={{ rotate: [0, 10, -10, 10, -10, 0] }} transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}/>
+
+            <motion.img src={logoBell} alt="Logo" className="w-12 h-12 md:w-16 md:h-16 lg:w-20 lg:h-20 drop-shadow-[0_0_20px_rgba(250,204,21,0.7)]" animate={{ rotate: [0, 10, -10, 10, -10, 0] }} transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}/>
          </div>
       </header>
 
