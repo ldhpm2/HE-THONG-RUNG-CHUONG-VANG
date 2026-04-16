@@ -664,7 +664,7 @@ export default function Stage() {
                       <motion.div key={i} className="absolute w-3 h-3 rounded-sm" style={{ backgroundColor: ['#EAB308', '#3B82F6', '#EF4444', '#22C55E'][i % 4], top: '-5%', left: `${Math.random() * 100}%` }} animate={{ top: '105%', left: `${(Math.random() * 100)}%`, rotate: 360 }} transition={{ duration: 2 + Math.random() * 2, repeat: Infinity, delay: Math.random() * 2, ease: "linear" }}/>
                     ))}
                     <div className="z-10 flex flex-col items-center text-center">
-                        <motion.div animate={{ rotate: [0, -10, 10, -10, 10, 0], scale: [1, 1.1, 1] }} transition={{ repeat: Infinity, duration: 2 }} className="relative mb-4">
+                        <motion.div animate={{ rotate: [0, -10, 10, -10, 10, 0], scale: [1, 1.3, 1] }} transition={{ repeat: Infinity, duration: 2 }} className="relative mb-4">
                            <div className="absolute inset-0 bg-yellow-400 blur-3xl opacity-20 animate-pulse"></div>
                            <img src="/victory-bell.png" alt="Golden Bell" className="w-48 h-48 md:w-64 md:h-64 object-contain drop-shadow-[0_0_30px_rgba(234,179,8,0.8)]" onError={(e) => { e.target.onerror = null; e.target.src = "https://cdn-icons-png.flaticon.com/512/311/311081.png"; }}/>
                         </motion.div>
