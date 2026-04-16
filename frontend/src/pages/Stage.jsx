@@ -292,9 +292,6 @@ export default function Stage() {
             winners: data.winners || []
           };
         });
-         if (data.gamePhase === 'winner_declared' && gameState.phase !== 'winner_declared') {
-            // Nhạc phát ngầm
-         }
       });
 
      socket.on('intro:media_data', (data) => setIntroMediaData(data));
@@ -309,6 +306,7 @@ export default function Stage() {
     };
   }, [isLocalAudioUnlocked]);
 
+  // DUY NHẤT ĐIỀU KHIỂN NHẠC TẠI ĐÂY (Cho Intro)
   useEffect(() => {
     const media = introMediaRef.current;
     if (gameState.phase === 'showing_intro' && introMediaData && media) {
@@ -319,6 +317,7 @@ export default function Stage() {
     }
   }, [gameState.phase, introMediaData]);
 
+  // DUY NHẤT ĐIỀU KHIỂN NHẠC TẠI ĐÂY (Cho Victory)
   useEffect(() => {
     const media = victoryMediaRef.current;
     if (gameState.phase === 'winner_declared' && victoryMediaData && media) {
@@ -326,7 +325,6 @@ export default function Stage() {
       media.play().catch(e => console.warn(e));
     } else if (media) {
       media.pause();
-      media.currentTime = 0;
     }
   }, [gameState.phase, victoryMediaData]);
 
@@ -517,6 +515,7 @@ export default function Stage() {
         }
       `}</style>
 
+      {/* KHU VỰC CHỈ CÓ DUY NHẤT 1 BỘ THẺ PRELOAD AUDIO */}
       <div className="hidden">
          {introMediaData && (introMediaData.type.startsWith('video') ? <video ref={introMediaRef} src={introMediaData.dataUrl} loop playsInline /> : <audio ref={introMediaRef} src={introMediaData.dataUrl} loop />)}
          {victoryMediaData && (victoryMediaData.type.startsWith('video') ? <video ref={victoryMediaRef} src={victoryMediaData.dataUrl} playsInline /> : <audio ref={victoryMediaRef} src={victoryMediaData.dataUrl} />)}
@@ -540,12 +539,10 @@ export default function Stage() {
                 {phase === 'showing_intro' && (
                   <motion.div key="intro" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full h-full flex flex-col items-center relative overflow-hidden bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black rounded-b-3xl rounded-t-none border-x border-b border-slate-700 shadow-2xl">
                     <div className="absolute top-8 left-0 w-full z-20 flex flex-col items-center text-center">
-                      {/* KHUNG VIỀN ĐÃ ĐƯỢC THU HẸP CHIỀU CAO (py-3 và padding ôm sát) */}
                       <div className="bg-slate-900/80 border-y-2 border-yellow-500/50 px-16 py-3 shadow-[0_5px_30px_rgba(234,179,8,0.2)] backdrop-blur-md">
                          <h2 className="text-4xl md:text-5xl font-black uppercase tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-b from-yellow-100 via-yellow-400 to-yellow-600 drop-shadow-[0_2px_10px_rgba(250,204,21,0.5)] leading-none">Danh Sách Thí Sinh</h2>
                       </div>
                     </div>
-                    {/* ĐẨY DANH SÁCH LÊN TRÊN BẰNG CÁCH GIẢM mt-48 XUỐNG mt-32 */}
                     <div className="flex-1 w-full max-w-6xl mt-32 overflow-hidden relative">
                       <motion.div initial={{ y: "100vh" }} animate={{ y: "-100%" }} transition={{ duration: Math.max(30, studentsList.length * 3.5), ease: "linear", repeat: Infinity, repeatDelay: 2 }} className="flex flex-col gap-8">
                         <div className="text-center py-10"><p className="text-yellow-500 text-2xl font-black uppercase tracking-[0.4em]">Sẵn sàng tham chiến</p></div>
