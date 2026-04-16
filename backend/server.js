@@ -16,7 +16,8 @@ const io = new Server(server, {
     origin: '*',
     methods: ['GET', 'POST']
   },
-  maxHttpBufferSize: 5e6 // 5MB
+  // NÂNG CẤP: Tăng kích thước bộ đệm lên 50MB để truyền file nhạc/video (Base64)
+  maxHttpBufferSize: 50e6 
 });
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/rung_chuong_vang';
@@ -288,7 +289,6 @@ io.on('connection', (socket) => {
     broadcastState();
   });
 
-  // KHÔI PHỤC: Lệnh chiếu chữ Custom
   socket.on('admin:show_custom', async (data) => {
     if (!socket.rooms.has('admin_room')) return;
     clearAutoLock();
@@ -432,7 +432,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // KHÔI PHỤC: Truyền file nhạc từ Admin qua Stage
+  // NHẬN LỆNH CHUYỂN FILE ĐA PHƯƠNG TIỆN TỪ ADMIN
   socket.on('admin:intro_media', (data) => {
     if (!socket.rooms.has('admin_room')) return;
     socket.broadcast.emit('intro:media_data', data);

@@ -130,7 +130,7 @@ export default function Admin() {
         g2.gain.linearRampToValueAtTime(0.35, t + delay + 0.03);
         g2.gain.exponentialRampToValueAtTime(0.001, t + delay + 1.5);
         o2.connect(g2); g2.connect(ctx.destination);
-        o2.start(gongT + delay); o2.stop(gongT + delay + 1.5);
+        o2.start(t + delay); o2.stop(t + delay + 1.5);
       });
     } catch(e) {}
   };
@@ -644,11 +644,7 @@ export default function Admin() {
   const declareWinner = () => {
     if(!window.confirm('Xác nhận CHÚC MỪNG CHIẾN THẮNG? Màn hình sẽ chuyển sang hiệu ứng vinh danh.')) return;
     if (victoryMediaFile) {
-      socket.emit('admin:victory_media', {
-        name: victoryMediaFile.name,
-        type: victoryMediaFile.type,
-        dataUrl: victoryMediaFile.dataUrl
-      });
+      socket.emit('admin:victory_media', victoryMediaFile);
     }
     socket.emit('admin:declare_winner');
   };
@@ -670,24 +666,50 @@ export default function Admin() {
      });
   };
 
+  // SỬA LỖI TRUYỀN BLOB THÀNH BASE64
   const handleIntroMediaUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const objectUrl = URL.createObjectURL(file);
-    setIntroMediaFile({ name: file.name, type: file.type, dataUrl: objectUrl });
+
+    if (file.size > 30 * 1024 * 1024) {
+      alert('Dung lượng file quá lớn! Vui lòng chọn file dưới 30MB để tránh kẹt mạng.');
+      e.target.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setIntroMediaFile({ name: file.name, type: file.type, dataUrl: event.target.result });
+    };
+    reader.readAsDataURL(file);
     e.target.value = '';
   };
 
   const handleVictoryMediaUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const objectUrl = URL.createObjectURL(file);
-    setVictoryMediaFile({ name: file.name, type: file.type, dataUrl: objectUrl });
+
+    if (file.size > 30 * 1024 * 1024) {
+      alert('Dung lượng file quá lớn! Vui lòng chọn file dưới 30MB để tránh kẹt mạng.');
+      e.target.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setVictoryMediaFile({ name: file.name, type: file.type, dataUrl: event.target.result });
+    };
+    reader.readAsDataURL(file);
     e.target.value = '';
   };
 
   const showIntroWithMedia = () => {
     socket.emit('admin:show_intro');
+    // GỬI FILE QUA MẠNG SANG STAGE
+    if (introMediaFile) {
+      socket.emit('admin:intro_media', introMediaFile);
+    }
+    // PHÁT TRÊN LOA CỦA ADMIN
     if (introMediaFile && introAudioRef.current) {
       introAudioRef.current.src = introMediaFile.dataUrl;
       introAudioRef.current.currentTime = 0;
@@ -767,7 +789,10 @@ export default function Admin() {
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-300 p-6 flex flex-col gap-6">
-      
+       
+       <audio ref={introAudioRef} className="hidden" />
+       <audio ref={victoryAudioRef} className="hidden" />
+
        <div className="flex items-center justify-between px-4 py-2 bg-slate-800/50 rounded-lg border border-slate-700/50">
           <div className="flex items-center gap-6">
              <div className="flex items-center gap-2">
