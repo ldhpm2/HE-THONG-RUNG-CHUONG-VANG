@@ -8,11 +8,12 @@ export default function Client() {
   const [sbd, setSbd] = useState('');
   const [pin, setPin] = useState('');
   const [isLogged, setIsLogged] = useState(false);
-  const [studentInfo, setStudentInfo] = useState(null); // { sbd, hoTen, status }
+  const [studentInfo, setStudentInfo] = useState(null); 
   const [errorMsg, setErrorMsg] = useState('');
   
   const [gameState, setGameState] = useState({
-    phase: 'idle', // idle, question_sent, timer_running, locked, answer_revealed
+    phase: 'idle', 
+    gameMode: 'elimination',
     question: null,
   });
 
@@ -24,15 +25,14 @@ export default function Client() {
     socket.on('game_state_update', (data) => {
       setGameState({
         phase: data.gamePhase,
+        gameMode: data.gameMode || 'elimination',
         question: data.currentQuestion
       });
-      // Update local status if available
       if (studentInfo) {
          const myInfo = data.students[studentInfo.sbd];
          if (myInfo) {
-           setStudentInfo(prev => ({...prev, status: myInfo.status}));
+           setStudentInfo(prev => ({...prev, status: myInfo.status, score: myInfo.score}));
          } else {
-           // Nếu không tìm thấy thông tin mình trong danh sách (do Admin xóa), tự động thoát
            setIsLogged(false);
            setStudentInfo(null);
            setErrorMsg('Thông tin thí sinh đã bị xóa khỏi hệ thống. Vui lòng kết nối lại.');
@@ -45,9 +45,21 @@ export default function Client() {
       setEliminatedMsg('Rất tiếc! Đáp án không chính xác hoặc bạn không kịp gửi bài.');
     });
 
+    // Cập nhật lại thông báo Pass dựa trên Mode
     socket.on('you_passed', () => {
-      setStudentInfo(prev => ({ ...prev, status: 'active' }));
-      setEliminatedMsg('Tuyệt vời! Bạn đã vượt qua câu hỏi này.');
+      if (gameState.gameMode === 'accumulation') {
+         setEliminatedMsg('Tuyệt vời! Bạn đã được cộng 10 điểm.');
+      } else {
+         setStudentInfo(prev => ({ ...prev, status: 'active' }));
+         setEliminatedMsg('Tuyệt vời! Bạn đã vượt qua câu hỏi này.');
+      }
+      setTimeout(() => setEliminatedMsg(''), 5000);
+    });
+
+    // Thêm event cho Mode 2
+    socket.on('you_missed', () => {
+      setEliminatedMsg('Rất tiếc! Đáp án của bạn chưa chính xác.');
+      setTimeout(() => setEliminatedMsg(''), 5000);
     });
 
     socket.on('you_are_rescued', () => {
@@ -62,7 +74,6 @@ export default function Client() {
       setStudentInfo(null);
     });
 
-    // Reset local answer state when new question is sent
     if (gameState.phase === 'question_sent' || gameState.phase === 'idle') {
       setSubmitted(false);
       setLocalAnswer('');
@@ -72,10 +83,11 @@ export default function Client() {
       socket.off('game_state_update');
       socket.off('you_are_eliminated');
       socket.off('you_passed');
+      socket.off('you_missed');
       socket.off('you_are_rescued');
       socket.off('force_logout');
     };
-  }, [studentInfo, gameState.phase]);
+  }, [studentInfo, gameState.phase, gameState.gameMode]);
 
   const handleLogin = (e) => {
     e.preventDefault();
@@ -93,8 +105,6 @@ export default function Client() {
   };
 
   const handleSelectAnswer = (ans) => {
-    // Chỉ cho phép chọn/đổi đáp án khi đồng hồ đang đếm ngược
-    // ĐÃ XÓA ĐIỀU KIỆN CHẶN "submitted" ĐỂ CHO PHÉP ĐỔI ĐÁP ÁN
     if (gameState.phase !== 'timer_running') return;
     
     socket.emit('student:submit_answer', { answer: ans }, (res) => {
@@ -109,7 +119,6 @@ export default function Client() {
 
   const handleSubmitText = (e) => {
     e.preventDefault();
-    // ĐÃ XÓA ĐIỀU KIỆN CHẶN "submitted"
     if (gameState.phase !== 'timer_running' || !localAnswer) return;
     
     socket.emit('student:submit_answer', { answer: localAnswer }, (res) => {
@@ -137,11 +146,7 @@ export default function Client() {
   if (!isLogged) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-slate-900 px-4">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-slate-800 p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-700"
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-slate-800 p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-700">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent">Rung Chuông Vàng</h1>
             <p className="text-slate-400 mt-2">Đăng nhập bằng số báo danh</p>
@@ -150,23 +155,11 @@ export default function Client() {
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="block text-slate-300 mb-2 font-medium">Số Báo Danh (SBD)</label>
-              <input 
-                type="text" 
-                value={sbd}
-                onChange={e => setSbd(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500 transition-all font-mono text-lg tracking-widest text-center"
-                placeholder="VD: 001"
-              />
+              <input type="text" value={sbd} onChange={e => setSbd(e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500 transition-all font-mono text-lg tracking-widest text-center" placeholder="VD: 001" />
             </div>
             <div>
               <label className="block text-slate-300 mb-2 font-medium">Mã PIN</label>
-              <input 
-                type="password" 
-                value={pin}
-                onChange={e => setPin(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500 transition-all font-mono text-lg tracking-widest text-center"
-                placeholder="****"
-              />
+              <input type="password" value={pin} onChange={e => setPin(e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500 transition-all font-mono text-lg tracking-widest text-center" placeholder="****" />
             </div>
             
             <AnimatePresence>
@@ -177,10 +170,7 @@ export default function Client() {
               )}
             </AnimatePresence>
 
-            <button 
-              type="submit" 
-              className="w-full mt-4 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-400 hover:to-yellow-500 text-slate-900 font-bold py-3 px-4 rounded-xl shadow-lg transform transition active:scale-95 flex items-center justify-center gap-2"
-            >
+            <button type="submit" className="w-full mt-4 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-400 hover:to-yellow-500 text-slate-900 font-bold py-3 px-4 rounded-xl shadow-lg transform transition active:scale-95 flex items-center justify-center gap-2">
               <LogIn className="w-5 h-5"/> Vào Phòng Thi
             </button>
           </form>
@@ -189,7 +179,8 @@ export default function Client() {
     );
   }
 
-  if (studentInfo?.status === 'eliminated' && !gameState.question?.isRescue && !gameState.question?.isAudience) {
+  // Không hiển thị màn hình bị loại nếu đang ở Mode 2 (Tích lũy điểm)
+  if (gameState.gameMode === 'elimination' && studentInfo?.status === 'eliminated' && !gameState.question?.isRescue && !gameState.question?.isAudience) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-red-950 px-6 text-center">
         <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="bg-red-900/50 p-8 rounded-3xl border border-red-500 max-w-sm">
@@ -204,7 +195,7 @@ export default function Client() {
     );
   }
 
-  if (studentInfo?.status === 'active' && gameState.question?.isRescue) {
+  if (gameState.gameMode === 'elimination' && studentInfo?.status === 'active' && gameState.question?.isRescue) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-green-950 px-6 text-center">
         <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="bg-green-900/50 p-8 rounded-3xl border border-green-500 max-w-sm">
@@ -225,17 +216,21 @@ export default function Client() {
           <p className="text-xs text-slate-400 uppercase tracking-widest">Thí sinh</p>
           <h3 className="font-bold text-lg text-white">{studentInfo.hoTen} <span className="text-yellow-500 ml-1">({studentInfo.sbd})</span></h3>
         </div>
-        <div className={`px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-2 ${
-           gameState.question?.isRescue ? 'bg-purple-500/20 text-purple-400' : 
-           gameState.question?.isAudience ? 'bg-orange-500/20 text-orange-400' :
-           'bg-green-500/20 text-green-400'
-        }`}>
-          <span className={`w-2 h-2 rounded-full animate-pulse ${
-             gameState.question?.isRescue ? 'bg-purple-500' : 
-             gameState.question?.isAudience ? 'bg-orange-500' :
-             'bg-green-500'
-          }`}></span>
-          {gameState.question?.isRescue ? 'Vòng Cứu Trợ' : (gameState.question?.isAudience ? 'Giao lưu Khán giả' : 'Đang thi đấu')}
+        <div className="flex flex-col items-end gap-2">
+          {/* HIỂN THỊ ĐIỂM SỐ NẾU Ở MODE 2 */}
+          {gameState.gameMode === 'accumulation' && (
+             <div className="text-right">
+                <div className="text-yellow-400 font-black text-2xl">{studentInfo.score || 0} <span className="text-sm text-slate-400 font-normal">Điểm</span></div>
+             </div>
+          )}
+          <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 ${
+             gameState.question?.isRescue ? 'bg-purple-500/20 text-purple-400' : 
+             gameState.question?.isAudience ? 'bg-orange-500/20 text-orange-400' :
+             'bg-green-500/20 text-green-400'
+          }`}>
+            <span className={`w-2 h-2 rounded-full animate-pulse ${gameState.question?.isRescue ? 'bg-purple-500' : gameState.question?.isAudience ? 'bg-orange-500' : 'bg-green-500'}`}></span>
+            {gameState.question?.isRescue ? 'Vòng Cứu Trợ' : (gameState.question?.isAudience ? 'Giao lưu Khán giả' : 'Đang thi đấu')}
+          </div>
         </div>
       </div>
 
@@ -246,7 +241,7 @@ export default function Client() {
             <h2 className="text-2xl font-semibold text-slate-300">Vui lòng chờ</h2>
             <p className="text-slate-500 mt-2">Ban tổ chức đang chuẩn bị câu hỏi...</p>
             {eliminatedMsg && (
-              <p className="text-success mt-4 font-bold text-lg">{eliminatedMsg}</p>
+              <p className="text-success mt-4 font-bold text-lg text-green-400">{eliminatedMsg}</p>
             )}
           </div>
         )}
@@ -308,14 +303,12 @@ export default function Client() {
                        } else if (isWrong) {
                          btnClass += "bg-red-500 border-red-700 text-white opacity-50";
                        } else if (gameState.phase === 'timer_running') {
-                         // Nếu đang tính giờ, nút được chọn sáng lên, nút khác vẫn sáng bình thường để dễ bấm đổi
                          if (isSelected) {
                            btnClass += "bg-yellow-500 border-yellow-700 text-slate-900 ring-4 ring-yellow-300 ring-offset-2 ring-offset-slate-800 scale-95";
                          } else {
                            btnClass += "bg-slate-700 border-slate-900 text-white hover:bg-slate-600 cursor-pointer active:scale-95";
                          }
                        } else {
-                         // Trạng thái đã khóa đáp án (Hết giờ / Chưa tính giờ)
                          if (isSelected) {
                            btnClass += "bg-yellow-500 border-yellow-700 text-slate-900 opacity-80 cursor-not-allowed";
                          } else {
@@ -327,7 +320,6 @@ export default function Client() {
                          <div
                            key={opt}
                            onClick={() => {
-                              // Khóa hẳn thao tác nếu đồng hồ KHÔNG chạy
                               if (gameState.phase === 'timer_running') {
                                 handleSelectAnswer(opt);
                               }
@@ -340,20 +332,17 @@ export default function Client() {
                      })}
                    </div>
                  ) : (
-                    // Short form text input
                     <form onSubmit={handleSubmitText} className="flex flex-col gap-4">
                       <input 
                         type="text"
                         value={localAnswer}
                         onChange={e => setLocalAnswer(e.target.value.toUpperCase())}
-                        // Bỏ chặn "submitted"
                         disabled={gameState.phase !== 'timer_running'}
                         placeholder="NHẬP ĐÁP ÁN..."
                         className="w-full bg-slate-900 border-2 border-slate-600 rounded-2xl text-4xl text-center py-6 text-white font-bold uppercase disabled:opacity-50 focus:border-yellow-500 focus:ring-0 outline-none transition-colors"
                       />
                       <button 
                         type="submit"
-                        // Bỏ chặn "submitted"
                         disabled={gameState.phase !== 'timer_running' || !localAnswer}
                         className="w-full bg-blue-600 text-white py-4 rounded-xl text-xl font-bold font-white uppercase shadow-md disabled:bg-slate-700 disabled:text-slate-500 transition-colors"
                       >
@@ -363,7 +352,6 @@ export default function Client() {
                  )}
                </div>
 
-               {/* Feedback Message */}
                <div className="mt-8 text-center min-h-[40px]">
                   {submitted && gameState.phase === 'timer_running' && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center">

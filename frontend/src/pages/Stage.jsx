@@ -9,7 +9,8 @@ import { isYouTubeURL, getYouTubeEmbedURL } from '../utils/videoUtils';
 
 export default function Stage() {
   const [gameState, setGameState] = useState({
-    phase: 'idle', // idle, showing_intro, showing_rules, showing_custom, question_sent, timer_running, locked, answer_revealed
+    phase: 'idle',
+    gameMode: 'elimination',
     question: null,
     customMessage: '',
     students: JSON.parse(localStorage.getItem('stage_students') || '{}'),
@@ -36,18 +37,12 @@ export default function Stage() {
   const mediaRef = useRef(null);        
   const rafRef = useRef(null);         
 
-  // --- STATE TĂNG GIẢM CỠ CHỮ THỜI GIAN THỰC ---
   const [fontSizeModifier, setFontSizeModifier] = useState(0);
-
-  // --- INTRO MEDIA ---
   const [introMediaData, setIntroMediaData] = useState(null); 
   const introMediaRef = useRef(null); 
-
-  // --- VICTORY MEDIA ---
   const [victoryMediaData, setVictoryMediaData] = useState(null); 
   const victoryMediaRef = useRef(null);
 
-  // Lắng nghe lệnh đổi cỡ chữ từ Admin
   useEffect(() => {
     socket.on('stage:change_font_size', (data) => {
       setFontSizeModifier(prev => {
@@ -60,13 +55,11 @@ export default function Stage() {
     return () => socket.off('stage:change_font_size');
   }, []);
 
-  // Tự động reset cỡ chữ về mặc định khi chuyển qua câu hỏi mới
   useEffect(() => {
     setFontSizeModifier(0);
   }, [gameState.question?.id]);
 
 
-  // Tieng TICK co hoc - khop 1 lan/giay voi dong ho
   const playTick = (urgent = false) => {
     try {
       if (!isLocalAudioUnlocked) return;
@@ -292,6 +285,7 @@ export default function Stage() {
           }
           return {
             phase: data.gamePhase,
+            gameMode: data.gameMode || 'elimination',
             question: data.currentQuestion,
             students: data.students,
             isSoundEnabled: data.isSoundEnabled,
@@ -434,7 +428,6 @@ export default function Stage() {
   const studentsList = Object.values(gameState.students).sort((a,b) => parseInt(a.sbd) - parseInt(b.sbd));
   const { phase, question } = gameState;
 
-  // --- HÀM RENDER MIXED TEXT & LATEX ---
   const renderMixedText = (text) => {
     if (!text) return null;
     const restoreLatex = (str) => typeof str === 'string' ? str.replace(/\f/g, '\\f').replace(/\v/g, '\\v') : str;
@@ -455,7 +448,6 @@ export default function Stage() {
     );
   };
 
-  // --- HÀM TÍNH TOÁN KÍCH THƯỚC CHỮ TỰ ĐỘNG ---
   const getUnifiedSizeStyle = (questionObj, modifier) => {
     let clampStr = 'clamp(1.8rem,4.5vh,3rem)';
     let lh = 1.5;
@@ -496,7 +488,6 @@ export default function Stage() {
 
   return (
     <div className="h-screen bg-[#020617] text-white flex flex-col font-sans overflow-hidden">
-      {/* HEADER LOGO */}
       <header className="fixed top-0 left-0 w-full flex items-center justify-center py-2 bg-slate-950 shadow-[0_4px_30px_rgba(0,0,0,1)] border-b border-slate-800 z-[100] backdrop-blur-md">
          <div className="flex items-center gap-4">
             <motion.img src={logoBell} alt="Logo" className="w-10 h-10 md:w-14 md:h-14 drop-shadow-[0_0_20px_rgba(250,204,21,0.7)]" animate={{ rotate: [0, -10, 10, -10, 10, 0] }} transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}/>
@@ -508,10 +499,8 @@ export default function Stage() {
       </header>
 
       <div className="flex-1 flex flex-row p-4 pt-20 gap-6 relative overflow-hidden">
-         {/* MAIN STAGE (LEFT PANEL - 3/4) */}
          <div className="w-3/4 flex flex-col items-center justify-center relative min-h-0">
              <AnimatePresence mode="wait">
-                {/* INTRO SCREEN */}
                 {phase === 'showing_intro' && (
                   <motion.div key="intro" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full h-full flex flex-col items-center relative overflow-hidden bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black rounded-3xl">
                     <div className="absolute top-10 left-0 w-full z-20 flex flex-col items-center text-center">
@@ -549,7 +538,6 @@ export default function Stage() {
                   </motion.div>
                 )}
 
-                {/* IDLE / WELCOME SCREEN */}
                 {phase === 'idle' && (
                     <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full h-full flex flex-col items-center justify-center p-8">
                         <div className="flex gap-16 items-center justify-center mb-12">
@@ -579,7 +567,6 @@ export default function Stage() {
                     </motion.div>
                 )}
 
-                {/* RULES SCREEN */}
                 {phase === 'showing_rules' && (
                   <motion.div key="rules" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.1 }} className="w-full h-full flex flex-col items-center justify-center p-4 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-900/40 via-slate-950 to-black rounded-3xl border border-indigo-500/30 shadow-[0_0_100px_rgba(79,70,229,0.1)] relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none opacity-20">
@@ -617,7 +604,6 @@ export default function Stage() {
                   </motion.div>
                 )}
 
-                {/* CUSTOM CONTENT SCREEN */}
                 {phase === 'showing_custom' && (
                   <motion.div key="custom" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full h-full flex flex-col items-center justify-center p-12 bg-slate-950 rounded-3xl border border-blue-500/20 shadow-2xl relative overflow-hidden">
                     <div className="absolute inset-0 opacity-10 pointer-events-none">
@@ -636,7 +622,6 @@ export default function Stage() {
                   </motion.div>
                 )}
 
-                {/* WINNER DECLARED SCREEN */}
                  {phase === 'winner_declared' && (
                   <motion.div key="winner" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.2 }} className="w-full h-full flex flex-col items-center justify-center p-12 bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 rounded-3xl border-4 border-yellow-500/50 shadow-[0_0_50px_rgba(234,179,8,0.3)] relative overflow-hidden">
                     {[...Array(20)].map((_, i) => (
@@ -654,7 +639,6 @@ export default function Stage() {
                   </motion.div>
                 )}
 
-                {/* 3. QUESTION / PLAYING SCREEN (LAYOUT GÓC TRÁI, NGANG HÀNG) */}
                 {!['idle', 'showing_intro', 'showing_rules', 'showing_custom', 'winner_declared'].includes(phase) && (
                    <motion.div 
                      key={`question-${question?.id || 'none'}`} 
@@ -663,32 +647,22 @@ export default function Stage() {
                      exit={{ opacity: 0, x: -100 }}
                      className="w-full h-full flex flex-col bg-slate-800/80 rounded-3xl border border-slate-700 p-6 pt-10 shadow-2xl backdrop-blur-md relative overflow-hidden"
                    >
-                       {/* Status Badge */}
                        <div className="absolute top-4 left-6 z-30">
-                          {question?.isRescue && (
-                            <div className="bg-purple-600 text-white px-6 py-2 rounded-full font-black shadow-lg border-2 border-purple-400 animate-pulse uppercase tracking-widest text-xl">Vòng Cứu Trợ</div>
-                          )}
-                          {question?.isAudience && (
-                            <div className="bg-orange-600 text-white px-6 py-2 rounded-full font-black shadow-lg border-2 border-orange-400 animate-bounce uppercase tracking-widest text-xl">Câu Hỏi Khán Giả</div>
-                          )}
+                          {question?.isRescue && <div className="bg-purple-600 text-white px-6 py-2 rounded-full font-black shadow-lg border-2 border-purple-400 animate-pulse uppercase tracking-widest text-xl">Vòng Cứu Trợ</div>}
+                          {question?.isAudience && <div className="bg-orange-600 text-white px-6 py-2 rounded-full font-black shadow-lg border-2 border-orange-400 animate-bounce uppercase tracking-widest text-xl">Câu Hỏi Khán Giả</div>}
                        </div>
 
-                       {/* Timer Circle */}
                        <div className="absolute top-0 right-0 w-20 h-20 bg-slate-900/80 rounded-full border-4 border-slate-600 flex items-center justify-center z-20 shadow-xl backdrop-blur-sm">
                           <span className={`text-4xl font-black font-mono tracking-tighter ${phase === 'timer_running' && timeLeft <= 5 ? 'text-red-500 animate-ping' : phase === 'timer_running' ? 'text-yellow-400' : 'text-slate-500'}`}>
                             {phase === 'timer_running' ? timeLeft : (phase === 'locked' || phase === 'answer_revealed' ? '00' : '⏳')}
                           </span>
                        </div>
 
-                       {/* Question Content Wrapper */}
                        <div className="flex-1 flex flex-col items-center justify-center min-h-0 w-full mt-4 px-2">
-                           
-                           {/* 1. Đề Bài */}
                            <div className="font-semibold text-slate-100 flex-shrink-0 whitespace-pre-wrap text-justify [text-align-last:center] max-w-[95%] px-6 w-full transition-all duration-300" style={unifiedStyle}>
                                {renderMixedText(question?.content)}
                            </div>
   
-                           {/* 2. Media Renderer */}
                            {question?.mediaType !== 'none' && question?.mediaUrl && (
                               <div className="w-full max-w-4xl mt-4 rounded-2xl overflow-hidden border border-slate-700 bg-black/40 flex items-center justify-center relative" style={{ height: '35vh', minHeight: '200px' }}>
                                  {question.mediaType === 'video' && (
@@ -708,7 +682,6 @@ export default function Stage() {
                               </div>
                            )}
   
-                           {/* 3. Đáp án Trắc nghiệm (BỐ CỤC CHỮ CÁI GÓC TRÁI MỚI) */}
                            {question?.type === 'mcq' && (
                              <div className="flex-shrink-0 grid grid-cols-2 gap-4 mt-6 w-full max-w-[95%]">
                                 {['A', 'B', 'C', 'D'].map(opt => {
@@ -724,29 +697,14 @@ export default function Stage() {
                                           'bg-slate-700/50 border-slate-600 text-slate-300'
                                         }`}
                                      >
-                                        {/* Huy hiệu chữ cái A, B, C, D (Góc trái) */}
-                                        <div 
-                                          className={`flex-shrink-0 mr-4 rounded-xl font-black shadow-md flex items-center justify-center px-4 py-2 border-2 transition-all duration-300 ${
-                                            isCorrect ? 'bg-white border-transparent text-green-600' : 'bg-slate-800 border-slate-600 text-yellow-400'
-                                          }`}
-                                          style={{ fontSize: `calc(clamp(1.5rem, 3.5vh, 2.5rem) + ${fontSizeModifier * 0.25}rem)` }}
-                                        >
-                                          {opt}
-                                        </div>
-                                        
-                                        {/* Nội dung đáp án (Ngang hàng) */}
-                                        {question[`option${opt}`] && (
-                                          <div className={`text-left whitespace-pre-wrap transition-all duration-300 flex-1 pt-1 ${isCorrect ? 'text-white' : 'text-slate-100'}`} style={unifiedStyle}>
-                                            {renderMixedText(question[`option${opt}`])}
-                                          </div>
-                                        )}
+                                        <div className={`flex-shrink-0 mr-4 rounded-xl font-black shadow-md flex items-center justify-center px-4 py-2 border-2 transition-all duration-300 ${isCorrect ? 'bg-white border-transparent text-green-600' : 'bg-slate-800 border-slate-600 text-yellow-400'}`} style={{ fontSize: `calc(clamp(1.5rem, 3.5vh, 2.5rem) + ${fontSizeModifier * 0.25}rem)` }}>{opt}</div>
+                                        {question[`option${opt}`] && (<div className={`text-left whitespace-pre-wrap transition-all duration-300 flex-1 pt-1 ${isCorrect ? 'text-white' : 'text-slate-100'}`} style={unifiedStyle}>{renderMixedText(question[`option${opt}`])}</div>)}
                                      </div>
                                    );
                                 })}
                              </div>
                            )}
                            
-                           {/* Đáp án tự luận */}
                            {question?.type === 'short' && phase === 'answer_revealed' && (
                              <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex-shrink-0 self-center mt-6 px-12 py-4 bg-green-500 rounded-full border-4 border-green-400 shadow-[0_0_50px_rgba(34,197,94,0.6)] text-center">
                                 <span className="text-green-900 font-bold uppercase tracking-widest block mb-1 text-sm">Đáp án chính xác</span>
@@ -760,14 +718,18 @@ export default function Stage() {
              </AnimatePresence>
          </div>
 
-         {/* LƯỚI THÍ SINH (RIGHT PANEL) */}
+         {/* LƯỚI THÍ SINH (RIGHT PANEL) - ÁP DỤNG DUAL MODE */}
          <div className="w-1/4 flex flex-col bg-slate-900/50 rounded-2xl border border-slate-800 p-3 shadow-2xl backdrop-blur-md overflow-hidden text-white">
              <div className="flex flex-col mb-4 flex-shrink-0">
-               <h2 className="text-2xl font-black uppercase text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-yellow-500 tracking-tight mb-3 drop-shadow-[0_0_10px_rgba(234,179,8,0.3)] text-center w-full">Sàn Thi Đấu</h2>
+               <h2 className="text-2xl font-black uppercase text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-yellow-500 tracking-tight mb-3 drop-shadow-[0_0_10px_rgba(234,179,8,0.3)] text-center w-full">
+                 Sàn Thi Đấu
+               </h2>
                <div className="flex justify-between items-center text-[10px] font-bold opacity-80 border-b border-slate-800 pb-2">
                   <div className="flex gap-3">
                     <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]"></div> Đang Thi</div>
-                    <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm bg-red-900 shadow-[0_0_5px_rgba(153,27,27,0.5)]"></div> Loại</div>
+                    {gameState.gameMode === 'elimination' && (
+                       <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm bg-red-900 shadow-[0_0_5px_rgba(153,27,27,0.5)]"></div> Loại</div>
+                    )}
                     <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-yellow-400 shadow-[0_0_5px_rgba(250,204,21,0.5)]"></div> Đăng Nhập</div>
                   </div>
                   <div className="bg-slate-800/50 px-2 py-0.5 rounded text-slate-300 font-mono">
@@ -785,13 +747,19 @@ export default function Stage() {
                      animate={{ scale: 1, opacity: 1 }}
                      transition={{ delay: i * 0.002 }}
                      className={`aspect-square rounded-md flex items-center justify-center font-black text-[18px] md:text-[22px] border-2 transition-all duration-500 ${
-                       st.status === 'active' 
-                         ? 'bg-green-500 text-green-950 border-green-400 shadow-[0_4px_10px_rgba(34,197,94,0.3)]' 
-                         : 'bg-red-900 text-red-200 border-red-800 shadow-[inset_0_2px_4px_rgba(0,0,0,0.6)]'
+                       gameState.gameMode === 'accumulation'
+                         ? 'bg-blue-900/60 text-blue-100 border-blue-500/50 shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)]'
+                         : (st.status === 'active' 
+                             ? 'bg-green-500 text-green-950 border-green-400 shadow-[0_4px_10px_rgba(34,197,94,0.3)]' 
+                             : 'bg-red-900 text-red-200 border-red-800 shadow-[inset_0_2px_4px_rgba(0,0,0,0.6)]')
                      } ${phase === 'locked' && st.status==='active' && st.hasAnswered ? 'ring-2 ring-yellow-400 scale-110 z-10' : ''}`}
                    >
                      <div className="flex flex-col items-center leading-none mt-0.5">
                        <span>{st.sbd}</span>
+                       {/* HIỂN THỊ ĐIỂM SỐ NẾU Ở MODE 2 */}
+                       {gameState.gameMode === 'accumulation' && (
+                         <span className="text-[12px] text-yellow-400 mt-1 font-bold">{st.score || 0}đ</span>
+                       )}
                        {st.online && <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full mt-0.5 shadow-[0_0_5px_rgba(250,204,21,0.8)]"></div>}
                      </div>
                      {st.status === 'active' && st.hasAnswered && phase !== 'idle' && (
@@ -806,14 +774,12 @@ export default function Stage() {
          </div>
       </div>
       
-      {/* Progress Bar */}
       <div className="h-2 w-full bg-slate-900 border-t border-slate-800 flex-shrink-0">
          {phase === 'timer_running' && (
             <motion.div initial={{ width: '100%' }} animate={{ width: '0%' }} transition={{ duration: question.time || 15, ease: 'linear' }} className="h-full bg-gradient-to-r from-yellow-400 to-red-500" />
          )}
       </div>
       
-      {/* CAMERA OVERLAY */}
       <AnimatePresence>
         {isCameraActive && (
           <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="fixed inset-0 z-[200] bg-black flex items-center justify-center">

@@ -16,6 +16,7 @@ export default function Admin() {
   
   const [gameState, setGameState] = useState({
     phase: 'idle',
+    gameMode: 'elimination',
     question: null,
     students: JSON.parse(localStorage.getItem('admin_students') || '{}'),
     isSoundEnabled: true
@@ -33,23 +34,21 @@ export default function Admin() {
   const [editingIndex, setEditingIndex] = useState(null);
   const [questionDraft, setQuestionDraft] = useState({
     content: '',
-    type: 'mcq', // mcq, short
-    options: ['A', 'B', 'C', 'D'], // For displaying UI
+    type: 'mcq', 
+    options: ['A', 'B', 'C', 'D'], 
     optionA: '',
     optionB: '',
     optionC: '',
     optionD: '',
     correct: 'A',
-    mediaType: 'none', // none, image, video, audio
+    mediaType: 'none', 
     mediaUrl: '',
     time: 40
   });
 
-  // --- GOOGLE DRIVE STATE ---
   const [driveStudentLoading, setDriveStudentLoading] = useState(false);
   const [driveQuestionLoading, setDriveQuestionLoading] = useState(false);
 
-  // --- CAMERA STREAM STATE ---
   const [isCameraActive, setIsCameraActive] = useState(false);
   const localStreamRef = useRef(null);
   const pcRef = useRef(null);
@@ -57,22 +56,19 @@ export default function Admin() {
   const canvasRef = useRef(null);
   const frameIntervalRef = useRef(null);
   
-  // --- INTRO MEDIA ---
-  const [introMediaFile, setIntroMediaFile] = useState(null); // { name, type, dataUrl }
+  const [introMediaFile, setIntroMediaFile] = useState(null); 
   const introMediaInputRef = useRef(null);
-  const introAudioRef = useRef(null); // Phát nhạc cục bộ trên máy Admin
+  const introAudioRef = useRef(null); 
 
-  // --- VICTORY MEDIA ---
-  const [victoryMediaFile, setVictoryMediaFile] = useState(null); // { name, type, dataUrl }
+  const [victoryMediaFile, setVictoryMediaFile] = useState(null); 
   const victoryMediaInputRef = useRef(null);
-  const victoryAudioRef = useRef(null); // Phát nhạc cục bộ trên máy Admin
+  const victoryAudioRef = useRef(null); 
 
-  // --- SOUND SYSTEM ---
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
   const audioCtxRef = useRef(null);
   const scheduledTicksRef = useRef([]);
-  const timerEndRef = useRef(null);      // Lưu mốc timestamp (ms) hết giờ
-  const lastScheduledRef = useRef(null); // Tránh schedule lặp lại âm thanh
+  const timerEndRef = useRef(null);      
+  const lastScheduledRef = useRef(null); 
   const [serverInfo, setServerInfo] = useState({ ip: 'localhost', port: '4000', url: '' });
 
   const playTick = (urgent = false) => {
@@ -235,30 +231,21 @@ export default function Admin() {
     setIsAudioEnabled(!isAudioEnabled);
   };
 
-  // EFFECT: ĐỒNG BỘ ÂM THANH MÁY ADMIN (Self-healing mechanism)
   useEffect(() => {
-    // 1. Đồng bộ Tiếng Tích Tắc Đếm Ngược
     const shouldPlayTicks = gameState.phase === 'timer_running' && isAudioEnabled && timerEndRef.current;
-
     if (shouldPlayTicks) {
-      // Lấy thời gian còn lại thực tế dựa trên mốc đã lưu và giờ hệ thống hiện tại
       const remaining = Math.max(0, Math.ceil((timerEndRef.current - Date.now()) / 1000));
-      
-      // Nếu chưa xếp lịch (schedule) cho mốc thời gian này thì mới chạy
       if (remaining > 0 && lastScheduledRef.current !== timerEndRef.current) {
         lastScheduledRef.current = timerEndRef.current;
         cancelAllTicks();
         scheduleAllTicks(remaining, 5);
       }
     } else {
-      // Hủy lịch âm thanh nếu bị khóa, hết giờ hoặc tắt loa
       if (lastScheduledRef.current !== null) {
         lastScheduledRef.current = null;
         cancelAllTicks();
       }
     }
-
-    // 2. Đồng bộ Tiếng Bíp báo Đáp Án đúng
     if (isAudioEnabled && gameState.phase === 'answer_revealed') {
       cancelAllTicks();
       playCorrect();
@@ -268,7 +255,6 @@ export default function Admin() {
   useEffect(() => {
     const handleConnect = () => {
       setIsConnected(true);
-      // Tự động login lại khi socket kết nối (hoặc kết nối lại)
       const savedPass = localStorage.getItem('admin_password');
       if (savedPass) {
         socket.emit('admin:login', { password: savedPass }, (res) => {
@@ -279,8 +265,6 @@ export default function Admin() {
             setIsAdminAuthenticated(false);
           }
         });
-
-        // Lấy thông tin Server IP cho QR Code
         socket.emit('admin:get_server_info', (info) => {
           setServerInfo(info);
         });
@@ -298,19 +282,16 @@ export default function Admin() {
 
     socket.on('admin_state_update', (data) => {
       setGameState(prevState => {
-        // Ghi nhận mốc thời gian kết thúc khi server báo bắt đầu chạy timer
         if (data.gamePhase === 'timer_running' && prevState.phase !== 'timer_running') {
-            const duration = data.currentQuestion?.time || 30; // Mặc định 30s nếu thiếu data
+            const duration = data.currentQuestion?.time || 30; 
             timerEndRef.current = Date.now() + duration * 1000;
         }
-
-        // Xóa mốc thời gian nếu không ở phase đếm ngược
         if (['locked', 'idle', 'question_sent', 'showing_intro', 'showing_rules', 'showing_custom'].includes(data.gamePhase)) {
             timerEndRef.current = null;
         }
-
         return {
           phase: data.gamePhase,
+          gameMode: data.gameMode || 'elimination',
           question: data.currentQuestion,
           students: data.students,
           isSoundEnabled: data.isSoundEnabled,
@@ -393,10 +374,7 @@ export default function Admin() {
       setIsCameraActive(true);
       socket.emit('admin:camera_status', { active: true });
 
-      // Chờ Stage kịp xử lý camera_status trước khi nhận SDP offer
       await new Promise(resolve => setTimeout(resolve, 300));
-
-      // Nếu trong lúc chờ, user đã tắt camera
       if (!localStreamRef.current) return;
 
       const pc = new RTCPeerConnection({
@@ -485,7 +463,7 @@ export default function Admin() {
       socket.emit('admin:upload_students', students, (res) => {
         if(res.success) {
           alert(`Đã tải lên ${res.count} thí sinh!`);
-          e.target.value = ''; // Reset input để có thể nạp lại cùng file nếu cần
+          e.target.value = ''; 
         } else {
           alert('Lỗi máy chủ: ' + (res.message || 'Không rõ nguyên nhân'));
         }
@@ -510,7 +488,6 @@ export default function Admin() {
         questions = await parseExcelQuestions(file);
       }
       
-      // Post-process: Auto-detect media types
       questions = questions.map(q => {
         const currentQuestion = { ...q };
         if (isYouTubeURL(currentQuestion.mediaUrl)) {
@@ -533,20 +510,17 @@ export default function Admin() {
     }
   };
 
-  // ─── Google Drive: Tải danh sách thí sinh ──────────────────────────────────
   const handleStudentFromDrive = async () => {
     setDriveStudentLoading(true);
     try {
       const file = await pickAndDownloadDriveFile({
         mimeTypes: [
-          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
-          'application/vnd.ms-excel', // .xls
-          'application/vnd.google-apps.spreadsheet' // Google Sheets
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 
+          'application/vnd.ms-excel', 
+          'application/vnd.google-apps.spreadsheet' 
         ],
         title: 'Chọn file Danh Sách Thí Sinh từ Google Drive'
       });
-
-      // Google Sheets and Docs will now be automatically exported inside pickAndDownloadDriveFile
 
       const students = await parseExcelStudentList(file);
       if (students.length === 0) {
@@ -575,22 +549,19 @@ export default function Admin() {
     }
   };
 
-  // ─── Google Drive: Tải câu hỏi ──────────────────────────────────────────────
   const handleQuestionFromDrive = async () => {
     setDriveQuestionLoading(true);
     try {
       const file = await pickAndDownloadDriveFile({
         mimeTypes: [
-          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
-          'application/vnd.ms-excel', // .xls
-          'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
-          'application/json', // .json
-          'application/vnd.google-apps.spreadsheet' // Google Sheets
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 
+          'application/vnd.ms-excel', 
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 
+          'application/json', 
+          'application/vnd.google-apps.spreadsheet' 
         ],
         title: 'Chọn file Câu Hỏi từ Google Drive'
       });
-
-      // Google Sheets and Docs will now be automatically exported inside pickAndDownloadDriveFile
 
       let questions = [];
       if (file.name.endsWith('.docx')) {
@@ -602,7 +573,6 @@ export default function Admin() {
         questions = await parseExcelQuestions(file);
       }
 
-      // Post-process: Auto-detect media types
       questions = questions.map(q => ({
         ...q,
         mediaType: isYouTubeURL(q.mediaUrl) ? 'video' : q.mediaType
@@ -644,12 +614,9 @@ export default function Admin() {
 
   const handleAddManualQuestion = () => {
     if (!questionDraft.content) return alert("Vui lòng nhập nội dung câu hỏi!");
-    const newQuestion = {
-       ...questionDraft,
-       id: questionsList.length + 1
-    };
+    const newQuestion = { ...questionDraft, id: questionsList.length + 1 };
     setQuestionsList([...questionsList, newQuestion]);
-    setCurrentIndex(questionsList.length); // Chuyển đến câu vừa thêm
+    setCurrentIndex(questionsList.length); 
     alert(`Đã thêm Câu ${newQuestion.id} vào danh sách!`);
   };
 
@@ -664,7 +631,6 @@ export default function Admin() {
 
   const handleMediaUrlChange = (value) => {
     let newDraft = { ...questionDraft, mediaUrl: value };
-    // Tự động nhận diện YouTube
     if (isYouTubeURL(value)) {
       newDraft.mediaType = 'video';
     }
@@ -676,12 +642,10 @@ export default function Admin() {
     let newIndex = currentIndex + dir;
     if (newIndex < 0) newIndex = 0;
     if (newIndex >= questionsList.length) newIndex = questionsList.length - 1;
-    
     setCurrentIndex(newIndex);
     setQuestionDraft(questionsList[newIndex]);
   };
 
-  // Các thao tác điều khiển
   const pushQuestion = () => {
     if(!questionDraft.content) return alert('Chưa nhập nội dung câu hỏi');
     socket.emit('admin:push_question', { question: questionDraft });
@@ -725,13 +689,8 @@ export default function Admin() {
   const handleIntroMediaUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    // Tạo ObjectURL - chỉ tồn tại trong browser này, không gửi lên server
     const objectUrl = URL.createObjectURL(file);
-    setIntroMediaFile({
-      name: file.name,
-      type: file.type,
-      dataUrl: objectUrl
-    });
+    setIntroMediaFile({ name: file.name, type: file.type, dataUrl: objectUrl });
     e.target.value = '';
   };
 
@@ -739,18 +698,12 @@ export default function Admin() {
     const file = e.target.files[0];
     if (!file) return;
     const objectUrl = URL.createObjectURL(file);
-    setVictoryMediaFile({
-      name: file.name,
-      type: file.type,
-      dataUrl: objectUrl
-    });
+    setVictoryMediaFile({ name: file.name, type: file.type, dataUrl: objectUrl });
     e.target.value = '';
   };
 
   const showIntroWithMedia = () => {
-    // Chỉ gửi lệnh đổi phase, không gửi file qua mạng (tránh crash server)
     socket.emit('admin:show_intro');
-    // Phát nhạc cục bộ trên máy Admin nếu có file
     if (introMediaFile && introAudioRef.current) {
       introAudioRef.current.src = introMediaFile.dataUrl;
       introAudioRef.current.currentTime = 0;
@@ -782,20 +735,14 @@ export default function Admin() {
 
   const renderMixedText = (text) => {
     if (!text) return null;
-
-    // Khôi phục các ký tự thoát bị trình duyệt hiểu nhầm (VD: \v trong \vec, \f trong \forall)
     const restoreLatex = (str) => {
       if (typeof str !== 'string') return str;
       return str.replace(/\f/g, '\\f').replace(/\v/g, '\\v');
     };
-
     let processedText = restoreLatex(text);
-
-    // Tự động nhận diện công thức: Nếu có dấu \ nhưng thiếu dấu $, tự động bao quanh $
     if (!processedText.includes('$') && processedText.includes('\\')) {
        processedText = `$${processedText}$`;
     }
-
     return (
       <MathJax dynamic>
         <span className="whitespace-pre-wrap">{processedText}</span>
@@ -843,6 +790,26 @@ export default function Admin() {
              </div>
           </div>
           <div className="flex items-center gap-4">
+             {/* GAME MODE CONTROLS */}
+             <div className="flex items-center gap-2 bg-slate-900/50 px-3 py-1 rounded-full border border-slate-700/50">
+                <span className="text-[10px] text-slate-400 uppercase font-bold mr-1">Chế độ thi:</span>
+                <select 
+                  value={gameState.gameMode}
+                  onChange={(e) => {
+                    if (gameState.phase !== 'idle') {
+                      alert('Chỉ được đổi chế độ thi khi ở màn hình chờ (0. Bắt đầu)');
+                      return;
+                    }
+                    socket.emit('admin:change_mode', { mode: e.target.value }, (res) => {
+                      if(res && !res.success) alert(res.message);
+                    });
+                  }}
+                  className="bg-slate-800 text-yellow-400 text-[10px] font-bold px-2 py-1 rounded border border-slate-600 outline-none cursor-pointer"
+                >
+                  <option value="elimination">1. Loại Trực Tiếp</option>
+                  <option value="accumulation">2. Tích Lũy Điểm</option>
+                </select>
+             </div>
              {/* FONT SIZE CONTROLS */}
              <div className="flex items-center gap-2 bg-slate-900/50 px-3 py-1 rounded-full border border-slate-700/50">
                 <span className="text-[10px] text-slate-400 uppercase font-bold mr-1">Cỡ chữ Stage:</span>
@@ -862,27 +829,18 @@ export default function Admin() {
       <div className="w-full md:w-1/3 flex flex-col gap-6">
         
         {/* Module Upload */}
-        {/* Module Upload Thí Sinh */}
         <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
           <h3 className="text-xl font-bold text-white mb-4 flex items-center"><Upload className="mr-2"/> Dữ Liệu Thí Sinh</h3>
           
-          {/* Chọn từ Thiết bị (Excel) */}
           <div>
             <label className="block text-xs uppercase text-slate-500 font-bold mb-2 tracking-wider">📂 Từ thiết bị (Excel)</label>
             <input type="file" accept=".xlsx,.xls,.csv" onChange={handleStudentUpload} className="w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer" />
           </div>
 
-          {/* Chọn từ Google Drive */}
           <div className="mt-4">
             <label className="block text-xs uppercase text-slate-500 font-bold mb-2 tracking-wider">☁️ Từ Google Drive</label>
-            <button
-              onClick={handleStudentFromDrive}
-              disabled={driveStudentLoading}
-              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#1a73e8] hover:bg-[#1558b0] disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold text-sm transition-all active:scale-95 shadow-md"
-            >
-              {driveStudentLoading
-                ? <><Loader2 className="w-4 h-4 animate-spin" /> Đang tải.....</>
-                : <><FolderOpen className="w-4 h-4" /> Chọn file từ Google Drive</>}
+            <button onClick={handleStudentFromDrive} disabled={driveStudentLoading} className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#1a73e8] hover:bg-[#1558b0] disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold text-sm transition-all active:scale-95 shadow-md">
+              {driveStudentLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Đang tải.....</> : <><FolderOpen className="w-4 h-4" /> Chọn file từ Google Drive</>}
             </button>
           </div>
 
@@ -896,14 +854,7 @@ export default function Admin() {
         <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg flex-1 overflow-y-auto max-h-[650px] custom-scrollbar">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-sm font-black uppercase text-slate-500 tracking-wider">Mô-đun Câu Hỏi (Draft)</h3>
-            <button 
-              onClick={() => {
-                if(window.confirm('Bạn có chắc chắn muốn xóa TOÀN BỘ danh sách câu hỏi đã tải?')) {
-                   setQuestionsList([]);
-                }
-              }} 
-              className="px-2 py-1 text-[10px] font-bold bg-red-900/30 text-red-500 hover:bg-red-900/50 rounded-md border border-red-900/30 transition flex items-center gap-1 uppercase"
-            >
+            <button onClick={() => { if(window.confirm('Bạn có chắc chắn muốn xóa TOÀN BỘ danh sách câu hỏi đã tải?')) setQuestionsList([]); }} className="px-2 py-1 text-[10px] font-bold bg-red-900/30 text-red-500 hover:bg-red-900/50 rounded-md border border-red-900/30 transition flex items-center gap-1 uppercase">
               <Trash2 size={12}/> Xóa tất cả
             </button>
           </div>
@@ -918,22 +869,7 @@ export default function Admin() {
                  <Plus size={14}/> Thêm câu mới
                </button>
              )}
-             <button 
-                onClick={() => {
-                  setEditingIndex(null);
-                  setQuestionDraft({
-                    content: '',
-                    type: 'mcq',
-                    options: ['A', 'B', 'C', 'D'],
-                    optionA: '', optionB: '', optionC: '', optionD: '',
-                    correct: 'A',
-                    mediaType: 'none',
-                    mediaUrl: '',
-                    time: 30
-                  });
-                }} 
-                className="bg-slate-700 hover:bg-slate-600 text-slate-100 font-bold py-2 px-3 rounded-lg transition-all shadow-md active:scale-95 text-xs flex items-center justify-center gap-2"
-              >
+             <button onClick={() => { setEditingIndex(null); setQuestionDraft({ content: '', type: 'mcq', options: ['A', 'B', 'C', 'D'], optionA: '', optionB: '', optionC: '', optionD: '', correct: 'A', mediaType: 'none', mediaUrl: '', time: 30 }); }} className="bg-slate-700 hover:bg-slate-600 text-slate-100 font-bold py-2 px-3 rounded-lg transition-all shadow-md active:scale-95 text-xs flex items-center justify-center gap-2">
                 <RotateCcw size={14}/> Làm mới
              </button>
           </div>
@@ -943,46 +879,30 @@ export default function Admin() {
                 <FileDown size={14}/> Xuất File (Backup)
              </button>
              <label className="bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-3 rounded-lg transition-all shadow-md active:scale-95 text-xs flex items-center justify-center gap-2 cursor-pointer">
-                <Upload size={14}/> Nạp từ thiết bị
+                <Upload size={14}/> Nạp thiết bị
                 <input type="file" accept=".xlsx,.xls,.csv,.docx,.json" onChange={handleQuestionUpload} className="hidden" />
              </label>
           </div>
 
-          {/* Nút chọn câu hỏi từ Google Drive */}
-          <button
-            onClick={handleQuestionFromDrive}
-            disabled={driveQuestionLoading}
-            className="w-full flex items-center justify-center gap-2 py-2 px-4 mb-4 rounded-lg bg-[#1a73e8] hover:bg-[#1558b0] disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold text-xs transition-all active:scale-95 shadow-md"
-          >
-            {driveQuestionLoading
-              ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Đang tải từ Drive...</>
-              : <><FolderOpen className="w-3.5 h-3.5" /> Nạp câu hỏi từ Google Drive</>}
+          <button onClick={handleQuestionFromDrive} disabled={driveQuestionLoading} className="w-full flex items-center justify-center gap-2 py-2 px-4 mb-4 rounded-lg bg-[#1a73e8] hover:bg-[#1558b0] disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold text-xs transition-all active:scale-95 shadow-md">
+            {driveQuestionLoading ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Đang tải từ Drive...</> : <><FolderOpen className="w-3.5 h-3.5" /> Nạp câu hỏi từ Google Drive</>}
           </button>
 
-          {/* Navigation Bar */}
           {questionsList.length > 0 && (
              <div className="flex items-center justify-between bg-slate-900/50 p-3 rounded-xl mb-4 border border-slate-700/50">
-                <button 
-                  onClick={() => navQuestion(-1)} 
-                  disabled={currentIndex <= 0}
-                  className="px-4 py-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-30 rounded-lg text-white font-bold transition flex items-center gap-2"
-                >
+                <button onClick={() => navQuestion(-1)} disabled={currentIndex <= 0} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-30 rounded-lg text-white font-bold transition flex items-center gap-2">
                    <ChevronLeft size={18}/> Lùi
                 </button>
                 <div className="text-center">
                    <span className="block text-[10px] uppercase text-slate-500 font-bold tracking-widest">Đang chọn</span>
                    <span className="text-white font-black">Câu {currentIndex + 1} / {questionsList.length}</span>
                 </div>
-                <button 
-                  onClick={() => navQuestion(1)} 
-                  disabled={currentIndex >= questionsList.length - 1}
-                  className="px-4 py-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-30 rounded-lg text-white font-bold transition flex items-center gap-2"
-                >
+                <button onClick={() => navQuestion(1)} disabled={currentIndex >= questionsList.length - 1} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-30 rounded-lg text-white font-bold transition flex items-center gap-2">
                    Tiến <ChevronRight size={18}/>
                 </button>
              </div>
           )}
-                    <div className="space-y-4">
+          <div className="space-y-4">
              <div>
                <label className="block text-xs uppercase text-slate-500 mb-1">Loại Câu</label>
                <select value={questionDraft.type} onChange={e => setQuestionDraft({...questionDraft, type: e.target.value})} className="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white">
@@ -993,45 +913,21 @@ export default function Admin() {
              
              <div>
                <label className="block text-xs uppercase text-slate-500 mb-1">Nội dung (Text/Toán học LaTeX)</label>
-               <textarea 
-                  rows="3"
-                  value={questionDraft.content}
-                  onChange={e => setQuestionDraft({...questionDraft, content: e.target.value})}
-                  className="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white"
-                  placeholder="VD: Tính diện tích tam giác... Có thể dùng \int_0^1 f(x)dx cho toán."
-               />
+               <textarea rows="3" value={questionDraft.content} onChange={e => setQuestionDraft({...questionDraft, content: e.target.value})} className="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white" placeholder="VD: Tính diện tích tam giác... Có thể dùng \int_0^1 f(x)dx cho toán."/>
              </div>
 
              {questionDraft.type === 'mcq' && (
                <div className="grid grid-cols-2 gap-3 p-3 bg-slate-900 border border-slate-700 rounded-lg">
-                 <div>
-                   <label className="block text-xs uppercase text-slate-500 mb-1">Phương án A</label>
-                   <input type="text" value={questionDraft.optionA || ''} onChange={e=>setQuestionDraft({...questionDraft, optionA: e.target.value})} className="w-full bg-slate-800 border border-slate-600 p-2 rounded text-white text-sm" placeholder="Nhập Nội dung A" />
-                 </div>
-                 <div>
-                   <label className="block text-xs uppercase text-slate-500 mb-1">Phương án B</label>
-                   <input type="text" value={questionDraft.optionB || ''} onChange={e=>setQuestionDraft({...questionDraft, optionB: e.target.value})} className="w-full bg-slate-800 border border-slate-600 p-2 rounded text-white text-sm" placeholder="Nhập Nội dung B" />
-                 </div>
-                 <div>
-                   <label className="block text-xs uppercase text-slate-500 mb-1">Phương án C</label>
-                   <input type="text" value={questionDraft.optionC || ''} onChange={e=>setQuestionDraft({...questionDraft, optionC: e.target.value})} className="w-full bg-slate-800 border border-slate-600 p-2 rounded text-white text-sm" placeholder="Nhập Nội dung C" />
-                 </div>
-                 <div>
-                   <label className="block text-xs uppercase text-slate-500 mb-1">Phương án D</label>
-                   <input type="text" value={questionDraft.optionD || ''} onChange={e=>setQuestionDraft({...questionDraft, optionD: e.target.value})} className="w-full bg-slate-800 border border-slate-600 p-2 rounded text-white text-sm" placeholder="Nhập Nội dung D" />
-                 </div>
+                 <div><label className="block text-xs uppercase text-slate-500 mb-1">Phương án A</label><input type="text" value={questionDraft.optionA || ''} onChange={e=>setQuestionDraft({...questionDraft, optionA: e.target.value})} className="w-full bg-slate-800 border border-slate-600 p-2 rounded text-white text-sm" placeholder="Nhập Nội dung A" /></div>
+                 <div><label className="block text-xs uppercase text-slate-500 mb-1">Phương án B</label><input type="text" value={questionDraft.optionB || ''} onChange={e=>setQuestionDraft({...questionDraft, optionB: e.target.value})} className="w-full bg-slate-800 border border-slate-600 p-2 rounded text-white text-sm" placeholder="Nhập Nội dung B" /></div>
+                 <div><label className="block text-xs uppercase text-slate-500 mb-1">Phương án C</label><input type="text" value={questionDraft.optionC || ''} onChange={e=>setQuestionDraft({...questionDraft, optionC: e.target.value})} className="w-full bg-slate-800 border border-slate-600 p-2 rounded text-white text-sm" placeholder="Nhập Nội dung C" /></div>
+                 <div><label className="block text-xs uppercase text-slate-500 mb-1">Phương án D</label><input type="text" value={questionDraft.optionD || ''} onChange={e=>setQuestionDraft({...questionDraft, optionD: e.target.value})} className="w-full bg-slate-800 border border-slate-600 p-2 rounded text-white text-sm" placeholder="Nhập Nội dung D" /></div>
                </div>
              )}
 
              <div className="flex gap-2">
-                <div className="w-1/2">
-                  <label className="block text-xs uppercase text-slate-500 mb-1">Thời gian (s)</label>
-                  <input type="number" value={questionDraft.time} onChange={e => setQuestionDraft({...questionDraft, time: Number(e.target.value)})} className="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white" />
-                </div>
-                <div className="w-1/2">
-                  <label className="block text-xs uppercase text-slate-500 mb-1">Đáp án Đúng</label>
-                  <input type="text" value={questionDraft.correct} onChange={e => setQuestionDraft({...questionDraft, correct: e.target.value.toUpperCase()})} className="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white font-bold" />
-                </div>
+                <div className="w-1/2"><label className="block text-xs uppercase text-slate-500 mb-1">Thời gian (s)</label><input type="number" value={questionDraft.time} onChange={e => setQuestionDraft({...questionDraft, time: Number(e.target.value)})} className="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white" /></div>
+                <div className="w-1/2"><label className="block text-xs uppercase text-slate-500 mb-1">Đáp án Đúng</label><input type="text" value={questionDraft.correct} onChange={e => setQuestionDraft({...questionDraft, correct: e.target.value.toUpperCase()})} className="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white font-bold" /></div>
              </div>
 
              <div>
@@ -1043,26 +939,15 @@ export default function Admin() {
                    <option value="video">Video</option>
                    <option value="audio">Audio</option>
                  </select>
-                  <input 
-                    type="text" 
-                    value={questionDraft.mediaUrl} 
-                    onChange={e => handleMediaUrlChange(e.target.value)} 
-                    placeholder="URL của file media hoặc YouTube link" 
-                    className="w-2/3 bg-slate-900 border border-slate-700 p-2 rounded text-white" 
-                    disabled={questionDraft.mediaType === 'none'}
-                  />
+                  <input type="text" value={questionDraft.mediaUrl} onChange={e => handleMediaUrlChange(e.target.value)} placeholder="URL của file media hoặc YouTube link" className="w-2/3 bg-slate-900 border border-slate-700 p-2 rounded text-white" disabled={questionDraft.mediaType === 'none'}/>
                 </div>
                 {questionDraft.mediaType === 'video' && isYouTubeURL(questionDraft.mediaUrl) && (
-                  <div className="mt-2 p-2 bg-slate-900/50 rounded border border-slate-700 text-xs text-yellow-500 font-mono break-all italic">
-                    YT detected: {questionDraft.mediaUrl}
-                  </div>
+                  <div className="mt-2 p-2 bg-slate-900/50 rounded border border-slate-700 text-xs text-yellow-500 font-mono break-all italic">YT detected: {questionDraft.mediaUrl}</div>
                 )}
               </div>
-
           </div>
         </div>
 
-        {/* Danh sách Câu hỏi trình chiếu */}
         {questionsList.length > 0 && (
            <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg overflow-hidden flex flex-col max-h-[600px] mt-6">
              <h3 className="text-xl font-bold text-white mb-4">Danh Sách Kịch Bản ({questionsList.length} câu)</h3>
@@ -1088,7 +973,6 @@ export default function Admin() {
                            const fullQ = {...q, options: ['A','B','C','D']};
                            setQuestionDraft(fullQ);
                            setEditingIndex(i);
-                           // Cuộn lên đầu form soạn thảo
                            window.scrollTo({ top: 0, behavior: 'smooth' });
                         }} className="text-sm font-semibold bg-slate-700 hover:bg-slate-600 text-white py-2 px-3 rounded-lg flex-[0.8]">
                            Sửa
@@ -1108,9 +992,7 @@ export default function Admin() {
                           Cho Khán Giả
                        </button>
                        <button onClick={() => {
-                          if (window.confirm(`Xóa Câu ${q.id} khỏi danh sách?`)) {
-                             setQuestionsList(prev => prev.filter((_, idx) => idx !== i));
-                          }
+                          if (window.confirm(`Xóa Câu ${q.id} khỏi danh sách?`)) setQuestionsList(prev => prev.filter((_, idx) => idx !== i));
                        }} className="text-sm font-semibold bg-red-900/50 hover:bg-red-800 text-red-200 py-2 px-3 rounded-lg border border-red-800 flex items-center justify-center">
                           <Trash2 className="w-4 h-4"/>
                        </button>
@@ -1120,7 +1002,6 @@ export default function Admin() {
              </div>
            </div>
         )}
-
       </div>
 
       {/* CỘT PHẢI: WORKFLOW & GIÁM SÁT */}
@@ -1144,12 +1025,7 @@ export default function Admin() {
               <button onClick={() => socket.emit('admin:show_rules')} className="bg-slate-700 hover:bg-slate-600 text-white py-4 rounded-xl flex flex-col items-center justify-center font-bold transition active:scale-95 shadow-lg border-2 border-slate-600">
                 <ScrollText className="mb-2 text-indigo-400"/> 0.6. Thể lệ
               </button>
-              <button 
-                onClick={() => socket.emit('admin:show_custom', { message: customText })} 
-                className={`py-4 rounded-xl flex flex-col items-center justify-center font-bold transition active:scale-95 shadow-lg border-2 ${
-                  gameState.phase === 'showing_custom' ? 'bg-indigo-600 border-indigo-400 text-white' : 'bg-slate-700 border-slate-600 text-slate-300'
-                }`}
-              >
+              <button onClick={() => socket.emit('admin:show_custom', { message: customText })} className={`py-4 rounded-xl flex flex-col items-center justify-center font-bold transition active:scale-95 shadow-lg border-2 ${gameState.phase === 'showing_custom' ? 'bg-indigo-600 border-indigo-400 text-white' : 'bg-slate-700 border-slate-600 text-slate-300'}`}>
                 <MessageSquare className="mb-2 text-blue-400"/> 0.7. Chiếu nội dung
               </button>
               <button onClick={pushQuestion} className="bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl flex flex-col items-center justify-center font-semibold transition active:scale-95 shadow-lg">
@@ -1164,212 +1040,109 @@ export default function Admin() {
               <button onClick={revealAnswer} disabled={gameState.phase === 'idle' || gameState.phase === 'answer_revealed'} className="bg-green-600 hover:bg-green-500 text-white py-4 rounded-xl flex flex-col items-center justify-center font-semibold transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg">
                 <Eye className="mb-2"/> 4. Mở Đáp Án
               </button>
-              
-              {/* Camera Control - New Section */}
-              <button 
-                onClick={toggleCamera} 
-                className={`py-4 rounded-xl flex flex-col items-center justify-center font-bold transition active:scale-95 shadow-lg border-2 ${
-                  isCameraActive ? 'bg-red-600 border-red-400 text-white animate-pulse' : 'bg-slate-700 border-slate-600 text-slate-300'
-                }`}
-              >
+              <button onClick={toggleCamera} className={`py-4 rounded-xl flex flex-col items-center justify-center font-bold transition active:scale-95 shadow-lg border-2 ${isCameraActive ? 'bg-red-600 border-red-400 text-white animate-pulse' : 'bg-slate-700 border-slate-600 text-slate-300'}`}>
                {isCameraActive ? <CameraOff className="mb-2"/> : <Camera className="mb-2"/>}
                 <span className="text-[10px] uppercase opacity-80">Máy Quay</span>
                 {isCameraActive ? 'Tắt Camera' : 'Bật Camera'}
               </button>
-
-              <button 
-                onClick={() => socket.emit('admin:toggle_sound')} 
-                className={`py-4 rounded-xl flex flex-col items-center justify-center font-bold transition active:scale-95 shadow-lg border-2 ${
-                  gameState.isSoundEnabled ? 'bg-green-600 border-green-400 text-white' : 'bg-red-600 border-red-400 text-white'
-                }`}
-              >
+              <button onClick={() => socket.emit('admin:toggle_sound')} className={`py-4 rounded-xl flex flex-col items-center justify-center font-bold transition active:scale-95 shadow-lg border-2 ${gameState.isSoundEnabled ? 'bg-green-600 border-green-400 text-white' : 'bg-red-600 border-red-400 text-white'}`}>
                 {gameState.isSoundEnabled ? <Volume2 className="mb-2"/> : <VolumeX className="mb-2"/>}
                 <span className="text-[10px] uppercase opacity-80">Sân Khấu</span>
                 {gameState.isSoundEnabled ? 'Loa: Đang Bật' : 'Loa: Đang Tắt'}
               </button>
-
-              <button 
-                onClick={handleEnableAudio} 
-                className={`py-4 rounded-xl flex flex-col items-center justify-center font-bold transition active:scale-95 shadow-lg border-2 ${
-                  isAudioEnabled ? 'bg-slate-700 border-blue-500 text-white' : 'bg-slate-800 border-slate-700 text-slate-500'
-                }`}
-              >
+              <button onClick={handleEnableAudio} className={`py-4 rounded-xl flex flex-col items-center justify-center font-bold transition active:scale-95 shadow-lg border-2 ${isAudioEnabled ? 'bg-slate-700 border-blue-500 text-white' : 'bg-slate-800 border-slate-700 text-slate-500'}`}>
                 {isAudioEnabled ? <Volume2 className="mb-2"/> : <VolumeX className="mb-2"/>}
                 <span className="text-[10px] uppercase opacity-80">Máy Admin (Loa này)</span>
                 {isAudioEnabled ? 'Loa: Đang Bật' : 'Kích hoạt loa'}
               </button>
-
-              <button 
-                onClick={declareWinner} 
-                className={`py-4 rounded-xl flex flex-col items-center justify-center font-black transition active:scale-95 shadow-lg border-2 border-yellow-500/50 ${
-                  gameState.phase === 'winner_declared' ? 'bg-yellow-600 text-white' : 'bg-gradient-to-b from-amber-600 to-yellow-600 text-white'
-                } relative`}
-              >
+              <button onClick={declareWinner} className={`py-4 rounded-xl flex flex-col items-center justify-center font-black transition active:scale-95 shadow-lg border-2 border-yellow-500/50 ${gameState.phase === 'winner_declared' ? 'bg-yellow-600 text-white' : 'bg-gradient-to-b from-amber-600 to-yellow-600 text-white'} relative`}>
                 <div className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full animate-bounce font-bold shadow-lg">WIN</div>
-                <Trophy className="mb-2 w-6 h-6"/>
-                CHÚC MỪNG CHIẾN THẮNG
+                <Trophy className="mb-2 w-6 h-6"/> CHÚC MỪNG CHIẾN THẮNG
                 {victoryMediaFile && <span className="text-[8px] text-green-300 mt-1 truncate max-w-[80px]">🎵 {victoryMediaFile.name}</span>}
               </button>
            </div>
            
-           {/* Video và canvas luôn hiện diện trong DOM để ref luôn sẵn sàng */}
            <div className={`mt-4 p-2 bg-black rounded-lg border border-red-500/50 ${isCameraActive ? 'block' : 'hidden'}`}>
-              <p className="text-[10px] text-red-500 font-bold uppercase mb-1 flex items-center gap-1">
-                 <span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span> Live Camera Preview
-              </p>
+              <p className="text-[10px] text-red-500 font-bold uppercase mb-1 flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span> Live Camera Preview</p>
               <video ref={localVideoRef} autoPlay muted playsInline className="w-full h-40 object-cover rounded" />
               <canvas ref={canvasRef} className="hidden" />
            </div>
-                      <div className="mt-6 border-t border-slate-700 pt-6">
-               <h4 className="text-sm font-bold text-slate-400 mb-3 uppercase tracking-wider flex items-center">
-                  <MessageSquare size={14} className="mr-2"/> Nội dung trình chiếu tùy chỉnh
-               </h4>
-               <textarea
-                 value={customText}
-                 onChange={(e) => setCustomText(e.target.value)}
-                 placeholder="Nhập nội dung bất kỳ để chiếu lên màn hình Stage (hỗ trợ MathJax)..."
-                 className="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 text-white text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all outline-none resize-none h-24 mb-3"
-               />
+
+           <div className="mt-6 border-t border-slate-700 pt-6">
+               <h4 className="text-sm font-bold text-slate-400 mb-3 uppercase tracking-wider flex items-center"><MessageSquare size={14} className="mr-2"/> Nội dung trình chiếu tùy chỉnh</h4>
+               <textarea value={customText} onChange={(e) => setCustomText(e.target.value)} placeholder="Nhập nội dung bất kỳ để chiếu lên màn hình Stage (hỗ trợ MathJax)..." className="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 text-white text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all outline-none resize-none h-24 mb-3"/>
                <div className="flex gap-2">
-                  <button 
-                    onClick={() => socket.emit('admin:show_custom', { message: customText })}
-                    className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white py-2 rounded-lg font-bold text-sm shadow-lg transition active:scale-95 flex items-center justify-center"
-                  >
-                     <Presentation className="mr-2 w-4 h-4"/> Chiếu nội dung này
-                  </button>
-                  <button 
-                    onClick={() => setCustomText('')}
-                    className="px-4 bg-slate-700 hover:bg-slate-600 text-slate-300 py-2 rounded-lg font-bold text-sm transition active:scale-95"
-                  >
-                     Xóa
-                  </button>
+                  <button onClick={() => socket.emit('admin:show_custom', { message: customText })} className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white py-2 rounded-lg font-bold text-sm shadow-lg transition active:scale-95 flex items-center justify-center"><Presentation className="mr-2 w-4 h-4"/> Chiếu nội dung này</button>
+                  <button onClick={() => setCustomText('')} className="px-4 bg-slate-700 hover:bg-slate-600 text-slate-300 py-2 rounded-lg font-bold text-sm transition active:scale-95">Xóa</button>
                </div>
             </div>
 
-             {/* NẠP FILE ÂM THANH/VIDEO GIỚI THIỆU */}
              <div className="mt-6 border-t border-slate-700 pt-6">
-                <h4 className="text-sm font-bold text-slate-400 mb-3 uppercase tracking-wider flex items-center">
-                   <Music size={14} className="mr-2"/> Nhạc / Video Giới Thiệu
-                </h4>
+                <h4 className="text-sm font-bold text-slate-400 mb-3 uppercase tracking-wider flex items-center"><Music size={14} className="mr-2"/> Nhạc / Video Giới Thiệu</h4>
                 <p className="text-xs text-slate-500 mb-2">Nạp file âm thanh hoặc video sẽ tự động phát khi bấm nút "Giới thiệu" trên Stage.</p>
                 <div className="flex gap-2 items-center">
                    <label className="flex-1 bg-pink-600 hover:bg-pink-500 text-white font-bold py-2.5 px-4 rounded-xl transition-all shadow-md active:scale-95 text-sm flex items-center justify-center gap-2 cursor-pointer">
                       <Music size={16}/> {introMediaFile ? 'Đổi file' : 'Chọn file âm thanh / video'}
-                      <input
-                        ref={introMediaInputRef}
-                        type="file"
-                        accept="audio/*,video/*"
-                        onChange={handleIntroMediaUpload}
-                        className="hidden"
-                      />
+                      <input ref={introMediaInputRef} type="file" accept="audio/*,video/*" onChange={handleIntroMediaUpload} className="hidden"/>
                    </label>
-                   {introMediaFile && (
-                     <button
-                       onClick={() => setIntroMediaFile(null)}
-                       className="px-3 py-2.5 bg-red-900/40 hover:bg-red-800 text-red-300 rounded-xl border border-red-800 text-sm font-bold transition active:scale-95"
-                     >
-                       Xóa
-                     </button>
-                   )}
+                   {introMediaFile && <button onClick={() => setIntroMediaFile(null)} className="px-3 py-2.5 bg-red-900/40 hover:bg-red-800 text-red-300 rounded-xl border border-red-800 text-sm font-bold transition active:scale-95">Xóa</button>}
                 </div>
-                {introMediaFile && (
-                  <div className="mt-2 px-3 py-2 bg-slate-900/50 rounded-lg border border-slate-700 text-xs text-green-400 font-mono truncate flex items-center gap-2">
-                    <Music size={12}/> {introMediaFile.name}
-                  </div>
-                )}
+                {introMediaFile && <div className="mt-2 px-3 py-2 bg-slate-900/50 rounded-lg border border-slate-700 text-xs text-green-400 font-mono truncate flex items-center gap-2"><Music size={12}/> {introMediaFile.name}</div>}
              </div>
 
-             {/* NẠP FILE ÂM THANH CHÚC MỪnG CHIẾN THẮNG */}
              <div className="mt-6 border-t border-slate-700 pt-6">
-                <h4 className="text-sm font-bold text-slate-400 mb-3 uppercase tracking-wider flex items-center">
-                   <Trophy size={14} className="mr-2 text-yellow-500"/> Nhạc Chúc Mừng Chiến Thắng
-                </h4>
+                <h4 className="text-sm font-bold text-slate-400 mb-3 uppercase tracking-wider flex items-center"><Trophy size={14} className="mr-2 text-yellow-500"/> Nhạc Chúc Mừng Chiến Thắng</h4>
                 <p className="text-xs text-slate-500 mb-2">Nạp file âm thanh sẽ tự động phát khi bấm nút "Chúc Mừng Chiến Thắng".</p>
                 <div className="flex gap-2 items-center">
                    <label className="flex-1 bg-amber-600 hover:bg-amber-500 text-white font-bold py-2.5 px-4 rounded-xl transition-all shadow-md active:scale-95 text-sm flex items-center justify-center gap-2 cursor-pointer">
                       <Trophy size={16}/> {victoryMediaFile ? 'Đổi file' : 'Chọn file âm thanh / video'}
-                      <input
-                        ref={victoryMediaInputRef}
-                        type="file"
-                        accept="audio/*,video/*"
-                        onChange={handleVictoryMediaUpload}
-                        className="hidden"
-                      />
+                      <input ref={victoryMediaInputRef} type="file" accept="audio/*,video/*" onChange={handleVictoryMediaUpload} className="hidden"/>
                    </label>
-                   {victoryMediaFile && (
-                     <button
-                       onClick={() => setVictoryMediaFile(null)}
-                       className="px-3 py-2.5 bg-red-900/40 hover:bg-red-800 text-red-300 rounded-xl border border-red-800 text-sm font-bold transition active:scale-95"
-                     >
-                       Xóa
-                     </button>
-                   )}
+                   {victoryMediaFile && <button onClick={() => setVictoryMediaFile(null)} className="px-3 py-2.5 bg-red-900/40 hover:bg-red-800 text-red-300 rounded-xl border border-red-800 text-sm font-bold transition active:scale-95">Xóa</button>}
                 </div>
-                {victoryMediaFile && (
-                  <div className="mt-2 px-3 py-2 bg-slate-900/50 rounded-lg border border-slate-700 text-xs text-yellow-400 font-mono truncate flex items-center gap-2">
-                    <Trophy size={12}/> {victoryMediaFile.name}
-                  </div>
-                )}
+                {victoryMediaFile && <div className="mt-2 px-3 py-2 bg-slate-900/50 rounded-lg border border-slate-700 text-xs text-yellow-400 font-mono truncate flex items-center gap-2"><Trophy size={12}/> {victoryMediaFile.name}</div>}
              </div>
 
-            <div className="mt-6 border-t border-slate-700 pt-6 space-y-3">
-               <button 
-                  onClick={rescueAll} 
-                  className="w-full bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white py-3 rounded-xl flex items-center justify-center font-bold text-lg shadow-lg transition active:scale-95"
-               >
-                  <HeartHandshake className="mr-2"/> CỨU TẤT CẢ ({eliminatedCount})
-               </button>
-               <button 
-                  onClick={rescueSpecific} 
-                  className="w-full bg-slate-700 hover:bg-slate-600 text-slate-200 py-2 rounded-lg flex items-center justify-center text-sm font-semibold transition active:scale-95"
-               >
-                  Cứu theo SBD cụ thể
-               </button>
-            </div>
+            {/* Chỉ hiển thị nút Cứu trợ nếu ở Chế độ thi 1 (Loại trực tiếp) */}
+            {gameState.gameMode === 'elimination' && (
+              <div className="mt-6 border-t border-slate-700 pt-6 space-y-3">
+                 <button onClick={rescueAll} className="w-full bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white py-3 rounded-xl flex items-center justify-center font-bold text-lg shadow-lg transition active:scale-95">
+                    <HeartHandshake className="mr-2"/> CỨU TẤT CẢ ({eliminatedCount})
+                 </button>
+                 <button onClick={rescueSpecific} className="w-full bg-slate-700 hover:bg-slate-600 text-slate-200 py-2 rounded-lg flex items-center justify-center text-sm font-semibold transition active:scale-95">
+                    Cứu theo SBD cụ thể
+                 </button>
+              </div>
+            )}
         </div>
 
         {/* Monitor Panel */}
         <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg flex-1 overflow-hidden flex flex-col">
-          {/* System Status Top Bar */}
           <div className="flex items-center justify-between mb-6 px-4 py-2 bg-slate-900/50 rounded-lg border border-slate-700/50">
             <div className="flex items-center gap-4 text-xs font-semibold text-slate-400">
-               <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                  Server: Đã kết nối
-               </div>
-               <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                  Quyền Admin: Cho phép
-               </div>
+               <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div> Server: Đã kết nối</div>
+               <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-blue-500"></div> Quyền Admin: Cho phép</div>
             </div>
-            <div className="text-[10px] text-slate-500 uppercase tracking-widest font-black">
-               Monitoring v2.4
-            </div>
+            <div className="text-[10px] text-slate-500 uppercase tracking-widest font-black">Monitoring v2.4</div>
           </div>
 
           <div className="flex flex-col gap-6 h-full min-h-0">
-            {/* Header: Title & Meta Stats */}
             <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 border-b border-slate-700 pb-4">
               <div className="flex items-center gap-4">
-                 <h3 className="text-xl font-bold text-white flex items-center pr-4 border-r border-slate-700">
-                    <Activity className="mr-2 text-blue-400"/> Giám Sát Real-time
-                 </h3>
-                 <button 
-                   onClick={clearStudents}
-                   className="p-1.5 rounded-lg bg-red-900/30 text-red-400 hover:bg-red-900/50 transition-colors border border-red-900/50 flex items-center gap-1 text-xs font-bold uppercase tracking-tighter"
-                 >
-                    <Trash2 size={14} /> XÓA DS
-                 </button>
+                 <h3 className="text-xl font-bold text-white flex items-center pr-4 border-r border-slate-700"><Activity className="mr-2 text-blue-400"/> Giám Sát Real-time</h3>
+                 <button onClick={clearStudents} className="p-1.5 rounded-lg bg-red-900/30 text-red-400 hover:bg-red-900/50 transition-colors border border-red-900/50 flex items-center gap-1 text-xs font-bold uppercase tracking-tighter"><Trash2 size={14} /> XÓA DS</button>
               </div>
               <div className="flex items-center gap-4 text-sm">
                 <div className="flex items-center px-3 py-1 bg-green-500/10 rounded-full border border-green-500/20 text-green-400">
                   <div className="w-1.5 h-1.5 rounded-full bg-green-500 mr-2"></div>
                   Đang chơi: {activeCount}
                 </div>
-                <div className="flex items-center px-3 py-1 bg-red-500/10 rounded-full border border-red-500/20 text-red-400">
-                  <div className="w-1.5 h-1.5 rounded-full bg-red-500 mr-2"></div>
-                  Đã loại: {eliminatedCount}
-                </div>
+                {gameState.gameMode === 'elimination' && (
+                  <div className="flex items-center px-3 py-1 bg-red-500/10 rounded-full border border-red-500/20 text-red-400">
+                    <div className="w-1.5 h-1.5 rounded-full bg-red-500 mr-2"></div>
+                    Đã loại: {eliminatedCount}
+                  </div>
+                )}
                 <div className="flex items-center px-3 py-1 bg-yellow-500/10 rounded-full border border-yellow-500/20 text-yellow-400">
                   <div className="w-1.5 h-1.5 rounded-full bg-yellow-400 mr-2"></div>
                   Đã nộp: {submittedCount} / {gameState.question?.isRescue ? eliminatedCount : gameState.question?.isAudience ? studentList.length : activeCount}
@@ -1377,7 +1150,6 @@ export default function Admin() {
               </div>
             </div>
 
-            {/* Table Container */}
             <div className="flex-1 overflow-auto rounded-xl border border-slate-700/50 bg-slate-900/30 custom-scrollbar">
               <table className="w-full text-left text-sm text-slate-300">
                  <thead className="bg-slate-900/80 border-b border-slate-700 sticky top-0 z-10 text-xs uppercase text-slate-500">
@@ -1385,6 +1157,7 @@ export default function Admin() {
                       <th className="px-5 py-4">SBD</th>
                       <th className="px-5 py-4">Họ Tên</th>
                       <th className="px-5 py-4">Lớp</th>
+                      <th className="px-5 py-4">Điểm</th>
                       <th className="px-5 py-4">PIN/Connect</th>
                       <th className="px-5 py-4">Trạng thái</th>
                       <th className="px-5 py-4 text-center">Đáp án nộp</th>
@@ -1397,6 +1170,8 @@ export default function Admin() {
                          <td className="px-5 py-4 font-mono font-bold text-white">{s.sbd}</td>
                          <td className="px-5 py-4 font-semibold text-slate-100">{s.hoTen}</td>
                          <td className="px-5 py-4 text-slate-400">{s.lop || 'N/A'}</td>
+                         {/* Cột hiển thị Điểm */}
+                         <td className="px-5 py-4 font-bold text-yellow-400">{s.score || 0}</td>
                          <td className="px-5 py-4">
                            <div className="flex items-center">
                              <div className={`w-2 h-2 rounded-full mr-2 ${s.online ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-slate-600'}`}></div>
