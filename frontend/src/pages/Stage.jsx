@@ -306,7 +306,6 @@ export default function Stage() {
     };
   }, [isLocalAudioUnlocked]);
 
-  // DUY NHẤT ĐIỀU KHIỂN NHẠC TẠI ĐÂY (Cho Intro)
   useEffect(() => {
     const media = introMediaRef.current;
     if (gameState.phase === 'showing_intro' && introMediaData && media) {
@@ -317,7 +316,6 @@ export default function Stage() {
     }
   }, [gameState.phase, introMediaData]);
 
-  // DUY NHẤT ĐIỀU KHIỂN NHẠC TẠI ĐÂY (Cho Victory)
   useEffect(() => {
     const media = victoryMediaRef.current;
     if (gameState.phase === 'winner_declared' && victoryMediaData && media) {
@@ -325,6 +323,7 @@ export default function Stage() {
       media.play().catch(e => console.warn(e));
     } else if (media) {
       media.pause();
+      media.currentTime = 0;
     }
   }, [gameState.phase, victoryMediaData]);
 
@@ -515,7 +514,6 @@ export default function Stage() {
         }
       `}</style>
 
-      {/* KHU VỰC CHỈ CÓ DUY NHẤT 1 BỘ THẺ PRELOAD AUDIO TẠI ĐÂY */}
       <div className="hidden">
          {introMediaData && (introMediaData.type.startsWith('video') ? <video ref={introMediaRef} src={introMediaData.dataUrl} playsInline /> : <audio ref={introMediaRef} src={introMediaData.dataUrl} />)}
          {victoryMediaData && (victoryMediaData.type.startsWith('video') ? <video ref={victoryMediaRef} src={victoryMediaData.dataUrl} playsInline /> : <audio ref={victoryMediaRef} src={victoryMediaData.dataUrl} />)}
@@ -570,7 +568,6 @@ export default function Stage() {
                     </div>
                     <div className="absolute bottom-0 left-0 w-full h-48 bg-gradient-to-t from-black via-black/80 to-transparent pointer-events-none z-10"></div>
                     <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-black via-black/80 to-transparent pointer-events-none z-10"></div>
-                    {/* ĐÃ XÓA BỎ THẺ AUDIO/VIDEO BỊ THỪA Ở ĐÂY */}
                   </motion.div>
                 )}
 
@@ -671,9 +668,12 @@ export default function Stage() {
                            <div className="absolute inset-0 bg-yellow-400 blur-3xl opacity-20 animate-pulse"></div>
                            <img src="/victory-bell.png" alt="Golden Bell" className="w-48 h-48 md:w-64 md:h-64 object-contain drop-shadow-[0_0_30px_rgba(234,179,8,0.8)]" onError={(e) => { e.target.onerror = null; e.target.src = "https://cdn-icons-png.flaticon.com/512/311/311081.png"; }}/>
                         </motion.div>
-                        <motion.h1 initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5 }} className="text-[clamp(2.5rem,6vh,4rem)] font-black uppercase text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 via-yellow-500 to-amber-700 tracking-tighter drop-shadow-2xl leading-none mb-2">
+                        
+                        {/* ĐÃ CẬP NHẬT Ở ĐÂY: Bỏ leading-none, thêm leading-normal và py-3 để dấu sắc không bị cắt */}
+                        <motion.h1 initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5 }} className="text-[clamp(2.5rem,6vh,4rem)] font-black uppercase text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 via-yellow-500 to-amber-700 tracking-tighter drop-shadow-2xl leading-normal py-3 mb-2">
                            Chúc Mừng Chiến Thắng!
                         </motion.h1>
+                        
                         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }} className="text-xl md:text-2xl font-bold text-yellow-500/80 italic tracking-widest uppercase mb-8">
                            {gameState.winners?.length > 1 ? 'Các Quán quân Rung Chuông Vàng' : 'Quán quân Rung Chuông Vàng'}
                         </motion.p>
