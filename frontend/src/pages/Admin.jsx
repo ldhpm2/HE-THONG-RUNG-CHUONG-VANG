@@ -57,12 +57,7 @@ export default function Admin() {
   const frameIntervalRef = useRef(null);
   
   const [introMediaFile, setIntroMediaFile] = useState(null); 
-  const introMediaInputRef = useRef(null);
-  const introAudioRef = useRef(null); 
-
   const [victoryMediaFile, setVictoryMediaFile] = useState(null); 
-  const victoryMediaInputRef = useRef(null);
-  const victoryAudioRef = useRef(null); 
 
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
   const audioCtxRef = useRef(null);
@@ -643,7 +638,7 @@ export default function Admin() {
   
   const declareWinner = () => {
     if(!window.confirm('Xác nhận CHÚC MỪNG CHIẾN THẮNG? Màn hình sẽ chuyển sang hiệu ứng vinh danh.')) return;
-    // BỎ socket.emit(victory_media) Ở ĐÂY VÌ ĐÃ TẢI NGẦM TRƯỚC ĐÓ RỒI
+    if (victoryMediaFile) socket.emit('admin:victory_media', victoryMediaFile); // Gửi thêm 1 lần phòng hờ
     socket.emit('admin:declare_winner');
   };
 
@@ -664,7 +659,6 @@ export default function Admin() {
      });
   };
 
-  // NÂNG CẤP: GỬI FILE NGAY KHI VỪA CHỌN ĐỂ STAGE TẢI NGẦM (PRELOAD)
   const handleIntroMediaUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -679,7 +673,7 @@ export default function Admin() {
     reader.onload = (event) => {
       const payload = { name: file.name, type: file.type, dataUrl: event.target.result };
       setIntroMediaFile(payload);
-      socket.emit('admin:intro_media', payload); // Gửi ngầm ngay
+      socket.emit('admin:intro_media', payload); 
     };
     reader.readAsDataURL(file);
     e.target.value = '';
@@ -699,20 +693,16 @@ export default function Admin() {
     reader.onload = (event) => {
       const payload = { name: file.name, type: file.type, dataUrl: event.target.result };
       setVictoryMediaFile(payload);
-      socket.emit('admin:victory_media', payload); // Gửi ngầm ngay
+      socket.emit('admin:victory_media', payload); 
     };
     reader.readAsDataURL(file);
     e.target.value = '';
   };
 
+  // NÚT PHÁT GIỚI THIỆU: Chỉ gửi lệnh và file sang Stage. KHÔNG PHÁT Ở ADMIN.
   const showIntroWithMedia = () => {
+    if (introMediaFile) socket.emit('admin:intro_media', introMediaFile); // Gửi thêm 1 lần phòng hờ
     socket.emit('admin:show_intro');
-    // Nhạc đã gửi qua mạng lúc nãy, giờ chỉ cần phát trên Admin nữa là song song
-    if (introMediaFile && introAudioRef.current) {
-      introAudioRef.current.src = introMediaFile.dataUrl;
-      introAudioRef.current.currentTime = 0;
-      introAudioRef.current.play().catch(e => console.warn('Intro play blocked:', e));
-    }
   };
 
   const setWelcome = () => socket.emit('admin:set_welcome');
@@ -787,9 +777,6 @@ export default function Admin() {
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-300 p-6 flex flex-col gap-6">
-       
-       <audio ref={introAudioRef} className="hidden" />
-       <audio ref={victoryAudioRef} className="hidden" />
 
        <div className="flex items-center justify-between px-4 py-2 bg-slate-800/50 rounded-lg border border-slate-700/50">
           <div className="flex items-center gap-6">
