@@ -60,6 +60,7 @@ export default function Stage() {
     setFontSizeModifier(0);
   }, [gameState.question?.id]);
 
+
   const playTick = (urgent = false) => {
     try {
       if (!isLocalAudioUnlocked) return;
@@ -292,7 +293,9 @@ export default function Stage() {
             winners: data.winners || []
           };
         });
-         if (data.gamePhase === 'winner_declared' && gameState.phase !== 'winner_declared') playVictory();
+         if (data.gamePhase === 'winner_declared' && gameState.phase !== 'winner_declared') {
+            // Sẽ gọi qua client_play_sound để tránh bị lỗi
+         }
       });
 
      socket.on('intro:media_data', (data) => setIntroMediaData(data));
@@ -356,11 +359,14 @@ export default function Stage() {
     if (gameState.isSoundEnabled && isLocalAudioUnlocked) {
       socket.on('client_play_sound', (data) => {
          if (data === 'reveal_answer') playCorrect();
-         if (data === 'victory') playVictory();
+         if (data === 'victory') {
+             // NẾU KHÔNG CÓ NHẠC XỊN, MỚI PHÁT NHẠC MẶC ĐỊNH
+             if (!victoryMediaData) playVictory();
+         }
       });
     }
     return () => socket.off('client_play_sound');
-  }, [gameState.phase, gameState.isSoundEnabled, isLocalAudioUnlocked]);
+  }, [gameState.phase, gameState.isSoundEnabled, isLocalAudioUnlocked, victoryMediaData]);
 
   useEffect(() => {
     localStorage.setItem('stage_students', JSON.stringify(gameState.students));
@@ -444,10 +450,7 @@ export default function Stage() {
     }
 
     let processedText = restoreLatex(text);
-    
-    // Ép các công thức độc lập ($$) thành công thức nội tuyến ($) để ngăn MathJax tự động bẻ dòng vô lý
     processedText = processedText.replace(/\$\$/g, '$');
-
     if (!processedText.includes('$') && processedText.includes('\\')) processedText = `$${processedText}$`;
     
     return (
@@ -500,21 +503,12 @@ export default function Stage() {
   return (
     <div className="h-screen bg-[#020617] text-white flex flex-col font-sans overflow-hidden">
       
-      {/* CSS ĐẶC BIỆT: Tước bỏ quyền xuống dòng của MathJax và ẩn thanh cuộn */}
-      <style>{`
-        .math-nowrap, .math-nowrap * {
-            white-space: nowrap !important;
-        }
-        .hide-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        .hide-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
-      `}</style>
+      {/* KHU VỰC PRELOAD AUDIO: Thẻ Audio luôn tồn tại để tránh bị mất khi đổi màn hình */}
+      <div className="hidden">
+         {introMediaData && (introMediaData.type.startsWith('video') ? <video ref={introMediaRef} src={introMediaData.dataUrl} loop playsInline /> : <audio ref={introMediaRef} src={introMediaData.dataUrl} loop />)}
+         {victoryMediaData && (victoryMediaData.type.startsWith('video') ? <video ref={victoryMediaRef} src={victoryMediaData.dataUrl} loop playsInline /> : <audio ref={victoryMediaRef} src={victoryMediaData.dataUrl} loop />)}
+      </div>
 
-      {/* HEADER LOGO: Đã thu nhỏ 1 size và chỉnh chiều cao */}
       <header className="fixed top-0 left-0 w-full h-[85px] md:h-[110px] flex items-center justify-center bg-slate-950 shadow-[0_15px_40px_rgba(0,0,0,0.8)] border-b-2 border-slate-700 z-[100] backdrop-blur-md">
          <div className="flex items-center gap-6 md:gap-10">
             <motion.img src={logoBell} alt="Logo" className="w-10 h-10 md:w-16 md:h-16 lg:w-20 lg:h-20 drop-shadow-[0_0_25px_rgba(250,204,21,0.8)]" animate={{ rotate: [0, -10, 10, -10, 10, 0] }} transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}/>
@@ -527,7 +521,6 @@ export default function Stage() {
          </div>
       </header>
 
-      {/* KHỐI NỘI DUNG CHẠM KHÍT VIỀN HEADER (pt bằng chính xác h của Header) */}
       <div className="flex-1 flex flex-row px-6 pb-6 pt-[85px] md:pt-[110px] gap-6 relative overflow-hidden">
          <div className="w-3/4 flex flex-col items-center justify-center relative min-h-0">
              <AnimatePresence mode="wait">
@@ -564,7 +557,6 @@ export default function Stage() {
                     </div>
                     <div className="absolute bottom-0 left-0 w-full h-48 bg-gradient-to-t from-black via-black/80 to-transparent pointer-events-none z-10"></div>
                     <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-black via-black/80 to-transparent pointer-events-none z-10"></div>
-                    {introMediaData && (introMediaData.type.startsWith('video') ? <video ref={introMediaRef} src={introMediaData.dataUrl} className="hidden" loop playsInline /> : <audio ref={introMediaRef} src={introMediaData.dataUrl} loop />)}
                   </motion.div>
                 )}
 
@@ -689,7 +681,6 @@ export default function Stage() {
                           </motion.div>
                         )}
                     </div>
-                    {victoryMediaData && (victoryMediaData.type.startsWith('video') ? <video ref={victoryMediaRef} src={victoryMediaData.dataUrl} className="hidden" loop playsInline /> : <audio ref={victoryMediaRef} src={victoryMediaData.dataUrl} loop />)}
                   </motion.div>
                 )}
 
@@ -699,7 +690,6 @@ export default function Stage() {
                      initial={{ opacity: 0, x: -100 }} 
                      animate={{ opacity: 1, x: 0 }} 
                      exit={{ opacity: 0, x: -100 }}
-                     // CSS ĐÃ SỬA ĐỂ VUÔNG GÓC TRÊN, BO GÓC DƯỚI
                      className="w-full h-full flex flex-col bg-slate-800/80 rounded-b-3xl rounded-t-none border-x border-b border-slate-700 p-6 pt-10 shadow-2xl backdrop-blur-md relative overflow-hidden"
                    >
                        <div className="absolute top-4 left-6 z-30">
@@ -778,7 +768,6 @@ export default function Stage() {
              </AnimatePresence>
          </div>
 
-         {/* SÀN THI ĐẤU - CŨNG LÀM VUÔNG GÓC TRÊN */}
          <div className="w-1/4 flex flex-col bg-slate-900/50 rounded-b-3xl rounded-t-none border-x border-b border-slate-800 p-3 shadow-2xl backdrop-blur-md overflow-hidden text-white">
              <div className="flex flex-col mb-4 flex-shrink-0">
                <h2 className="text-2xl font-black uppercase text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-yellow-500 tracking-tight mb-3 drop-shadow-[0_0_10px_rgba(234,179,8,0.3)] text-center w-full">

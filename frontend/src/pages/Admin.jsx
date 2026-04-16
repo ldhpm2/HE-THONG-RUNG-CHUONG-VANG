@@ -643,9 +643,7 @@ export default function Admin() {
   
   const declareWinner = () => {
     if(!window.confirm('Xác nhận CHÚC MỪNG CHIẾN THẮNG? Màn hình sẽ chuyển sang hiệu ứng vinh danh.')) return;
-    if (victoryMediaFile) {
-      socket.emit('admin:victory_media', victoryMediaFile);
-    }
+    // BỎ socket.emit(victory_media) Ở ĐÂY VÌ ĐÃ TẢI NGẦM TRƯỚC ĐÓ RỒI
     socket.emit('admin:declare_winner');
   };
 
@@ -666,6 +664,7 @@ export default function Admin() {
      });
   };
 
+  // NÂNG CẤP: GỬI FILE NGAY KHI VỪA CHỌN ĐỂ STAGE TẢI NGẦM (PRELOAD)
   const handleIntroMediaUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -678,7 +677,9 @@ export default function Admin() {
 
     const reader = new FileReader();
     reader.onload = (event) => {
-      setIntroMediaFile({ name: file.name, type: file.type, dataUrl: event.target.result });
+      const payload = { name: file.name, type: file.type, dataUrl: event.target.result };
+      setIntroMediaFile(payload);
+      socket.emit('admin:intro_media', payload); // Gửi ngầm ngay
     };
     reader.readAsDataURL(file);
     e.target.value = '';
@@ -696,7 +697,9 @@ export default function Admin() {
 
     const reader = new FileReader();
     reader.onload = (event) => {
-      setVictoryMediaFile({ name: file.name, type: file.type, dataUrl: event.target.result });
+      const payload = { name: file.name, type: file.type, dataUrl: event.target.result };
+      setVictoryMediaFile(payload);
+      socket.emit('admin:victory_media', payload); // Gửi ngầm ngay
     };
     reader.readAsDataURL(file);
     e.target.value = '';
@@ -704,9 +707,7 @@ export default function Admin() {
 
   const showIntroWithMedia = () => {
     socket.emit('admin:show_intro');
-    if (introMediaFile) {
-      socket.emit('admin:intro_media', introMediaFile);
-    }
+    // Nhạc đã gửi qua mạng lúc nãy, giờ chỉ cần phát trên Admin nữa là song song
     if (introMediaFile && introAudioRef.current) {
       introAudioRef.current.src = introMediaFile.dataUrl;
       introAudioRef.current.currentTime = 0;
