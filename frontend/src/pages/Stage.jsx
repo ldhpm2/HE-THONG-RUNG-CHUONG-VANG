@@ -325,6 +325,7 @@ export default function Stage() {
       media.play().catch(e => console.warn(e));
     } else if (media) {
       media.pause();
+      media.currentTime = 0;
     }
   }, [gameState.phase, victoryMediaData]);
 
@@ -515,7 +516,7 @@ export default function Stage() {
         }
       `}</style>
 
-      {/* KHU VỰC CHỈ CÓ DUY NHẤT 1 BỘ THẺ PRELOAD AUDIO */}
+      {/* KHU VỰC CHỈ CÓ DUY NHẤT 1 BỘ THẺ PRELOAD AUDIO TẠI ĐÂY */}
       <div className="hidden">
          {introMediaData && (introMediaData.type.startsWith('video') ? <video ref={introMediaRef} src={introMediaData.dataUrl} loop playsInline /> : <audio ref={introMediaRef} src={introMediaData.dataUrl} loop />)}
          {victoryMediaData && (victoryMediaData.type.startsWith('video') ? <video ref={victoryMediaRef} src={victoryMediaData.dataUrl} playsInline /> : <audio ref={victoryMediaRef} src={victoryMediaData.dataUrl} />)}
@@ -570,6 +571,7 @@ export default function Stage() {
                     </div>
                     <div className="absolute bottom-0 left-0 w-full h-48 bg-gradient-to-t from-black via-black/80 to-transparent pointer-events-none z-10"></div>
                     <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-black via-black/80 to-transparent pointer-events-none z-10"></div>
+                    {/* ĐÃ XÓA BỎ THẺ AUDIO/VIDEO BỊ THỪA Ở ĐÂY */}
                   </motion.div>
                 )}
 
@@ -694,6 +696,7 @@ export default function Stage() {
                           </motion.div>
                         )}
                     </div>
+                    {/* ĐÃ XÓA BỎ THẺ AUDIO/VIDEO BỊ THỪA Ở ĐÂY */}
                   </motion.div>
                 )}
 
