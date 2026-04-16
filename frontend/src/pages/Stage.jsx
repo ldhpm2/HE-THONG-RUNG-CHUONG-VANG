@@ -14,6 +14,7 @@ export default function Stage() {
     question: null,
     customMessage: '',
     students: JSON.parse(localStorage.getItem('stage_students') || '{}'),
+    winners: [],
     isSoundEnabled: true
   });
 
@@ -288,7 +289,8 @@ export default function Stage() {
             question: data.currentQuestion,
             students: data.students,
             isSoundEnabled: data.isSoundEnabled,
-            customMessage: data.customMessage
+            customMessage: data.customMessage || '',
+            winners: data.winners || [] // Nhận danh sách người chiến thắng
           };
         });
          if (data.gamePhase === 'winner_declared' && gameState.phase !== 'winner_declared') playVictory();
@@ -630,12 +632,34 @@ export default function Stage() {
                       <motion.div key={i} className="absolute w-3 h-3 rounded-sm" style={{ backgroundColor: ['#EAB308', '#3B82F6', '#EF4444', '#22C55E'][i % 4], top: '-5%', left: `${Math.random() * 100}%` }} animate={{ top: '105%', left: `${(Math.random() * 100)}%`, rotate: 360 }} transition={{ duration: 2 + Math.random() * 2, repeat: Infinity, delay: Math.random() * 2, ease: "linear" }}/>
                     ))}
                     <div className="z-10 flex flex-col items-center text-center">
-                        <motion.div animate={{ rotate: [0, -10, 10, -10, 10, 0], scale: [1, 1.1, 1] }} transition={{ repeat: Infinity, duration: 2 }} className="relative mb-8">
+                        <motion.div animate={{ rotate: [0, -10, 10, -10, 10, 0], scale: [1, 1.1, 1] }} transition={{ repeat: Infinity, duration: 2 }} className="relative mb-4">
                            <div className="absolute inset-0 bg-yellow-400 blur-3xl opacity-20 animate-pulse"></div>
-                           <img src="/victory-bell.png" alt="Golden Bell" className="w-64 h-64 md:w-80 md:h-80 object-contain drop-shadow-[0_0_30px_rgba(234,179,8,0.8)]" onError={(e) => { e.target.onerror = null; e.target.src = "https://cdn-icons-png.flaticon.com/512/311/311081.png"; }}/>
+                           <img src="/victory-bell.png" alt="Golden Bell" className="w-48 h-48 md:w-64 md:h-64 object-contain drop-shadow-[0_0_30px_rgba(234,179,8,0.8)]" onError={(e) => { e.target.onerror = null; e.target.src = "https://cdn-icons-png.flaticon.com/512/311/311081.png"; }}/>
                         </motion.div>
-                        <motion.h1 initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5 }} className="text-[clamp(2.5rem,8vh,5rem)] font-black uppercase text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 via-yellow-500 to-amber-700 tracking-tighter drop-shadow-2xl leading-none mb-4">Chúc Mừng Chiến Thắng!</motion.h1>
-                        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }} className="text-2xl md:text-3xl font-bold text-yellow-500/80 italic tracking-widest uppercase">Quán quân Rung Chuông Vàng</motion.p>
+                        <motion.h1 initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5 }} className="text-[clamp(2.5rem,6vh,4rem)] font-black uppercase text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 via-yellow-500 to-amber-700 tracking-tighter drop-shadow-2xl leading-none mb-2">
+                           Chúc Mừng Chiến Thắng!
+                        </motion.h1>
+                        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }} className="text-xl md:text-2xl font-bold text-yellow-500/80 italic tracking-widest uppercase mb-8">
+                           {gameState.winners?.length > 1 ? 'Các Quán quân Rung Chuông Vàng' : 'Quán quân Rung Chuông Vàng'}
+                        </motion.p>
+
+                        {/* HIỂN THỊ DANH SÁCH NGƯỜI CHIẾN THẮNG */}
+                        {gameState.winners && gameState.winners.length > 0 && (
+                          <motion.div 
+                            initial={{ scale: 0.8, opacity: 0 }} 
+                            animate={{ scale: 1, opacity: 1 }} 
+                            transition={{ delay: 1.5, type: 'spring' }}
+                            className="flex flex-wrap justify-center gap-6 mt-4 max-w-5xl"
+                          >
+                            {gameState.winners.map((w, idx) => (
+                              <div key={idx} className="bg-slate-900/80 border-2 border-yellow-500 px-8 py-4 rounded-2xl shadow-[0_0_20px_rgba(234,179,8,0.5)] flex flex-col items-center">
+                                <span className="text-4xl font-black text-yellow-400 mb-1">{w.sbd}</span>
+                                <span className="text-2xl font-bold text-white uppercase whitespace-nowrap">{w.hoTen}</span>
+                                <span className="text-sm text-slate-400 mt-1">{w.lop}</span>
+                              </div>
+                            ))}
+                          </motion.div>
+                        )}
                     </div>
                     {victoryMediaData && (victoryMediaData.type.startsWith('video') ? <video ref={victoryMediaRef} src={victoryMediaData.dataUrl} className="hidden" loop playsInline /> : <audio ref={victoryMediaRef} src={victoryMediaData.dataUrl} loop />)}
                   </motion.div>
@@ -720,7 +744,6 @@ export default function Stage() {
              </AnimatePresence>
          </div>
 
-         {/* LƯỚI THÍ SINH (RIGHT PANEL) */}
          <div className="w-1/4 flex flex-col bg-slate-900/50 rounded-2xl border border-slate-800 p-3 shadow-2xl backdrop-blur-md overflow-hidden text-white">
              <div className="flex flex-col mb-4 flex-shrink-0">
                <h2 className="text-2xl font-black uppercase text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-yellow-500 tracking-tight mb-3 drop-shadow-[0_0_10px_rgba(234,179,8,0.3)] text-center w-full">
@@ -742,7 +765,7 @@ export default function Stage() {
              
              <div className="flex-1 overflow-y-auto pr-0.5 custom-scrollbar">
                <div className="grid grid-cols-6 gap-1 content-start font-sans">
-                 {studentsList.map((st, i) => (
+                 {studentsList.length > 0 ? studentsList.map((st, i) => (
                    <motion.div
                      key={st.sbd}
                      initial={{ scale: 0.5, opacity: 0 }}
@@ -767,7 +790,9 @@ export default function Stage() {
                        <div className="absolute top-0 right-0 w-2.5 h-2.5 bg-yellow-400 rounded-full translate-x-1/3 -translate-y-1/3 shadow-[0_0_8px_rgba(250,204,21,1)] border border-slate-900"></div>
                      )}
                    </motion.div>
-                 ))}
+                 )) : (
+                   <div className="col-span-6 p-4 text-center text-slate-600 italic text-[10px]">Trống</div>
+                 )}
                </div>
              </div>
          </div>

@@ -16,8 +16,7 @@ const io = new Server(server, {
     origin: '*',
     methods: ['GET', 'POST']
   },
-  // NÂNG CẤP: Tăng kích thước bộ đệm lên 50MB để truyền file nhạc/video (Base64)
-  maxHttpBufferSize: 50e6 
+  maxHttpBufferSize: 50e6 // 50MB cho file media
 });
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/rung_chuong_vang';
@@ -40,7 +39,8 @@ const gameStateSchema = new mongoose.Schema({
   gameMode: { type: String, default: 'elimination' }, 
   currentQuestion: { type: mongoose.Schema.Types.Mixed, default: null },
   customMessage: { type: String, default: '' },
-  isSoundEnabled: { type: Boolean, default: true }
+  isSoundEnabled: { type: Boolean, default: true },
+  winners: { type: Array, default: [] } // Lưu danh sách người chiến thắng
 });
 const GameState = mongoose.model('GameState', gameStateSchema);
 
@@ -50,6 +50,7 @@ let customMessage = '';
 let gamePhase = 'idle';
 let gameMode = 'elimination'; 
 let isSoundEnabled = true;
+let winners = []; // Lưu trữ trên RAM
 
 let autoLockTimeout = null;
 
@@ -71,7 +72,7 @@ const saveFullState = async () => {
   try {
     await GameState.findOneAndUpdate(
       { id: 'main_state' },
-      { gamePhase, gameMode, currentQuestion, customMessage, isSoundEnabled },
+      { gamePhase, gameMode, currentQuestion, customMessage, isSoundEnabled, winners },
       { upsert: true }
     );
 
@@ -106,6 +107,7 @@ const loadFullState = async () => {
       currentQuestion = gs.currentQuestion;
       customMessage = gs.customMessage || '';
       isSoundEnabled = gs.isSoundEnabled;
+      winners = gs.winners || [];
     }
 
     const dbStudents = await Student.find({});
@@ -188,7 +190,8 @@ const broadcastState = () => {
     currentQuestion: currentQuestion ? { ...currentQuestion, correct: gamePhase === 'answer_revealed' ? currentQuestion.correct : null } : null,
     students: publicStudents,
     isSoundEnabled,
-    customMessage
+    customMessage,
+    winners // Gửi danh sách chiến thắng cho Stage
   };
 
   io.emit('game_state_update', payload);
@@ -256,6 +259,7 @@ io.on('connection', (socket) => {
       students = {};
       gamePhase = 'idle';
       currentQuestion = null;
+      winners = [];
       if (isDbConnected) await Student.deleteMany({});
       if (callback) callback({ success: true });
       await saveFullState();
@@ -268,6 +272,7 @@ io.on('connection', (socket) => {
     clearAutoLock();
     gamePhase = 'idle';
     currentQuestion = null;
+    winners = [];
     broadcastState();
   });
 
@@ -432,7 +437,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // NHẬN LỆNH CHUYỂN FILE ĐA PHƯƠNG TIỆN TỪ ADMIN
   socket.on('admin:intro_media', (data) => {
     if (!socket.rooms.has('admin_room')) return;
     socket.broadcast.emit('intro:media_data', data);
@@ -519,10 +523,29 @@ io.on('connection', (socket) => {
   socket.on('admin:camera_frame', (data) => socket.broadcast.emit('camera:frame_from_admin', data));
   socket.on('admin:toggle_sound', () => { isSoundEnabled = !isSoundEnabled; broadcastState(); });
 
+  // THUẬT TOÁN TÌM NGƯỜI CHIẾN THẮNG
   socket.on('admin:declare_winner', async () => { 
     clearAutoLock(); 
     gamePhase = 'winner_declared'; 
     currentQuestion = null; 
+    
+    let maxScore = -1;
+    for (const key in students) {
+      if (students[key].score > maxScore) {
+        maxScore = students[key].score;
+      }
+    }
+    
+    let topStudents = [];
+    if (maxScore >= 0) {
+      for (const key in students) {
+        if (students[key].score === maxScore) {
+          topStudents.push({ sbd: students[key].sbd, hoTen: students[key].hoTen, lop: students[key].lop });
+        }
+      }
+    }
+    winners = topStudents;
+
     await saveFullState(); 
     broadcastState(); 
     io.emit('client_play_sound', 'victory'); 
