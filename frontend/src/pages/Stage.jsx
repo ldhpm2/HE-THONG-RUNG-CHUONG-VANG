@@ -36,6 +36,9 @@ export default function Stage() {
   const mediaRef = useRef(null);        
   const rafRef = useRef(null);         
 
+  // --- STATE TĂNG GIẢM CỠ CHỮ THỜI GIAN THỰC ---
+  const [fontSizeModifier, setFontSizeModifier] = useState(0);
+
   // --- INTRO MEDIA ---
   const [introMediaData, setIntroMediaData] = useState(null); 
   const introMediaRef = useRef(null); 
@@ -43,6 +46,25 @@ export default function Stage() {
   // --- VICTORY MEDIA ---
   const [victoryMediaData, setVictoryMediaData] = useState(null); 
   const victoryMediaRef = useRef(null);
+
+  // Lắng nghe lệnh đổi cỡ chữ từ Admin
+  useEffect(() => {
+    socket.on('stage:change_font_size', (data) => {
+      setFontSizeModifier(prev => {
+        if (data.action === 'increase') return prev + 1;
+        if (data.action === 'decrease') return prev - 1;
+        if (data.action === 'reset') return 0;
+        return prev;
+      });
+    });
+    return () => socket.off('stage:change_font_size');
+  }, []);
+
+  // Tự động reset cỡ chữ về mặc định khi chuyển qua câu hỏi mới
+  useEffect(() => {
+    setFontSizeModifier(0);
+  }, [gameState.question?.id]);
+
 
   // Tieng TICK co hoc - khop 1 lan/giay voi dong ho
   const playTick = (urgent = false) => {
@@ -433,38 +455,44 @@ export default function Stage() {
     );
   };
 
-  // --- HÀM TÍNH TOÁN KÍCH THƯỚC CHỮ HOÀN HẢO (HEURISTIC) ---
-  // Đã được cộng thêm 1 size (0.2rem - 0.5rem tuỳ khung)
-  const getUnifiedSizeClass = (questionObj) => {
-    if (!questionObj) return 'text-[clamp(1.8rem,4.5vh,3rem)]';
+  // --- HÀM TÍNH TOÁN KÍCH THƯỚC CHỮ TỰ ĐỘNG ---
+  const getUnifiedSizeStyle = (questionObj, modifier) => {
+    let clampStr = 'clamp(1.8rem,4.5vh,3rem)';
+    let lh = 1.5;
 
-    const qLen = questionObj.content ? questionObj.content.length : 0;
-    let maxOptLen = 0;
+    if (questionObj) {
+      const qLen = questionObj.content ? questionObj.content.length : 0;
+      let maxOptLen = 0;
+      ['A', 'B', 'C', 'D'].forEach(opt => {
+          const optText = questionObj[`option${opt}`];
+          if (optText && optText.length > maxOptLen) maxOptLen = optText.length;
+      });
 
-    ['A', 'B', 'C', 'D'].forEach(opt => {
-        const optText = questionObj[`option${opt}`];
-        if (optText && optText.length > maxOptLen) {
-            maxOptLen = optText.length;
-        }
-    });
+      const score = qLen + (maxOptLen * 2);
+      const hasMedia = questionObj.mediaType !== 'none' && questionObj.mediaUrl;
 
-    const score = qLen + (maxOptLen * 2);
-    const hasMedia = questionObj.mediaType !== 'none' && questionObj.mediaUrl;
-
-    if (hasMedia) {
-        if (score < 150) return 'text-[clamp(1.4rem,3.5vh,2.3rem)] leading-snug';
-        if (score < 300) return 'text-[clamp(1.2rem,3vh,1.9rem)] leading-normal';
-        return 'text-[clamp(1rem,2.5vh,1.6rem)] leading-normal';
+      if (hasMedia) {
+          lh = 1.4;
+          if (score < 150) clampStr = 'clamp(1.4rem,3.5vh,2.3rem)';
+          else if (score < 300) clampStr = 'clamp(1.2rem,3vh,1.9rem)';
+          else clampStr = 'clamp(1rem,2.5vh,1.6rem)';
+      } else {
+          if (score < 120) { clampStr = 'clamp(2.1rem,5vh,4rem)'; lh = 1.3; }
+          else if (score < 250) { clampStr = 'clamp(1.8rem,4.5vh,3.2rem)'; lh = 1.4; }
+          else if (score < 400) { clampStr = 'clamp(1.5rem,3.8vh,2.6rem)'; lh = 1.5; }
+          else if (score < 600) { clampStr = 'clamp(1.3rem,3.2vh,2.1rem)'; lh = 1.5; }
+          else { clampStr = 'clamp(1.1rem,2.8vh,1.8rem)'; lh = 1.5; }
+      }
     }
 
-    if (score < 120) return 'text-[clamp(2.1rem,5vh,4rem)] leading-[1.3]';
-    if (score < 250) return 'text-[clamp(1.8rem,4.5vh,3.2rem)] leading-[1.4]';
-    if (score < 400) return 'text-[clamp(1.5rem,3.8vh,2.6rem)] leading-[1.5]';
-    if (score < 600) return 'text-[clamp(1.3rem,3.2vh,2.1rem)] leading-[1.5]';
-    return 'text-[clamp(1.1rem,2.8vh,1.8rem)] leading-[1.5]';
+    return {
+      fontSize: modifier === 0 ? clampStr : `calc(${clampStr} + ${modifier * 0.25}rem)`,
+      lineHeight: lh,
+      transition: 'font-size 0.2s ease-out'
+    };
   };
 
-  const unifiedTextClass = getUnifiedSizeClass(question);
+  const unifiedStyle = getUnifiedSizeStyle(question, fontSizeModifier);
 
   return (
     <div className="h-screen bg-[#020617] text-white flex flex-col font-sans overflow-hidden">
@@ -626,7 +654,7 @@ export default function Stage() {
                   </motion.div>
                 )}
 
-                {/* 3. QUESTION / PLAYING SCREEN (ĐÃ ÁP DỤNG ĐỒNG NHẤT CỠ CHỮ & CỘNG 1 SIZE) */}
+                {/* 3. QUESTION / PLAYING SCREEN (LAYOUT GÓC TRÁI, NGANG HÀNG) */}
                 {!['idle', 'showing_intro', 'showing_rules', 'showing_custom', 'winner_declared'].includes(phase) && (
                    <motion.div 
                      key={`question-${question?.id || 'none'}`} 
@@ -655,8 +683,8 @@ export default function Stage() {
                        {/* Question Content Wrapper */}
                        <div className="flex-1 flex flex-col items-center justify-center min-h-0 w-full mt-4 px-2">
                            
-                           {/* 1. Đề Bài - Dùng Class Đồng Bộ */}
-                           <div className={`font-semibold text-slate-100 flex-shrink-0 whitespace-pre-wrap text-justify [text-align-last:center] max-w-[95%] px-6 w-full ${unifiedTextClass}`}>
+                           {/* 1. Đề Bài */}
+                           <div className="font-semibold text-slate-100 flex-shrink-0 whitespace-pre-wrap text-justify [text-align-last:center] max-w-[95%] px-6 w-full transition-all duration-300" style={unifiedStyle}>
                                {renderMixedText(question?.content)}
                            </div>
   
@@ -680,28 +708,41 @@ export default function Stage() {
                               </div>
                            )}
   
-                           {/* 3. Đáp án Trắc nghiệm - Dùng Class Đồng Bộ */}
+                           {/* 3. Đáp án Trắc nghiệm (BỐ CỤC CHỮ CÁI GÓC TRÁI MỚI) */}
                            {question?.type === 'mcq' && (
                              <div className="flex-shrink-0 grid grid-cols-2 gap-4 mt-6 w-full max-w-[95%]">
-                                {['A', 'B', 'C', 'D'].map(opt => (
-                                   <div 
-                                      key={opt} 
-                                      className={`p-3 rounded-2xl border-4 flex flex-col items-center justify-center transition-all duration-1000 ${
-                                        phase === 'answer_revealed' && question.correct === opt ? 'bg-green-500 border-green-400 text-white shadow-[0_0_40px_rgba(34,197,94,0.6)] scale-[1.03]' :
-                                        phase === 'answer_revealed' ? 'bg-slate-800 border-slate-700 text-slate-600 opacity-30 font-black' :
-                                        'bg-slate-700/50 border-slate-600 text-slate-300'
-                                      }`}
-                                   >
-                                      {/* TĂNG KÍCH THƯỚC A, B, C, D LÊN 1.8em (To hơn 2 size) */}
-                                      <span className="text-yellow-400 font-black mb-2 drop-shadow-md tracking-widest" style={{ fontSize: '1.8em' }}>{opt}</span>
-                                      
-                                      {question[`option${opt}`] && (
-                                        <span className={`text-center text-slate-100 whitespace-pre-wrap ${unifiedTextClass}`}>
-                                          {renderMixedText(question[`option${opt}`])}
-                                        </span>
-                                      )}
-                                   </div>
-                                ))}
+                                {['A', 'B', 'C', 'D'].map(opt => {
+                                   const isCorrect = phase === 'answer_revealed' && question.correct === opt;
+                                   const isRevealed = phase === 'answer_revealed';
+                                   
+                                   return (
+                                     <div 
+                                        key={opt} 
+                                        className={`p-4 md:p-5 rounded-2xl border-4 flex flex-row items-start transition-all duration-500 ${
+                                          isCorrect ? 'bg-green-500 border-green-400 text-white shadow-[0_0_40px_rgba(34,197,94,0.6)] scale-[1.03]' :
+                                          isRevealed ? 'bg-slate-800 border-slate-700 text-slate-600 opacity-40 font-black' :
+                                          'bg-slate-700/50 border-slate-600 text-slate-300'
+                                        }`}
+                                     >
+                                        {/* Huy hiệu chữ cái A, B, C, D (Góc trái) */}
+                                        <div 
+                                          className={`flex-shrink-0 mr-4 rounded-xl font-black shadow-md flex items-center justify-center px-4 py-2 border-2 transition-all duration-300 ${
+                                            isCorrect ? 'bg-white border-transparent text-green-600' : 'bg-slate-800 border-slate-600 text-yellow-400'
+                                          }`}
+                                          style={{ fontSize: `calc(clamp(1.5rem, 3.5vh, 2.5rem) + ${fontSizeModifier * 0.25}rem)` }}
+                                        >
+                                          {opt}
+                                        </div>
+                                        
+                                        {/* Nội dung đáp án (Ngang hàng) */}
+                                        {question[`option${opt}`] && (
+                                          <div className={`text-left whitespace-pre-wrap transition-all duration-300 flex-1 pt-1 ${isCorrect ? 'text-white' : 'text-slate-100'}`} style={unifiedStyle}>
+                                            {renderMixedText(question[`option${opt}`])}
+                                          </div>
+                                        )}
+                                     </div>
+                                   );
+                                })}
                              </div>
                            )}
                            

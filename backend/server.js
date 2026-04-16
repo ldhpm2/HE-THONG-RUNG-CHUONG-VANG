@@ -565,7 +565,11 @@ io.on('connection', (socket) => {
     if (!socket.rooms.has('admin_room')) return;
     socket.broadcast.emit('camera:frame_from_admin', data);
   });
-
+// --- CHUYỂN TIẾP LỆNH CHỈNH CỠ CHỮ TỪ ADMIN SANG STAGE ---
+  socket.on('admin:font_size', (data) => {
+    if (!socket.rooms.has('admin_room')) return;
+    io.emit('stage:change_font_size', data); // Báo cho toàn bộ Stage thay đổi
+  });
   // =====================================================================
   // --- CLIENT (HỌC SINH) EVENTS ---
   // =====================================================================
