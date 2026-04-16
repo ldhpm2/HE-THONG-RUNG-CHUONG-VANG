@@ -270,6 +270,35 @@ io.on('connection', (socket) => {
     broadcastState();
   });
 
+  socket.on('admin:show_intro', async () => {
+    if (!socket.rooms.has('admin_room')) return;
+    clearAutoLock();
+    gamePhase = 'showing_intro';
+    currentQuestion = null;
+    await saveFullState();
+    broadcastState();
+  });
+
+  socket.on('admin:show_rules', async () => {
+    if (!socket.rooms.has('admin_room')) return;
+    clearAutoLock();
+    gamePhase = 'showing_rules';
+    currentQuestion = null;
+    await saveFullState();
+    broadcastState();
+  });
+
+  // KHÔI PHỤC: Lệnh chiếu chữ Custom
+  socket.on('admin:show_custom', async (data) => {
+    if (!socket.rooms.has('admin_room')) return;
+    clearAutoLock();
+    gamePhase = 'showing_custom';
+    customMessage = data.message || '';
+    currentQuestion = null;
+    await saveFullState();
+    broadcastState();
+  });
+
   socket.on('admin:push_question', async (data) => {
     if (!socket.rooms.has('admin_room')) return;
     clearAutoLock();
@@ -403,6 +432,17 @@ io.on('connection', (socket) => {
     }
   });
 
+  // KHÔI PHỤC: Truyền file nhạc từ Admin qua Stage
+  socket.on('admin:intro_media', (data) => {
+    if (!socket.rooms.has('admin_room')) return;
+    socket.broadcast.emit('intro:media_data', data);
+  });
+
+  socket.on('admin:victory_media', (data) => {
+    if (!socket.rooms.has('admin_room')) return;
+    socket.broadcast.emit('victory:media_data', data);
+  });
+
   socket.on('student:login', (data, callback) => {
     const student = students[data.sbd];
     if (!student || student.pin.toString() !== data.pin.toString()) {
@@ -472,14 +512,21 @@ io.on('connection', (socket) => {
       broadcastState();
     }
   });
+
   socket.on('admin:camera_signal', (data) => socket.broadcast.emit('camera:signal_from_admin', data));
   socket.on('stage:camera_signal', (data) => io.to('admin_room').emit('camera:signal_from_stage', data));
   socket.on('admin:camera_status', (data) => io.emit('camera:status_update', data));
   socket.on('admin:camera_frame', (data) => socket.broadcast.emit('camera:frame_from_admin', data));
-  socket.on('admin:show_intro', () => { gamePhase = 'showing_intro'; currentQuestion = null; broadcastState(); });
-  socket.on('admin:show_rules', () => { gamePhase = 'showing_rules'; currentQuestion = null; broadcastState(); });
   socket.on('admin:toggle_sound', () => { isSoundEnabled = !isSoundEnabled; broadcastState(); });
-  socket.on('admin:declare_winner', async () => { clearAutoLock(); gamePhase = 'winner_declared'; currentQuestion = null; await saveFullState(); broadcastState(); io.emit('client_play_sound', 'victory'); });
+
+  socket.on('admin:declare_winner', async () => { 
+    clearAutoLock(); 
+    gamePhase = 'winner_declared'; 
+    currentQuestion = null; 
+    await saveFullState(); 
+    broadcastState(); 
+    io.emit('client_play_sound', 'victory'); 
+  });
 });
 
 const distPath = path.join(__dirname, '../frontend/dist');
