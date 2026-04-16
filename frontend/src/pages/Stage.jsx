@@ -449,6 +449,7 @@ export default function Stage() {
 
     let processedText = restoreLatex(text);
     processedText = processedText.replace(/\$\$/g, '$');
+
     if (!processedText.includes('$') && processedText.includes('\\')) processedText = `$${processedText}$`;
     
     return (
@@ -531,8 +532,11 @@ export default function Stage() {
          </div>
       </header>
 
-      <div className="flex-1 flex flex-row px-6 pb-6 pt-[85px] md:pt-[110px] gap-6 relative overflow-hidden">
-         <div className="w-3/4 flex flex-col items-center justify-center relative min-h-0">
+      {/* ĐÃ MỞ RỘNG 2 BÊN BẰNG CÁCH SỬA pl-2 pr-6 VÀ gap-2 md:gap-3 */}
+      <div className="flex-1 flex flex-row pl-2 md:pl-3 pr-6 pb-6 pt-[85px] md:pt-[110px] gap-2 md:gap-3 relative overflow-hidden">
+         
+         {/* KHUNG CÂU HỎI ĐÃ ĐƯỢC CHUYỂN THÀNH flex-1 ĐỂ LẤY TOÀN BỘ KHÔNG GIAN CÒN LẠI */}
+         <div className="flex-1 flex flex-col items-center justify-center relative min-h-0">
              <AnimatePresence mode="wait">
                 {phase === 'showing_intro' && (
                   <motion.div key="intro" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full h-full flex flex-col items-center relative overflow-hidden bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black rounded-b-3xl rounded-t-none border-x border-b border-slate-700 shadow-2xl">
@@ -664,12 +668,11 @@ export default function Stage() {
                       <motion.div key={i} className="absolute w-3 h-3 rounded-sm" style={{ backgroundColor: ['#EAB308', '#3B82F6', '#EF4444', '#22C55E'][i % 4], top: '-5%', left: `${Math.random() * 100}%` }} animate={{ top: '105%', left: `${(Math.random() * 100)}%`, rotate: 360 }} transition={{ duration: 2 + Math.random() * 2, repeat: Infinity, delay: Math.random() * 2, ease: "linear" }}/>
                     ))}
                     <div className="z-10 flex flex-col items-center text-center">
-                        <motion.div animate={{ rotate: [0, -10, 10, -10, 10, 0], scale: [1, 1.3, 1] }} transition={{ repeat: Infinity, duration: 2 }} className="relative mb-4">
+                        <motion.div animate={{ rotate: [0, -10, 10, -10, 10, 0], scale: [1, 1.1, 1] }} transition={{ repeat: Infinity, duration: 2 }} className="relative mb-4">
                            <div className="absolute inset-0 bg-yellow-400 blur-3xl opacity-20 animate-pulse"></div>
                            <img src="/victory-bell.png" alt="Golden Bell" className="w-48 h-48 md:w-64 md:h-64 object-contain drop-shadow-[0_0_30px_rgba(234,179,8,0.8)]" onError={(e) => { e.target.onerror = null; e.target.src = "https://cdn-icons-png.flaticon.com/512/311/311081.png"; }}/>
                         </motion.div>
                         
-                        {/* ĐÃ CẬP NHẬT Ở ĐÂY: Bỏ leading-none, thêm leading-normal và py-3 để dấu sắc không bị cắt */}
                         <motion.h1 initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5 }} className="text-[clamp(2.5rem,6vh,4rem)] font-black uppercase text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 via-yellow-500 to-amber-700 tracking-tighter drop-shadow-2xl leading-normal py-3 mb-2">
                            Chúc Mừng Chiến Thắng!
                         </motion.h1>
@@ -782,7 +785,8 @@ export default function Stage() {
              </AnimatePresence>
          </div>
 
-         <div className="w-1/4 flex flex-col bg-slate-900/50 rounded-b-3xl rounded-t-none border-x border-b border-slate-800 p-3 shadow-2xl backdrop-blur-md overflow-hidden text-white">
+         {/* KHUNG SÀN THI ĐẤU ĐƯỢC GIỮ CỐ ĐỊNH KÍCH THƯỚC */}
+         <div className="w-[28%] md:w-1/4 flex-shrink-0 flex flex-col bg-slate-900/50 rounded-b-3xl rounded-t-none border-x border-b border-slate-800 p-3 shadow-2xl backdrop-blur-md overflow-hidden text-white">
              <div className="flex flex-col mb-4 flex-shrink-0">
                <h2 className="text-2xl font-black uppercase text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-yellow-500 tracking-tight mb-3 drop-shadow-[0_0_10px_rgba(234,179,8,0.3)] text-center w-full">
                  Sàn Thi Đấu
