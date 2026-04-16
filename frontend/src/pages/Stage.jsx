@@ -60,7 +60,6 @@ export default function Stage() {
     setFontSizeModifier(0);
   }, [gameState.question?.id]);
 
-
   const playTick = (urgent = false) => {
     try {
       if (!isLocalAudioUnlocked) return;
@@ -429,30 +428,31 @@ export default function Stage() {
   const studentsList = Object.values(gameState.students).sort((a,b) => parseInt(a.sbd) - parseInt(b.sbd));
   const { phase, question } = gameState;
 
-  // Xử lý tự động ép dòng cho Đáp án, tự động xuống dòng cho Câu hỏi
-  const renderMixedText = (text, isAnswerOption = false) => {
+  const renderMixedText = (text) => {
     if (!text) return null;
     const restoreLatex = (str) => typeof str === 'string' ? str.replace(/\f/g, '\\f').replace(/\v/g, '\\v') : str;
     
-    if (!isAnswerOption) {
-        const match = text.match(/^(Câu\s+\d+[\.:])\s*(.*)/si);
-        if (match) {
-            let restPart = restoreLatex(match[2]);
-            if (!restPart.includes('$') && restPart.includes('\\')) restPart = `$${restPart}$`;
-            return (
-              <MathJax dynamic>
-                <span className="whitespace-pre-wrap"><span className="text-cyan-400 font-extrabold drop-shadow-md">{match[1]} </span>{restPart}</span>
-              </MathJax>
-            );
-        }
+    const match = text.match(/^(Câu\s+\d+[\.:])\s*(.*)/si);
+    if (match) {
+        let restPart = restoreLatex(match[2]);
+        if (!restPart.includes('$') && restPart.includes('\\')) restPart = `$${restPart}$`;
+        return (
+          <MathJax dynamic>
+            <span className="whitespace-pre-wrap break-words"><span className="text-cyan-400 font-extrabold drop-shadow-md">{match[1]} </span>{restPart}</span>
+          </MathJax>
+        );
     }
 
     let processedText = restoreLatex(text);
+    
+    // Ép các công thức độc lập ($$) thành công thức nội tuyến ($) để ngăn MathJax tự động bẻ dòng vô lý
+    processedText = processedText.replace(/\$\$/g, '$');
+
     if (!processedText.includes('$') && processedText.includes('\\')) processedText = `$${processedText}$`;
     
     return (
       <MathJax dynamic>
-          <span className={isAnswerOption ? "whitespace-nowrap inline-block" : "whitespace-pre-wrap"}>
+          <span className="whitespace-pre-wrap break-words">
               {processedText}
           </span>
       </MathJax>
@@ -500,25 +500,39 @@ export default function Stage() {
   return (
     <div className="h-screen bg-[#020617] text-white flex flex-col font-sans overflow-hidden">
       
-      {/* HEADER LOGO KHỔNG LỒ */}
-      <header className="fixed top-0 left-0 w-full h-[90px] md:h-[130px] flex items-center justify-center bg-slate-950 shadow-[0_15px_40px_rgba(0,0,0,0.8)] border-b-2 border-slate-700 z-[100] backdrop-blur-md">
-         <div className="flex items-center gap-6 md:gap-12">
-            <motion.img src={logoBell} alt="Logo" className="w-12 h-12 md:w-20 md:h-20 lg:w-24 lg:h-24 drop-shadow-[0_0_25px_rgba(250,204,21,0.8)]" animate={{ rotate: [0, -10, 10, -10, 10, 0] }} transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}/>
+      {/* CSS ĐẶC BIỆT: Tước bỏ quyền xuống dòng của MathJax và ẩn thanh cuộn */}
+      <style>{`
+        .math-nowrap, .math-nowrap * {
+            white-space: nowrap !important;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+      `}</style>
+
+      {/* HEADER LOGO: Đã thu nhỏ 1 size và chỉnh chiều cao */}
+      <header className="fixed top-0 left-0 w-full h-[85px] md:h-[110px] flex items-center justify-center bg-slate-950 shadow-[0_15px_40px_rgba(0,0,0,0.8)] border-b-2 border-slate-700 z-[100] backdrop-blur-md">
+         <div className="flex items-center gap-6 md:gap-10">
+            <motion.img src={logoBell} alt="Logo" className="w-10 h-10 md:w-16 md:h-16 lg:w-20 lg:h-20 drop-shadow-[0_0_25px_rgba(250,204,21,0.8)]" animate={{ rotate: [0, -10, 10, -10, 10, 0] }} transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}/>
             
-            <h1 className="text-4xl md:text-6xl lg:text-7xl xl:text-[5.5rem] font-black italic tracking-tighter uppercase text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 via-yellow-400 to-yellow-600 drop-shadow-[0_5px_20px_rgba(250,204,21,0.8)]">
+            <h1 className="text-3xl md:text-5xl lg:text-6xl xl:text-[4.5rem] font-black italic tracking-tighter uppercase text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 via-yellow-400 to-yellow-600 drop-shadow-[0_5px_20px_rgba(250,204,21,0.8)]">
               RUNG CHUÔNG VÀNG
             </h1>
 
-            <motion.img src={logoBell} alt="Logo" className="w-12 h-12 md:w-20 md:h-20 lg:w-24 lg:h-24 drop-shadow-[0_0_25px_rgba(250,204,21,0.8)]" animate={{ rotate: [0, 10, -10, 10, -10, 0] }} transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}/>
+            <motion.img src={logoBell} alt="Logo" className="w-10 h-10 md:w-16 md:h-16 lg:w-20 lg:h-20 drop-shadow-[0_0_25px_rgba(250,204,21,0.8)]" animate={{ rotate: [0, 10, -10, 10, -10, 0] }} transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}/>
          </div>
       </header>
 
-      {/* KHỐI NỘI DUNG CHẠM KHÍT VIỀN HEADER */}
-      <div className="flex-1 flex flex-row px-6 pb-6 pt-[90px] md:pt-[130px] gap-6 relative overflow-hidden">
+      {/* KHỐI NỘI DUNG CHẠM KHÍT VIỀN HEADER (pt bằng chính xác h của Header) */}
+      <div className="flex-1 flex flex-row px-6 pb-6 pt-[85px] md:pt-[110px] gap-6 relative overflow-hidden">
          <div className="w-3/4 flex flex-col items-center justify-center relative min-h-0">
              <AnimatePresence mode="wait">
                 {phase === 'showing_intro' && (
-                  <motion.div key="intro" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full h-full flex flex-col items-center relative overflow-hidden bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black rounded-3xl">
+                  <motion.div key="intro" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full h-full flex flex-col items-center relative overflow-hidden bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black rounded-b-3xl rounded-t-none border-x border-b border-slate-700 shadow-2xl">
                     <div className="absolute top-10 left-0 w-full z-20 flex flex-col items-center text-center">
                       <h2 className="text-5xl font-black uppercase tracking-[0.2em] mb-4 text-transparent bg-clip-text bg-gradient-to-b from-yellow-100 via-yellow-400 to-yellow-600 drop-shadow-[0_5px_15px_rgba(250,204,21,0.5)]">Danh Sách Thí Sinh</h2>
                       <div className="h-1 w-64 bg-yellow-500/50 rounded-full blur-sm"></div>
@@ -555,7 +569,7 @@ export default function Stage() {
                 )}
 
                 {phase === 'idle' && (
-                    <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full h-full flex flex-col items-center justify-center p-8">
+                    <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full h-full flex flex-col items-center justify-center p-8 bg-slate-800/80 rounded-b-3xl rounded-t-none border-x border-b border-slate-700 shadow-2xl backdrop-blur-md">
                         <div className="flex gap-16 items-center justify-center mb-12">
                            <div className="w-64 h-64 border-2 border-yellow-600/30 rounded-full flex items-center justify-center bg-slate-900/40 relative shadow-[0_0_100px_rgba(234,179,8,0.05)]">
                                <div className="w-56 h-56 border-4 border-yellow-500/80 rounded-full flex items-center justify-center bg-gradient-to-b from-slate-800 to-slate-900 shadow-inner">
@@ -584,7 +598,7 @@ export default function Stage() {
                 )}
 
                 {phase === 'showing_rules' && (
-                  <motion.div key="rules" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.1 }} className="w-full h-full flex flex-col items-center justify-center p-4 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-900/40 via-slate-950 to-black rounded-3xl border border-indigo-500/30 shadow-[0_0_100px_rgba(79,70,229,0.1)] relative overflow-hidden">
+                  <motion.div key="rules" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.1 }} className="w-full h-full flex flex-col items-center justify-center p-4 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-900/40 via-slate-950 to-black rounded-b-3xl rounded-t-none border-x border-b border-indigo-500/30 shadow-[0_0_100px_rgba(79,70,229,0.1)] relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none opacity-20">
                        <div className="absolute -top-24 -left-24 w-96 h-96 bg-indigo-600 rounded-full blur-[120px]"></div>
                        <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-purple-600 rounded-full blur-[120px]"></div>
@@ -621,7 +635,7 @@ export default function Stage() {
                 )}
 
                 {phase === 'showing_custom' && (
-                  <motion.div key="custom" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full h-full flex flex-col items-center justify-center p-12 bg-slate-950 rounded-3xl border border-blue-500/20 shadow-2xl relative overflow-hidden">
+                  <motion.div key="custom" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full h-full flex flex-col items-center justify-center p-12 bg-slate-950 rounded-b-3xl rounded-t-none border-x border-b border-blue-500/20 shadow-2xl relative overflow-hidden">
                     <div className="absolute inset-0 opacity-10 pointer-events-none">
                        <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-600 rounded-full blur-[160px] opacity-20"></div>
@@ -642,7 +656,7 @@ export default function Stage() {
                 )}
 
                  {phase === 'winner_declared' && (
-                  <motion.div key="winner" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.2 }} className="w-full h-full flex flex-col items-center justify-center p-12 bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 rounded-3xl border-4 border-yellow-500/50 shadow-[0_0_50px_rgba(234,179,8,0.3)] relative overflow-hidden">
+                  <motion.div key="winner" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.2 }} className="w-full h-full flex flex-col items-center justify-center p-12 bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 rounded-b-3xl rounded-t-none border-x border-b border-yellow-500 shadow-[0_0_50px_rgba(234,179,8,0.3)] relative overflow-hidden">
                     {[...Array(20)].map((_, i) => (
                       <motion.div key={i} className="absolute w-3 h-3 rounded-sm" style={{ backgroundColor: ['#EAB308', '#3B82F6', '#EF4444', '#22C55E'][i % 4], top: '-5%', left: `${Math.random() * 100}%` }} animate={{ top: '105%', left: `${(Math.random() * 100)}%`, rotate: 360 }} transition={{ duration: 2 + Math.random() * 2, repeat: Infinity, delay: Math.random() * 2, ease: "linear" }}/>
                     ))}
@@ -657,6 +671,7 @@ export default function Stage() {
                         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }} className="text-xl md:text-2xl font-bold text-yellow-500/80 italic tracking-widest uppercase mb-8">
                            {gameState.winners?.length > 1 ? 'Các Quán quân Rung Chuông Vàng' : 'Quán quân Rung Chuông Vàng'}
                         </motion.p>
+
                         {gameState.winners && gameState.winners.length > 0 && (
                           <motion.div 
                             initial={{ scale: 0.8, opacity: 0 }} 
@@ -684,14 +699,15 @@ export default function Stage() {
                      initial={{ opacity: 0, x: -100 }} 
                      animate={{ opacity: 1, x: 0 }} 
                      exit={{ opacity: 0, x: -100 }}
-                     className="w-full h-full flex flex-col bg-slate-800/80 rounded-3xl border border-slate-700 p-6 pt-10 shadow-2xl backdrop-blur-md relative overflow-hidden"
+                     // CSS ĐÃ SỬA ĐỂ VUÔNG GÓC TRÊN, BO GÓC DƯỚI
+                     className="w-full h-full flex flex-col bg-slate-800/80 rounded-b-3xl rounded-t-none border-x border-b border-slate-700 p-6 pt-10 shadow-2xl backdrop-blur-md relative overflow-hidden"
                    >
                        <div className="absolute top-4 left-6 z-30">
                           {question?.isRescue && <div className="bg-purple-600 text-white px-6 py-2 rounded-full font-black shadow-lg border-2 border-purple-400 animate-pulse uppercase tracking-widest text-xl">Vòng Cứu Trợ</div>}
                           {question?.isAudience && <div className="bg-orange-600 text-white px-6 py-2 rounded-full font-black shadow-lg border-2 border-orange-400 animate-bounce uppercase tracking-widest text-xl">Câu Hỏi Khán Giả</div>}
                        </div>
 
-                       <div className="absolute top-0 right-0 w-20 h-20 bg-slate-900/80 rounded-full border-4 border-slate-600 flex items-center justify-center z-20 shadow-xl backdrop-blur-sm">
+                       <div className="absolute top-0 right-0 w-20 h-20 bg-slate-900/80 rounded-bl-3xl border-l border-b border-slate-600 flex items-center justify-center z-20 shadow-xl backdrop-blur-sm">
                           <span className={`text-4xl font-black font-mono tracking-tighter ${phase === 'timer_running' && timeLeft <= 5 ? 'text-red-500 animate-ping' : phase === 'timer_running' ? 'text-yellow-400' : 'text-slate-500'}`}>
                             {phase === 'timer_running' ? timeLeft : (phase === 'locked' || phase === 'answer_revealed' ? '00' : '⏳')}
                           </span>
@@ -737,7 +753,12 @@ export default function Stage() {
                                         }`}
                                      >
                                         <div className={`flex-shrink-0 mr-4 rounded-xl font-black shadow-md flex items-center justify-center px-4 py-2 border-2 transition-all duration-300 ${isCorrect ? 'bg-white border-transparent text-green-600' : 'bg-slate-800 border-slate-600 text-yellow-400'}`} style={{ fontSize: `calc(clamp(1.5rem, 3.5vh, 2.5rem) + ${fontSizeModifier * 0.25}rem)` }}>{opt}</div>
-                                        {question[`option${opt}`] && (<div className={`text-left transition-all duration-300 flex-1 pt-1 ${isCorrect ? 'text-white' : 'text-slate-100'}`} style={unifiedStyle}>{renderMixedText(question[`option${opt}`], true)}</div>)}
+                                        
+                                        {question[`option${opt}`] && (
+                                            <div className={`text-left transition-all duration-300 flex-1 pt-1 ${isCorrect ? 'text-white' : 'text-slate-100'}`} style={unifiedStyle}>
+                                                {renderMixedText(question[`option${opt}`])}
+                                            </div>
+                                        )}
                                      </div>
                                    );
                                 })}
@@ -757,7 +778,8 @@ export default function Stage() {
              </AnimatePresence>
          </div>
 
-         <div className="w-1/4 flex flex-col bg-slate-900/50 rounded-2xl border border-slate-800 p-3 shadow-2xl backdrop-blur-md overflow-hidden text-white">
+         {/* SÀN THI ĐẤU - CŨNG LÀM VUÔNG GÓC TRÊN */}
+         <div className="w-1/4 flex flex-col bg-slate-900/50 rounded-b-3xl rounded-t-none border-x border-b border-slate-800 p-3 shadow-2xl backdrop-blur-md overflow-hidden text-white">
              <div className="flex flex-col mb-4 flex-shrink-0">
                <h2 className="text-2xl font-black uppercase text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-yellow-500 tracking-tight mb-3 drop-shadow-[0_0_10px_rgba(234,179,8,0.3)] text-center w-full">
                  Sàn Thi Đấu
