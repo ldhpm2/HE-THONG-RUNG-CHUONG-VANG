@@ -58,6 +58,10 @@ export default function Admin() {
   
   const [introMediaFile, setIntroMediaFile] = useState(null); 
   const [victoryMediaFile, setVictoryMediaFile] = useState(null); 
+  
+  // BIẾN QUAN TRỌNG ĐÃ ĐƯỢC KHÔI PHỤC ĐỂ KHÔNG BỊ TRẮNG TRANG
+  const introMediaInputRef = useRef(null);
+  const victoryMediaInputRef = useRef(null);
 
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
   const audioCtxRef = useRef(null);
@@ -638,7 +642,7 @@ export default function Admin() {
   
   const declareWinner = () => {
     if(!window.confirm('Xác nhận CHÚC MỪNG CHIẾN THẮNG? Màn hình sẽ chuyển sang hiệu ứng vinh danh.')) return;
-    if (victoryMediaFile) socket.emit('admin:victory_media', victoryMediaFile); // Gửi thêm 1 lần phòng hờ
+    if (victoryMediaFile) socket.emit('admin:victory_media', victoryMediaFile);
     socket.emit('admin:declare_winner');
   };
 
@@ -662,13 +666,11 @@ export default function Admin() {
   const handleIntroMediaUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
     if (file.size > 30 * 1024 * 1024) {
       alert('Dung lượng file quá lớn! Vui lòng chọn file dưới 30MB để tránh kẹt mạng.');
       e.target.value = '';
       return;
     }
-
     const reader = new FileReader();
     reader.onload = (event) => {
       const payload = { name: file.name, type: file.type, dataUrl: event.target.result };
@@ -682,13 +684,11 @@ export default function Admin() {
   const handleVictoryMediaUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
     if (file.size > 30 * 1024 * 1024) {
       alert('Dung lượng file quá lớn! Vui lòng chọn file dưới 30MB để tránh kẹt mạng.');
       e.target.value = '';
       return;
     }
-
     const reader = new FileReader();
     reader.onload = (event) => {
       const payload = { name: file.name, type: file.type, dataUrl: event.target.result };
@@ -780,7 +780,7 @@ export default function Admin() {
        <div className="flex items-center justify-between px-4 py-2 bg-slate-800/50 rounded-lg border border-slate-700/50">
           <div className="flex items-center gap-6">
              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
+                 <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
                 <span className="text-xs text-slate-400">Server: {isConnected ? 'Đã kết nối' : 'Mất kết nối'}</span>
              </div>
              <div className="flex items-center gap-2">
@@ -1058,6 +1058,9 @@ export default function Admin() {
               <p className="text-[10px] text-red-500 font-bold uppercase mb-1 flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span> Live Camera Preview</p>
               <video ref={localVideoRef} autoPlay muted playsInline className="w-full h-40 object-cover rounded" />
               <canvas ref={canvasRef} className="hidden" />
+              {/* KHÔI PHỤC LẠI 2 BIẾN NẠP FILE ĐỂ CHỐNG LỖI */}
+              <input ref={introMediaInputRef} type="file" accept="audio/*,video/*" onChange={handleIntroMediaUpload} className="hidden"/>
+              <input ref={victoryMediaInputRef} type="file" accept="audio/*,video/*" onChange={handleVictoryMediaUpload} className="hidden"/>
            </div>
 
            <div className="mt-6 border-t border-slate-700 pt-6">
@@ -1073,9 +1076,8 @@ export default function Admin() {
                 <h4 className="text-sm font-bold text-slate-400 mb-3 uppercase tracking-wider flex items-center"><Music size={14} className="mr-2"/> Nhạc / Video Giới Thiệu</h4>
                 <p className="text-xs text-slate-500 mb-2">Nạp file âm thanh hoặc video sẽ tự động phát khi bấm nút "Giới thiệu" trên Stage.</p>
                 <div className="flex gap-2 items-center">
-                   <label className="flex-1 bg-pink-600 hover:bg-pink-500 text-white font-bold py-2.5 px-4 rounded-xl transition-all shadow-md active:scale-95 text-sm flex items-center justify-center gap-2 cursor-pointer">
+                   <label className="flex-1 bg-pink-600 hover:bg-pink-500 text-white font-bold py-2.5 px-4 rounded-xl transition-all shadow-md active:scale-95 text-sm flex items-center justify-center gap-2 cursor-pointer" onClick={() => introMediaInputRef.current?.click()}>
                       <Music size={16}/> {introMediaFile ? 'Đổi file' : 'Chọn file âm thanh / video'}
-                      <input ref={introMediaInputRef} type="file" accept="audio/*,video/*" onChange={handleIntroMediaUpload} className="hidden"/>
                    </label>
                    {introMediaFile && <button onClick={() => setIntroMediaFile(null)} className="px-3 py-2.5 bg-red-900/40 hover:bg-red-800 text-red-300 rounded-xl border border-red-800 text-sm font-bold transition active:scale-95">Xóa</button>}
                 </div>
@@ -1086,9 +1088,8 @@ export default function Admin() {
                 <h4 className="text-sm font-bold text-slate-400 mb-3 uppercase tracking-wider flex items-center"><Trophy size={14} className="mr-2 text-yellow-500"/> Nhạc Chúc Mừng Chiến Thắng</h4>
                 <p className="text-xs text-slate-500 mb-2">Nạp file âm thanh sẽ tự động phát khi bấm nút "Chúc Mừng Chiến Thắng".</p>
                 <div className="flex gap-2 items-center">
-                   <label className="flex-1 bg-amber-600 hover:bg-amber-500 text-white font-bold py-2.5 px-4 rounded-xl transition-all shadow-md active:scale-95 text-sm flex items-center justify-center gap-2 cursor-pointer">
+                   <label className="flex-1 bg-amber-600 hover:bg-amber-500 text-white font-bold py-2.5 px-4 rounded-xl transition-all shadow-md active:scale-95 text-sm flex items-center justify-center gap-2 cursor-pointer" onClick={() => victoryMediaInputRef.current?.click()}>
                       <Trophy size={16}/> {victoryMediaFile ? 'Đổi file' : 'Chọn file âm thanh / video'}
-                      <input ref={victoryMediaInputRef} type="file" accept="audio/*,video/*" onChange={handleVictoryMediaUpload} className="hidden"/>
                    </label>
                    {victoryMediaFile && <button onClick={() => setVictoryMediaFile(null)} className="px-3 py-2.5 bg-red-900/40 hover:bg-red-800 text-red-300 rounded-xl border border-red-800 text-sm font-bold transition active:scale-95">Xóa</button>}
                 </div>
