@@ -264,6 +264,7 @@ export default function Admin() {
       playCorrect();
     }
   }, [gameState.phase, isAudioEnabled]);
+  
   useEffect(() => {
     const handleConnect = () => {
       setIsConnected(true);
@@ -398,7 +399,6 @@ export default function Admin() {
       // Nếu trong lúc chờ, user đã tắt camera
       if (!localStreamRef.current) return;
 
-      const pendingCandidates = [];
       const pc = new RTCPeerConnection({
         iceServers: [
           { urls: 'stun:stun.l.google.com:19302' },
@@ -842,8 +842,17 @@ export default function Admin() {
                 <span className="text-xs text-slate-400">Quyền Admin: {isAdminAuthenticated ? 'Hiện diện' : 'Chưa xác thực'}</span>
              </div>
           </div>
-          <div className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">
-             Hệ thống Rung Chuông Vàng v2.1
+          <div className="flex items-center gap-4">
+             {/* FONT SIZE CONTROLS */}
+             <div className="flex items-center gap-2 bg-slate-900/50 px-3 py-1 rounded-full border border-slate-700/50">
+                <span className="text-[10px] text-slate-400 uppercase font-bold mr-1">Cỡ chữ Stage:</span>
+                <button onClick={() => socket.emit('admin:font_size', { action: 'decrease' })} className="w-7 h-7 rounded-full border border-slate-600 flex items-center justify-center hover:bg-slate-700 font-bold text-slate-300 transition-colors" title="Giảm cỡ chữ">A-</button>
+                <button onClick={() => socket.emit('admin:font_size', { action: 'increase' })} className="w-7 h-7 rounded-full border border-slate-600 flex items-center justify-center hover:bg-slate-700 font-bold text-slate-300 transition-colors" title="Tăng cỡ chữ">A+</button>
+                <button onClick={() => socket.emit('admin:font_size', { action: 'reset' })} className="text-[10px] ml-1 text-slate-500 hover:text-slate-300 underline">Reset</button>
+             </div>
+             <div className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">
+                Hệ thống Rung Chuông Vàng v2.1
+             </div>
           </div>
        </div>
 
