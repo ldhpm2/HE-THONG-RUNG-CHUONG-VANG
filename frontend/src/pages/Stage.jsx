@@ -290,7 +290,7 @@ export default function Stage() {
             students: data.students,
             isSoundEnabled: data.isSoundEnabled,
             customMessage: data.customMessage || '',
-            winners: data.winners || [] // Nhận danh sách người chiến thắng
+            winners: data.winners || []
           };
         });
          if (data.gamePhase === 'winner_declared' && gameState.phase !== 'winner_declared') playVictory();
@@ -429,23 +429,33 @@ export default function Stage() {
   const studentsList = Object.values(gameState.students).sort((a,b) => parseInt(a.sbd) - parseInt(b.sbd));
   const { phase, question } = gameState;
 
-  const renderMixedText = (text) => {
+  // Xử lý tự động ép dòng cho Đáp án, tự động xuống dòng cho Câu hỏi
+  const renderMixedText = (text, isAnswerOption = false) => {
     if (!text) return null;
     const restoreLatex = (str) => typeof str === 'string' ? str.replace(/\f/g, '\\f').replace(/\v/g, '\\v') : str;
-    const match = text.match(/^(Câu\s+\d+[\.:])\s*(.*)/si);
-    if (match) {
-        let restPart = restoreLatex(match[2]);
-        if (!restPart.includes('$') && restPart.includes('\\')) restPart = `$${restPart}$`;
-        return (
-          <MathJax dynamic>
-            <span className="whitespace-pre-wrap"><span className="text-cyan-400 font-extrabold drop-shadow-md">{match[1]} </span>{restPart}</span>
-          </MathJax>
-        );
+    
+    if (!isAnswerOption) {
+        const match = text.match(/^(Câu\s+\d+[\.:])\s*(.*)/si);
+        if (match) {
+            let restPart = restoreLatex(match[2]);
+            if (!restPart.includes('$') && restPart.includes('\\')) restPart = `$${restPart}$`;
+            return (
+              <MathJax dynamic>
+                <span className="whitespace-pre-wrap"><span className="text-cyan-400 font-extrabold drop-shadow-md">{match[1]} </span>{restPart}</span>
+              </MathJax>
+            );
+        }
     }
+
     let processedText = restoreLatex(text);
     if (!processedText.includes('$') && processedText.includes('\\')) processedText = `$${processedText}$`;
+    
     return (
-      <MathJax dynamic><span className="whitespace-pre-wrap">{processedText}</span></MathJax>
+      <MathJax dynamic>
+          <span className={isAnswerOption ? "whitespace-nowrap inline-block" : "whitespace-pre-wrap"}>
+              {processedText}
+          </span>
+      </MathJax>
     );
   };
 
@@ -489,21 +499,22 @@ export default function Stage() {
 
   return (
     <div className="h-screen bg-[#020617] text-white flex flex-col font-sans overflow-hidden">
-
-     {/* HEADER LOGO */}
-      <header className="fixed top-0 left-0 w-full flex items-center justify-center py-4 bg-slate-950 shadow-[0_4px_30px_rgba(0,0,0,1)] border-b border-slate-800 z-[100] backdrop-blur-md">
+      
+      {/* HEADER LOGO ĐÃ FIX KÍCH THƯỚC */}
+      <header className="fixed top-0 left-0 w-full h-20 md:h-24 flex items-center justify-center bg-slate-950 shadow-[0_4px_30px_rgba(0,0,0,1)] border-b border-slate-800 z-[100] backdrop-blur-md">
          <div className="flex items-center gap-6 md:gap-8">
-            <motion.img src={logoBell} alt="Logo" className="w-12 h-12 md:w-16 md:h-16 lg:w-20 lg:h-20 drop-shadow-[0_0_20px_rgba(250,204,21,0.7)]" animate={{ rotate: [0, -10, 10, -10, 10, 0] }} transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}/>
+            <motion.img src={logoBell} alt="Logo" className="w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 drop-shadow-[0_0_20px_rgba(250,204,21,0.7)]" animate={{ rotate: [0, -10, 10, -10, 10, 0] }} transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}/>
             
-            <h1 className="text-3xl md:text-5xl lg:text-6xl xl:text-7xl font-black italic tracking-tighter uppercase text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 via-yellow-400 to-yellow-600 drop-shadow-[0_4px_20px_rgba(250,204,21,0.6)]">
+            <h1 className="text-3xl md:text-4xl lg:text-5xl xl:text-[3.2rem] font-black italic tracking-tighter uppercase text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 via-yellow-400 to-yellow-600 drop-shadow-[0_4px_20px_rgba(250,204,21,0.6)]">
               RUNG CHUÔNG VÀNG
             </h1>
 
-            <motion.img src={logoBell} alt="Logo" className="w-12 h-12 md:w-16 md:h-16 lg:w-20 lg:h-20 drop-shadow-[0_0_20px_rgba(250,204,21,0.7)]" animate={{ rotate: [0, 10, -10, 10, -10, 0] }} transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}/>
+            <motion.img src={logoBell} alt="Logo" className="w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 drop-shadow-[0_0_20px_rgba(250,204,21,0.7)]" animate={{ rotate: [0, 10, -10, 10, -10, 0] }} transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}/>
          </div>
       </header>
 
-      <div className="flex-1 flex flex-row p-4 pt-20 gap-6 relative overflow-hidden">
+      {/* ĐÃ FIX pt-28 ĐỂ KHÔNG BỊ ĐÈ */}
+      <div className="flex-1 flex flex-row p-4 pt-28 gap-6 relative overflow-hidden">
          <div className="w-3/4 flex flex-col items-center justify-center relative min-h-0">
              <AnimatePresence mode="wait">
                 {phase === 'showing_intro' && (
@@ -646,8 +657,6 @@ export default function Stage() {
                         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }} className="text-xl md:text-2xl font-bold text-yellow-500/80 italic tracking-widest uppercase mb-8">
                            {gameState.winners?.length > 1 ? 'Các Quán quân Rung Chuông Vàng' : 'Quán quân Rung Chuông Vàng'}
                         </motion.p>
-
-                        {/* HIỂN THỊ DANH SÁCH NGƯỜI CHIẾN THẮNG */}
                         {gameState.winners && gameState.winners.length > 0 && (
                           <motion.div 
                             initial={{ scale: 0.8, opacity: 0 }} 
@@ -728,7 +737,7 @@ export default function Stage() {
                                         }`}
                                      >
                                         <div className={`flex-shrink-0 mr-4 rounded-xl font-black shadow-md flex items-center justify-center px-4 py-2 border-2 transition-all duration-300 ${isCorrect ? 'bg-white border-transparent text-green-600' : 'bg-slate-800 border-slate-600 text-yellow-400'}`} style={{ fontSize: `calc(clamp(1.5rem, 3.5vh, 2.5rem) + ${fontSizeModifier * 0.25}rem)` }}>{opt}</div>
-                                        {question[`option${opt}`] && (<div className={`text-left whitespace-pre-wrap transition-all duration-300 flex-1 pt-1 ${isCorrect ? 'text-white' : 'text-slate-100'}`} style={unifiedStyle}>{renderMixedText(question[`option${opt}`])}</div>)}
+                                        {question[`option${opt}`] && (<div className={`text-left transition-all duration-300 flex-1 pt-1 ${isCorrect ? 'text-white' : 'text-slate-100'}`} style={unifiedStyle}>{renderMixedText(question[`option${opt}`], true)}</div>)}
                                      </div>
                                    );
                                 })}

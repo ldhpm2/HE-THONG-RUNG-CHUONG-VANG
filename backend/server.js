@@ -16,7 +16,7 @@ const io = new Server(server, {
     origin: '*',
     methods: ['GET', 'POST']
   },
-  maxHttpBufferSize: 50e6 // 50MB cho file media
+  maxHttpBufferSize: 50e6 // 50MB cho file media Base64
 });
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/rung_chuong_vang';
@@ -40,7 +40,7 @@ const gameStateSchema = new mongoose.Schema({
   currentQuestion: { type: mongoose.Schema.Types.Mixed, default: null },
   customMessage: { type: String, default: '' },
   isSoundEnabled: { type: Boolean, default: true },
-  winners: { type: Array, default: [] } // Lưu danh sách người chiến thắng
+  winners: { type: Array, default: [] }
 });
 const GameState = mongoose.model('GameState', gameStateSchema);
 
@@ -50,7 +50,7 @@ let customMessage = '';
 let gamePhase = 'idle';
 let gameMode = 'elimination'; 
 let isSoundEnabled = true;
-let winners = []; // Lưu trữ trên RAM
+let winners = [];
 
 let autoLockTimeout = null;
 
@@ -125,7 +125,6 @@ const loadFullState = async () => {
         online: false
       };
     });
-    console.log(`[Persistence] Loaded ${Object.keys(students).length} students. Mode: ${gameMode}`);
     broadcastState();
   } catch (err) {
     console.error('[Persistence] Error loading:', err);
@@ -191,7 +190,7 @@ const broadcastState = () => {
     students: publicStudents,
     isSoundEnabled,
     customMessage,
-    winners // Gửi danh sách chiến thắng cho Stage
+    winners
   };
 
   io.emit('game_state_update', payload);
@@ -523,7 +522,6 @@ io.on('connection', (socket) => {
   socket.on('admin:camera_frame', (data) => socket.broadcast.emit('camera:frame_from_admin', data));
   socket.on('admin:toggle_sound', () => { isSoundEnabled = !isSoundEnabled; broadcastState(); });
 
-  // THUẬT TOÁN TÌM NGƯỜI CHIẾN THẮNG
   socket.on('admin:declare_winner', async () => { 
     clearAutoLock(); 
     gamePhase = 'winner_declared'; 

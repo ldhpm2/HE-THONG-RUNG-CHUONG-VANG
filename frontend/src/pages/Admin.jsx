@@ -666,7 +666,6 @@ export default function Admin() {
      });
   };
 
-  // SỬA LỖI TRUYỀN BLOB THÀNH BASE64
   const handleIntroMediaUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -705,11 +704,9 @@ export default function Admin() {
 
   const showIntroWithMedia = () => {
     socket.emit('admin:show_intro');
-    // GỬI FILE QUA MẠNG SANG STAGE
     if (introMediaFile) {
       socket.emit('admin:intro_media', introMediaFile);
     }
-    // PHÁT TRÊN LOA CỦA ADMIN
     if (introMediaFile && introAudioRef.current) {
       introAudioRef.current.src = introMediaFile.dataUrl;
       introAudioRef.current.currentTime = 0;
