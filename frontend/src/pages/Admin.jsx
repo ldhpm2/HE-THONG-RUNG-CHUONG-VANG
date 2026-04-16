@@ -70,6 +70,8 @@ export default function Admin() {
   const timerEndRef = useRef(null);      
   const lastScheduledRef = useRef(null); 
   const [serverInfo, setServerInfo] = useState({ ip: 'localhost', port: '4000', url: '' });
+  
+  const [sortMode, setSortMode] = useState('sbd'); 
 
   const playTick = (urgent = false) => {
     try {
@@ -128,7 +130,7 @@ export default function Admin() {
         g2.gain.linearRampToValueAtTime(0.35, t + delay + 0.03);
         g2.gain.exponentialRampToValueAtTime(0.001, t + delay + 1.5);
         o2.connect(g2); g2.connect(ctx.destination);
-        o2.start(t + delay); o2.stop(t + delay + 1.5);
+        o2.start(gongT + delay); o2.stop(gongT + delay + 1.5);
       });
     } catch(e) {}
   };
@@ -194,31 +196,6 @@ export default function Admin() {
       osc.start(t); osc.stop(t + 0.07);
       scheduledTicksRef.current.push(osc);
     }
-    const gongT = now + durationSec;
-    [0, 0.55, 1.1].forEach((delay, wave) => {
-      const baseFreq = 140 - wave * 8;
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      o.type = 'sine';
-      o.frequency.setValueAtTime(baseFreq, gongT + delay);
-      o.frequency.exponentialRampToValueAtTime(baseFreq * 0.85, gongT + delay + 2);
-      g.gain.setValueAtTime(0, gongT + delay);
-      g.gain.linearRampToValueAtTime(0.8, gongT + delay + 0.03);
-      g.gain.exponentialRampToValueAtTime(0.001, gongT + delay + 2.5);
-      o.connect(g); g.connect(ctx.destination);
-      o.start(gongT + delay); o.stop(gongT + delay + 2.5);
-      scheduledTicksRef.current.push(o);
-      const o2 = ctx.createOscillator();
-      const g2 = ctx.createGain();
-      o2.type = 'sine';
-      o2.frequency.value = baseFreq * 2.76;
-      g2.gain.setValueAtTime(0, gongT + delay);
-      g2.gain.linearRampToValueAtTime(0.35, gongT + delay + 0.03);
-      g2.gain.exponentialRampToValueAtTime(0.001, gongT + delay + 1.5);
-      o2.connect(g2); g2.connect(ctx.destination);
-      o2.start(gongT + delay); o2.stop(gongT + delay + 1.5);
-      scheduledTicksRef.current.push(o2);
-    });
   };
 
   const handleEnableAudio = () => {
@@ -650,11 +627,18 @@ export default function Admin() {
     if(!questionDraft.content) return alert('Chưa nhập nội dung câu hỏi');
     socket.emit('admin:push_question', { question: questionDraft });
   };
+
+  const showCustomContent = () => {
+    if (!customText.trim()) {
+      alert("Vui lòng nhập nội dung tùy chỉnh trước khi chiếu!");
+      return;
+    }
+    socket.emit('admin:show_custom', { message: customText });
+  };
   
   const startTimer = () => socket.emit('admin:start_timer');
   const lockAnswer = () => socket.emit('admin:lock');
   const revealAnswer = () => socket.emit('admin:reveal_answer');
-  const kickStudent = (sbd) => socket.emit('admin:kick_student', { sbd });
   const resetStudent = (sbd) => socket.emit('admin:reset_student', { sbd });
   
   const declareWinner = () => {
@@ -768,7 +752,14 @@ export default function Admin() {
     );
   }
 
-  const studentList = Object.values(gameState.students).sort((a, b) => parseInt(a.sbd) - parseInt(b.sbd));
+  const studentList = Object.values(gameState.students).sort((a, b) => {
+    if (sortMode === 'score') {
+      if (b.score !== a.score) return b.score - a.score; 
+      return parseInt(a.sbd) - parseInt(b.sbd); 
+    }
+    return parseInt(a.sbd) - parseInt(b.sbd); 
+  });
+
   const activeCount = studentList.filter(s => s.status === 'active').length;
   const eliminatedCount = studentList.filter(s => s.status === 'eliminated').length;
   const onlineCount = studentList.filter(s => s.online).length;
@@ -777,7 +768,6 @@ export default function Admin() {
   return (
     <div className="min-h-screen bg-slate-900 text-slate-300 p-6 flex flex-col gap-6">
       
-       {/* Status Top Bar */}
        <div className="flex items-center justify-between px-4 py-2 bg-slate-800/50 rounded-lg border border-slate-700/50">
           <div className="flex items-center gap-6">
              <div className="flex items-center gap-2">
@@ -790,7 +780,6 @@ export default function Admin() {
              </div>
           </div>
           <div className="flex items-center gap-4">
-             {/* GAME MODE CONTROLS */}
              <div className="flex items-center gap-2 bg-slate-900/50 px-3 py-1 rounded-full border border-slate-700/50">
                 <span className="text-[10px] text-slate-400 uppercase font-bold mr-1">Chế độ thi:</span>
                 <select 
@@ -810,7 +799,6 @@ export default function Admin() {
                   <option value="accumulation">2. Tích Lũy Điểm</option>
                 </select>
              </div>
-             {/* FONT SIZE CONTROLS */}
              <div className="flex items-center gap-2 bg-slate-900/50 px-3 py-1 rounded-full border border-slate-700/50">
                 <span className="text-[10px] text-slate-400 uppercase font-bold mr-1">Cỡ chữ Stage:</span>
                 <button onClick={() => socket.emit('admin:font_size', { action: 'decrease' })} className="w-7 h-7 rounded-full border border-slate-600 flex items-center justify-center hover:bg-slate-700 font-bold text-slate-300 transition-colors" title="Giảm cỡ chữ">A-</button>
@@ -825,10 +813,8 @@ export default function Admin() {
 
        <div className="flex-1 flex flex-col md:flex-row gap-6">
       
-      {/* CỘT TRÁI: ĐIỀU KHIỂN & CÂU HỎI */}
       <div className="w-full md:w-1/3 flex flex-col gap-6">
         
-        {/* Module Upload */}
         <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
           <h3 className="text-xl font-bold text-white mb-4 flex items-center"><Upload className="mr-2"/> Dữ Liệu Thí Sinh</h3>
           
@@ -850,7 +836,6 @@ export default function Admin() {
           </div>
         </div>
 
-        {/* Soạn Câu Hỏi */}
         <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg flex-1 overflow-y-auto max-h-[650px] custom-scrollbar">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-sm font-black uppercase text-slate-500 tracking-wider">Mô-đun Câu Hỏi (Draft)</h3>
@@ -1004,10 +989,8 @@ export default function Admin() {
         )}
       </div>
 
-      {/* CỘT PHẢI: WORKFLOW & GIÁM SÁT */}
       <div className="w-full md:w-2/3 flex flex-col gap-6">
         
-        {/* Action Panel */}
         <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
            <h3 className="text-xl font-bold text-white mb-4 flex items-center justify-between">
               <span className="flex items-center"><Activity className="mr-2 text-yellow-500"/> Workflow Điều Khiển</span>
@@ -1025,7 +1008,7 @@ export default function Admin() {
               <button onClick={() => socket.emit('admin:show_rules')} className="bg-slate-700 hover:bg-slate-600 text-white py-4 rounded-xl flex flex-col items-center justify-center font-bold transition active:scale-95 shadow-lg border-2 border-slate-600">
                 <ScrollText className="mb-2 text-indigo-400"/> 0.6. Thể lệ
               </button>
-              <button onClick={() => socket.emit('admin:show_custom', { message: customText })} className={`py-4 rounded-xl flex flex-col items-center justify-center font-bold transition active:scale-95 shadow-lg border-2 ${gameState.phase === 'showing_custom' ? 'bg-indigo-600 border-indigo-400 text-white' : 'bg-slate-700 border-slate-600 text-slate-300'}`}>
+              <button onClick={showCustomContent} className={`py-4 rounded-xl flex flex-col items-center justify-center font-bold transition active:scale-95 shadow-lg border-2 ${gameState.phase === 'showing_custom' ? 'bg-indigo-600 border-indigo-400 text-white' : 'bg-slate-700 border-slate-600 text-slate-300'}`}>
                 <MessageSquare className="mb-2 text-blue-400"/> 0.7. Chiếu nội dung
               </button>
               <button onClick={pushQuestion} className="bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl flex flex-col items-center justify-center font-semibold transition active:scale-95 shadow-lg">
@@ -1072,7 +1055,7 @@ export default function Admin() {
                <h4 className="text-sm font-bold text-slate-400 mb-3 uppercase tracking-wider flex items-center"><MessageSquare size={14} className="mr-2"/> Nội dung trình chiếu tùy chỉnh</h4>
                <textarea value={customText} onChange={(e) => setCustomText(e.target.value)} placeholder="Nhập nội dung bất kỳ để chiếu lên màn hình Stage (hỗ trợ MathJax)..." className="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 text-white text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all outline-none resize-none h-24 mb-3"/>
                <div className="flex gap-2">
-                  <button onClick={() => socket.emit('admin:show_custom', { message: customText })} className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white py-2 rounded-lg font-bold text-sm shadow-lg transition active:scale-95 flex items-center justify-center"><Presentation className="mr-2 w-4 h-4"/> Chiếu nội dung này</button>
+                  <button onClick={showCustomContent} className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white py-2 rounded-lg font-bold text-sm shadow-lg transition active:scale-95 flex items-center justify-center"><Presentation className="mr-2 w-4 h-4"/> Chiếu nội dung này</button>
                   <button onClick={() => setCustomText('')} className="px-4 bg-slate-700 hover:bg-slate-600 text-slate-300 py-2 rounded-lg font-bold text-sm transition active:scale-95">Xóa</button>
                </div>
             </div>
@@ -1103,7 +1086,6 @@ export default function Admin() {
                 {victoryMediaFile && <div className="mt-2 px-3 py-2 bg-slate-900/50 rounded-lg border border-slate-700 text-xs text-yellow-400 font-mono truncate flex items-center gap-2"><Trophy size={12}/> {victoryMediaFile.name}</div>}
              </div>
 
-            {/* Chỉ hiển thị nút Cứu trợ nếu ở Chế độ thi 1 (Loại trực tiếp) */}
             {gameState.gameMode === 'elimination' && (
               <div className="mt-6 border-t border-slate-700 pt-6 space-y-3">
                  <button onClick={rescueAll} className="w-full bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white py-3 rounded-xl flex items-center justify-center font-bold text-lg shadow-lg transition active:scale-95">
@@ -1116,7 +1098,6 @@ export default function Admin() {
             )}
         </div>
 
-        {/* Monitor Panel */}
         <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg flex-1 overflow-hidden flex flex-col">
           <div className="flex items-center justify-between mb-6 px-4 py-2 bg-slate-900/50 rounded-lg border border-slate-700/50">
             <div className="flex items-center gap-4 text-xs font-semibold text-slate-400">
@@ -1130,6 +1111,16 @@ export default function Admin() {
             <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 border-b border-slate-700 pb-4">
               <div className="flex items-center gap-4">
                  <h3 className="text-xl font-bold text-white flex items-center pr-4 border-r border-slate-700"><Activity className="mr-2 text-blue-400"/> Giám Sát Real-time</h3>
+                 
+                 <button 
+                   onClick={() => setSortMode(prev => prev === 'sbd' ? 'score' : 'sbd')}
+                   className={`p-1.5 rounded-lg transition-colors border flex items-center gap-1 text-xs font-bold uppercase tracking-tighter ${
+                     sortMode === 'score' ? 'bg-yellow-500 text-slate-900 border-yellow-400 shadow-[0_0_10px_rgba(234,179,8,0.5)]' : 'bg-slate-700 text-white border-slate-600 hover:bg-slate-600'
+                   }`}
+                 >
+                    <Trophy size={14} /> {sortMode === 'score' ? 'Đang Xếp Hạng' : 'Lọc Bảng Điểm'}
+                 </button>
+
                  <button onClick={clearStudents} className="p-1.5 rounded-lg bg-red-900/30 text-red-400 hover:bg-red-900/50 transition-colors border border-red-900/50 flex items-center gap-1 text-xs font-bold uppercase tracking-tighter"><Trash2 size={14} /> XÓA DS</button>
               </div>
               <div className="flex items-center gap-4 text-sm">
@@ -1157,7 +1148,7 @@ export default function Admin() {
                       <th className="px-5 py-4">SBD</th>
                       <th className="px-5 py-4">Họ Tên</th>
                       <th className="px-5 py-4">Lớp</th>
-                      <th className="px-5 py-4">Điểm</th>
+                      <th className="px-5 py-4 text-yellow-400">Điểm</th>
                       <th className="px-5 py-4">PIN/Connect</th>
                       <th className="px-5 py-4">Trạng thái</th>
                       <th className="px-5 py-4 text-center">Đáp án nộp</th>
@@ -1170,7 +1161,6 @@ export default function Admin() {
                          <td className="px-5 py-4 font-mono font-bold text-white">{s.sbd}</td>
                          <td className="px-5 py-4 font-semibold text-slate-100">{s.hoTen}</td>
                          <td className="px-5 py-4 text-slate-400">{s.lop || 'N/A'}</td>
-                         {/* Cột hiển thị Điểm */}
                          <td className="px-5 py-4 font-bold text-yellow-400">{s.score || 0}</td>
                          <td className="px-5 py-4">
                            <div className="flex items-center">

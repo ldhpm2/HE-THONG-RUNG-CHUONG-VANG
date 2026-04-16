@@ -19,39 +19,35 @@ const io = new Server(server, {
   maxHttpBufferSize: 5e6 // 5MB
 });
 
-// --- MONGODB SETUP ---
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/rung_chuong_vang';
 let isDbConnected = false;
 
-// Schema cho Thí sinh (Đã bổ sung trường score)
 const studentSchema = new mongoose.Schema({
   sbd: { type: String, unique: true, required: true },
   hoTen: String,
   lop: String,
   pin: String,
-  status: { type: String, default: 'active' }, // 'active' | 'eliminated'
-  score: { type: Number, default: 0 }, // ĐIỂM SỐ CHO MODE 2
+  status: { type: String, default: 'active' }, 
+  score: { type: Number, default: 0 }, 
   currentAnswer: { type: String, default: null }
 });
 const Student = mongoose.model('Student', studentSchema);
 
-// Schema cho Trạng thái Game (Đã bổ sung trường gameMode)
 const gameStateSchema = new mongoose.Schema({
   id: { type: String, default: 'main_state', unique: true },
   gamePhase: { type: String, default: 'idle' },
-  gameMode: { type: String, default: 'elimination' }, // 'elimination' | 'accumulation'
+  gameMode: { type: String, default: 'elimination' }, 
   currentQuestion: { type: mongoose.Schema.Types.Mixed, default: null },
   customMessage: { type: String, default: '' },
   isSoundEnabled: { type: Boolean, default: true }
 });
 const GameState = mongoose.model('GameState', gameStateSchema);
 
-// --- GAME STATE (In-memory) ---
 let students = {};
 let currentQuestion = null;
 let customMessage = '';
 let gamePhase = 'idle';
-let gameMode = 'elimination'; // Khởi tạo mặc định là Chế độ Truyền thống
+let gameMode = 'elimination'; 
 let isSoundEnabled = true;
 
 let autoLockTimeout = null;
@@ -63,7 +59,6 @@ const clearAutoLock = () => {
   }
 };
 
-// --- PERSISTENCE HELPERS ---
 let saveTimeout = null;
 const debouncedSave = () => {
   clearTimeout(saveTimeout);
@@ -171,7 +166,6 @@ const startServer = () => {
 };
 startServer();
 
-// --- BROADCASTER ---
 const broadcastState = () => {
   const publicStudents = {};
   for (const sbd in students) {
@@ -211,7 +205,6 @@ const broadcastState = () => {
 io.on('connection', (socket) => {
   broadcastState();
 
-  // --- ADMIN EVENTS ---
   socket.on('admin:login', (data, callback) => {
     if (data.password === 'admin123') {
       socket.join('admin_room');
@@ -227,7 +220,6 @@ io.on('connection', (socket) => {
     if (callback) callback({ ip, port: PORT, url: `http://${ip}:${PORT}` });
   });
 
-  // THAY ĐỔI CHẾ ĐỘ CHƠI
   socket.on('admin:change_mode', async (data, callback) => {
     if (!socket.rooms.has('admin_room')) return;
     if (gamePhase !== 'idle') {
@@ -235,7 +227,6 @@ io.on('connection', (socket) => {
       return;
     }
     gameMode = data.mode;
-    console.log(`[Admin] Game mode changed to: ${gameMode}`);
     await saveFullState();
     broadcastState();
     if (callback) callback({ success: true });
@@ -332,27 +323,25 @@ io.on('connection', (socket) => {
       return;
     }
 
-    // XỬ LÝ LOGIC THEO 2 CHẾ ĐỘ
     for (const key in students) {
       const student = students[key];
       const studentAns = (student.currentAnswer || '').toString().toLowerCase().trim();
       const isCorrect = studentAns && studentAns === correctAns;
 
       if (gameMode === 'accumulation') {
-        // MODE 2: TÍCH LŨY ĐIỂM (Không ai bị loại)
         if (student.status === 'active') {
            if (isCorrect) {
-             student.score += 10; // Cộng 10 điểm cho mỗi câu đúng
+             student.score += 10;
              if (student.socketId) io.to(student.socketId).emit('you_passed');
            } else {
-             if (student.socketId) io.to(student.socketId).emit('you_missed'); // Không đuổi, chỉ báo sai
+             if (student.socketId) io.to(student.socketId).emit('you_missed');
            }
         }
       } else {
-        // MODE 1: LOẠI TRỰC TIẾP
         if (currentQuestion?.isRescue) {
           if (student.status === 'eliminated') {
             if (isCorrect) {
+              student.score += 10; 
               student.status = 'active';
               if (student.socketId) io.to(student.socketId).emit('you_are_rescued');
             } else {
@@ -365,6 +354,7 @@ io.on('connection', (socket) => {
               student.status = 'eliminated';
               if (student.socketId) io.to(student.socketId).emit('you_are_eliminated');
             } else {
+              student.score += 10; 
               if (student.socketId) io.to(student.socketId).emit('you_passed');
             }
           }
@@ -413,7 +403,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // --- CLIENT EVENTS ---
   socket.on('student:login', (data, callback) => {
     const student = students[data.sbd];
     if (!student || student.pin.toString() !== data.pin.toString()) {
@@ -443,7 +432,6 @@ io.on('connection', (socket) => {
       return;
     }
 
-    // Chỉ kiểm tra quyền cứu trợ nếu đang ở Mode 1
     if (gameMode === 'elimination') {
       if (currentQuestion?.isRescue) {
         if (students[sbd].status === 'active') {
@@ -474,14 +462,26 @@ io.on('connection', (socket) => {
     }
   });
 
-  // (Boilerplate Socket events: show_rules, show_intro, camera_signal... omitted for brevity but they remain identical)
+  socket.on('admin:eliminate_student', async (data, callback) => {
+    if (!socket.rooms.has('admin_room')) return;
+    if (students[data.sbd]) {
+      students[data.sbd].status = 'eliminated';
+      if (students[data.sbd].socketId) io.to(students[data.sbd].socketId).emit('you_are_eliminated');
+      if (callback) callback({ success: true });
+      await saveFullState();
+      broadcastState();
+    }
+  });
+  socket.on('admin:camera_signal', (data) => socket.broadcast.emit('camera:signal_from_admin', data));
+  socket.on('stage:camera_signal', (data) => io.to('admin_room').emit('camera:signal_from_stage', data));
+  socket.on('admin:camera_status', (data) => io.emit('camera:status_update', data));
+  socket.on('admin:camera_frame', (data) => socket.broadcast.emit('camera:frame_from_admin', data));
   socket.on('admin:show_intro', () => { gamePhase = 'showing_intro'; currentQuestion = null; broadcastState(); });
   socket.on('admin:show_rules', () => { gamePhase = 'showing_rules'; currentQuestion = null; broadcastState(); });
   socket.on('admin:toggle_sound', () => { isSoundEnabled = !isSoundEnabled; broadcastState(); });
   socket.on('admin:declare_winner', async () => { clearAutoLock(); gamePhase = 'winner_declared'; currentQuestion = null; await saveFullState(); broadcastState(); io.emit('client_play_sound', 'victory'); });
 });
 
-// --- PHỤC VỤ FRONTEND TĨNH ---
 const distPath = path.join(__dirname, '../frontend/dist');
 app.use(express.static(distPath));
 app.get(/.*/, (req, res) => { res.sendFile(path.join(distPath, 'index.html')); });

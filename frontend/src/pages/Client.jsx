@@ -45,7 +45,6 @@ export default function Client() {
       setEliminatedMsg('Rất tiếc! Đáp án không chính xác hoặc bạn không kịp gửi bài.');
     });
 
-    // Cập nhật lại thông báo Pass dựa trên Mode
     socket.on('you_passed', () => {
       if (gameState.gameMode === 'accumulation') {
          setEliminatedMsg('Tuyệt vời! Bạn đã được cộng 10 điểm.');
@@ -56,7 +55,6 @@ export default function Client() {
       setTimeout(() => setEliminatedMsg(''), 5000);
     });
 
-    // Thêm event cho Mode 2
     socket.on('you_missed', () => {
       setEliminatedMsg('Rất tiếc! Đáp án của bạn chưa chính xác.');
       setTimeout(() => setEliminatedMsg(''), 5000);
@@ -179,7 +177,6 @@ export default function Client() {
     );
   }
 
-  // Không hiển thị màn hình bị loại nếu đang ở Mode 2 (Tích lũy điểm)
   if (gameState.gameMode === 'elimination' && studentInfo?.status === 'eliminated' && !gameState.question?.isRescue && !gameState.question?.isAudience) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-red-950 px-6 text-center">
@@ -217,7 +214,6 @@ export default function Client() {
           <h3 className="font-bold text-lg text-white">{studentInfo.hoTen} <span className="text-yellow-500 ml-1">({studentInfo.sbd})</span></h3>
         </div>
         <div className="flex flex-col items-end gap-2">
-          {/* HIỂN THỊ ĐIỂM SỐ NẾU Ở MODE 2 */}
           {gameState.gameMode === 'accumulation' && (
              <div className="text-right">
                 <div className="text-yellow-400 font-black text-2xl">{studentInfo.score || 0} <span className="text-sm text-slate-400 font-normal">Điểm</span></div>

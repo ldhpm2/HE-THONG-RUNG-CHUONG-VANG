@@ -119,7 +119,7 @@ export default function Stage() {
         g2.gain.linearRampToValueAtTime(0.35, t + delay + 0.03);
         g2.gain.exponentialRampToValueAtTime(0.001, t + delay + 1.5);
         o2.connect(g2); g2.connect(ctx.destination);
-        o2.start(t + delay); o2.stop(t + delay + 1.5);
+        o2.start(gongT + delay); o2.stop(gongT + delay + 1.5);
       });
     } catch(e) {}
   };
@@ -257,7 +257,6 @@ export default function Stage() {
     };
   }, [isLocalAudioUnlocked]);
 
-  // ── RAF-based countdown ────
   useEffect(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     if (gameState.phase !== 'timer_running' || !timerEndRef.current) return;
@@ -613,8 +612,11 @@ export default function Stage() {
                     <div className="z-10 w-full max-w-6xl flex flex-col items-center text-center">
                         <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", damping: 12, delay: 0.2 }} className="mb-8 p-4 bg-blue-600/10 rounded-full border border-blue-500/30"><MessageSquare className="w-12 h-12 text-blue-400" /></motion.div>
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }} className="w-full">
-                           <div className="inline-block text-[clamp(2.5rem,6vh,5rem)] font-black leading-tight text-white drop-shadow-2xl">
-                              <MathJax hideUntilTypeset={"first"}>{gameState.customMessage.split('\n').map((line, i) => (<div key={i} className="mb-4 last:mb-0">{line}</div>))}</MathJax>
+                           <div 
+                             className="inline-block font-black leading-tight text-white drop-shadow-2xl transition-all duration-300" 
+                             style={fontSizeModifier !== 0 ? { fontSize: `calc(clamp(2.5rem, 6vh, 5rem) + ${fontSizeModifier * 0.25}rem)` } : { fontSize: 'clamp(2.5rem, 6vh, 5rem)' }}
+                           >
+                              {gameState.customMessage ? renderMixedText(gameState.customMessage) : <span className="opacity-50 italic text-slate-500 text-3xl">Đang chờ nội dung từ Ban tổ chức...</span>}
                            </div>
                         </motion.div>
                         <motion.div className="mt-16 h-1 w-32 bg-blue-500/30 rounded-full" animate={{ width: [64, 160, 64] }} transition={{ repeat: Infinity, duration: 4 }}/>
@@ -718,7 +720,7 @@ export default function Stage() {
              </AnimatePresence>
          </div>
 
-         {/* LƯỚI THÍ SINH (RIGHT PANEL) - ÁP DỤNG DUAL MODE */}
+         {/* LƯỚI THÍ SINH (RIGHT PANEL) */}
          <div className="w-1/4 flex flex-col bg-slate-900/50 rounded-2xl border border-slate-800 p-3 shadow-2xl backdrop-blur-md overflow-hidden text-white">
              <div className="flex flex-col mb-4 flex-shrink-0">
                <h2 className="text-2xl font-black uppercase text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-yellow-500 tracking-tight mb-3 drop-shadow-[0_0_10px_rgba(234,179,8,0.3)] text-center w-full">
@@ -740,7 +742,7 @@ export default function Stage() {
              
              <div className="flex-1 overflow-y-auto pr-0.5 custom-scrollbar">
                <div className="grid grid-cols-6 gap-1 content-start font-sans">
-                 {studentsList.length > 0 ? studentsList.map((st, i) => (
+                 {studentsList.map((st, i) => (
                    <motion.div
                      key={st.sbd}
                      initial={{ scale: 0.5, opacity: 0 }}
@@ -756,7 +758,6 @@ export default function Stage() {
                    >
                      <div className="flex flex-col items-center leading-none mt-0.5">
                        <span>{st.sbd}</span>
-                       {/* HIỂN THỊ ĐIỂM SỐ NẾU Ở MODE 2 */}
                        {gameState.gameMode === 'accumulation' && (
                          <span className="text-[12px] text-yellow-400 mt-1 font-bold">{st.score || 0}đ</span>
                        )}
@@ -766,9 +767,7 @@ export default function Stage() {
                        <div className="absolute top-0 right-0 w-2.5 h-2.5 bg-yellow-400 rounded-full translate-x-1/3 -translate-y-1/3 shadow-[0_0_8px_rgba(250,204,21,1)] border border-slate-900"></div>
                      )}
                    </motion.div>
-                 )) : (
-                   <div className="col-span-6 p-4 text-center text-slate-600 italic text-[10px]">Trống</div>
-                 )}
+                 ))}
                </div>
              </div>
          </div>
