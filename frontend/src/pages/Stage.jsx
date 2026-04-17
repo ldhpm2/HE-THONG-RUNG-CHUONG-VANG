@@ -432,6 +432,27 @@ export default function Stage() {
   const studentsList = Object.values(gameState.students).sort((a,b) => parseInt(a.sbd) - parseInt(b.sbd));
   const { phase, question } = gameState;
 
+  // Cấu hình các bộ luật chơi riêng biệt cho 2 chế độ
+  const rulesElimination = [
+    { icon: "📜", title: "Lấy câu hỏi", desc: "Hệ thống sẽ lần lượt đưa ra các câu hỏi trắc nghiệm hoặc tự luận ngắn." },
+    { icon: "⏱️", title: "Trả lời", desc: "Thí sinh có từ 15 đến 60 giây (tùy câu) để nhập đáp án lên điện thoại." },
+    { icon: "❌", title: "Loại trừ", desc: "Thí sinh trả lời sai hoặc không có đáp án khi hết giờ sẽ phải rời sân thi đấu." },
+    { icon: "🎗️", title: "Cứu trợ", desc: "Trong một số giai đoạn, thí sinh bị loại trả lời câu hỏi phao cứu trợ để quay lại sàn." },
+    { icon: "🏆", title: "Chiến thắng", desc: "Thí sinh duy nhất còn lại trên sàn thi đấu sẽ giành quyền Rung Chuông Vàng." },
+    { icon: "📱", title: "Kết nối", desc: "Luôn đảm bảo thiết bị di động được kết nối mạng ổn định suốt quá trình thi." }
+  ];
+
+  const rulesAccumulation = [
+    { icon: "📜", title: "Trọn vẹn", desc: "Tất cả thí sinh được tham gia trả lời toàn bộ câu hỏi của chương trình mà không bị loại." },
+    { icon: "⏱️", title: "Trả lời", desc: "Thí sinh có từ 15 đến 60 giây (tùy câu) để nhập đáp án lên điện thoại di động." },
+    { icon: "⭐", title: "Tích điểm", desc: "Mỗi câu trả lời ĐÚNG sẽ được hệ thống cộng 10 điểm. Trả lời sai không bị trừ điểm." },
+    { icon: "📊", title: "Xếp hạng", desc: "Bảng điểm sẽ liên tục cập nhật thứ hạng của các thí sinh ngay sau mỗi câu hỏi." },
+    { icon: "🏆", title: "Chiến thắng", desc: "Thí sinh có tổng điểm tích lũy cao nhất khi kết thúc chương trình sẽ giành chiến thắng." },
+    { icon: "📱", title: "Kết nối", desc: "Luôn đảm bảo thiết bị di động được kết nối mạng ổn định suốt quá trình thi." }
+  ];
+
+  const currentRules = gameState.gameMode === 'accumulation' ? rulesAccumulation : rulesElimination;
+
   const renderMixedText = (text) => {
     if (!text) return null;
     const restoreLatex = (str) => typeof str === 'string' ? str.replace(/\f/g, '\\f').replace(/\v/g, '\\v') : str;
@@ -532,10 +553,7 @@ export default function Stage() {
          </div>
       </header>
 
-      {/* ĐÃ MỞ RỘNG 2 BÊN BẰNG CÁCH SỬA pl-2 pr-6 VÀ gap-2 md:gap-3 */}
       <div className="flex-1 flex flex-row pl-2 md:pl-3 pr-6 pb-6 pt-[85px] md:pt-[110px] gap-2 md:gap-3 relative overflow-hidden">
-         
-         {/* KHUNG CÂU HỎI ĐÃ ĐƯỢC CHUYỂN THÀNH flex-1 ĐỂ LẤY TOÀN BỘ KHÔNG GIAN CÒN LẠI */}
          <div className="flex-1 flex flex-col items-center justify-center relative min-h-0">
              <AnimatePresence mode="wait">
                 {phase === 'showing_intro' && (
@@ -617,14 +635,8 @@ export default function Stage() {
                             <div className="h-1 w-32 bg-gradient-to-r from-transparent via-indigo-500 to-transparent rounded-full mt-3"></div>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                           {[
-                             { icon: "📜", title: "Lấy câu hỏi", desc: "Hệ thống sẽ lần lượt đưa ra các câu hỏi trắc nghiệm hoặc tự luận ngắn." },
-                             { icon: "⏱️", title: "Trả lời", desc: "Thí sinh có từ 15 đến 60 giây (tùy câu) để nhập đáp án lên điện thoại." },
-                             { icon: "❌", title: "Loại trừ", desc: "Thí sinh trả lời sai hoặc không có đáp án khi hết giờ sẽ phải rời sân thi đấu." },
-                             { icon: "🎗️", title: "Cứu trợ", desc: "Trong một số giai đoạn, thí sinh bị loại trả lời câu hỏi phao cứu trợ để được quay trở lại sàn thi đấu." },
-                             { icon: "🏆", title: "Chiến thắng", desc: "Thí sinh duy nhất còn lại trên sàn thi đấu sẽ giành quyền Rung Chuông Vàng." },
-                             { icon: "📱", title: "Kết nối", desc: "Luôn đảm bảo thiết bị di động được kết nối mạng ổn định suốt quá trình thi." }
-                           ].map((rule, i) => (
+                           {/* DÙNG BIẾN currentRules ĐỂ HIỂN THỊ ĐỘNG THEO CHẾ ĐỘ THI */}
+                           {currentRules.map((rule, i) => (
                              <motion.div key={i} initial={{ x: i % 2 === 0 ? -50 : 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.4 + (i * 0.1) }} className="flex items-start gap-4 p-4 bg-slate-900/60 border border-slate-800 rounded-2xl hover:border-indigo-500/50 transition-colors group">
                                <span className="text-4xl filter grayscale group-hover:grayscale-0 transition-all">{rule.icon}</span>
                                <div className="flex flex-col">
@@ -785,7 +797,6 @@ export default function Stage() {
              </AnimatePresence>
          </div>
 
-         {/* KHUNG SÀN THI ĐẤU ĐƯỢC GIỮ CỐ ĐỊNH KÍCH THƯỚC */}
          <div className="w-[28%] md:w-1/4 flex-shrink-0 flex flex-col bg-slate-900/50 rounded-b-3xl rounded-t-none border-x border-b border-slate-800 p-3 shadow-2xl backdrop-blur-md overflow-hidden text-white">
              <div className="flex flex-col mb-4 flex-shrink-0">
                <h2 className="text-2xl font-black uppercase text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-yellow-500 tracking-tight mb-3 drop-shadow-[0_0_10px_rgba(234,179,8,0.3)] text-center w-full">
