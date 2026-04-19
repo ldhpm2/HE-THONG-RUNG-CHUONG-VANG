@@ -800,12 +800,12 @@ export default function Stage() {
                            
                            {/* HÀNG 1: CÂU HỎI & MEDIA (NẾU CÓ) */}
                            <div className={`flex ${question?.mediaType !== 'none' && question?.mediaUrl ? 'flex-row items-start' : 'flex-col items-center'} w-full gap-8 mb-4 md:mb-6 px-4`}>
-                               <div className={`flex-[1.5] font-semibold text-slate-100 flex-shrink-0 whitespace-pre-wrap ${question?.mediaType !== 'none' && question?.mediaUrl ? 'text-left pt-2' : 'text-justify [text-align-last:center]'} transition-all duration-300`} style={unifiedStyle}>
+                               <div className={`flex-[2] font-semibold text-slate-100 flex-shrink-0 whitespace-pre-wrap ${question?.mediaType !== 'none' && question?.mediaUrl ? 'text-left pt-2' : 'text-justify [text-align-last:center]'} transition-all duration-300`} style={unifiedStyle}>
                                    {renderMixedText(question?.content)}
                                </div>
 
                                {question?.mediaType !== 'none' && question?.mediaUrl && (
-                                   <div className="flex-1 w-full max-w-[35%] flex items-center justify-center max-h-[25vh] md:max-h-[35vh] rounded-2xl overflow-hidden border border-slate-700/50 bg-white/10 p-2 shadow-2xl backdrop-blur-sm">
+                                   <div className="flex-1 w-full max-w-[28%] flex items-center justify-center max-h-[22vh] md:max-h-[30vh] rounded-2xl overflow-hidden border border-slate-700/50 bg-white/10 p-1.5 shadow-2xl backdrop-blur-sm">
                                       {question.mediaType === 'video' && (
                                          isYouTubeURL(question.mediaUrl) ? (
                                            <iframe ref={mediaRef} src={getYouTubeEmbedURL(question.mediaUrl, { mute: gameState.isSoundEnabled ? 0 : 1 })} className="w-full h-full border-0" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen title="YouTube video"/>
