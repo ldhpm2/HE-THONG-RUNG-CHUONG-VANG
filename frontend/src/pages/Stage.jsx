@@ -799,13 +799,13 @@ export default function Stage() {
                        <div className="flex-1 flex flex-col items-center justify-center min-h-0 w-full mt-2 md:mt-4 px-2">
                            
                            {/* HÀNG 1: CÂU HỎI & MEDIA (NẾU CÓ) */}
-                           <div className={`flex ${question?.mediaType !== 'none' && question?.mediaUrl ? 'flex-row items-center' : 'flex-col items-center'} w-full gap-6 mb-4 md:mb-6`}>
-                               <div className={`flex-1 font-semibold text-slate-100 flex-shrink-0 whitespace-pre-wrap ${question?.mediaType !== 'none' && question?.mediaUrl ? 'text-left' : 'text-justify [text-align-last:center]'} px-6 transition-all duration-300`} style={unifiedStyle}>
+                           <div className={`flex ${question?.mediaType !== 'none' && question?.mediaUrl ? 'flex-row items-start' : 'flex-col items-center'} w-full gap-8 mb-4 md:mb-6 px-4`}>
+                               <div className={`flex-[1.5] font-semibold text-slate-100 flex-shrink-0 whitespace-pre-wrap ${question?.mediaType !== 'none' && question?.mediaUrl ? 'text-left pt-2' : 'text-justify [text-align-last:center]'} transition-all duration-300`} style={unifiedStyle}>
                                    {renderMixedText(question?.content)}
                                </div>
 
                                {question?.mediaType !== 'none' && question?.mediaUrl && (
-                                   <div className="flex-1 w-full flex items-center justify-center max-h-[35vh] md:max-h-[45vh] rounded-3xl overflow-hidden border-2 border-slate-700/50 bg-black/20 p-2 shadow-xl">
+                                   <div className="flex-1 w-full max-w-[35%] flex items-center justify-center max-h-[25vh] md:max-h-[35vh] rounded-2xl overflow-hidden border border-slate-700/50 bg-white/10 p-2 shadow-2xl backdrop-blur-sm">
                                       {question.mediaType === 'video' && (
                                          isYouTubeURL(question.mediaUrl) ? (
                                            <iframe ref={mediaRef} src={getYouTubeEmbedURL(question.mediaUrl, { mute: gameState.isSoundEnabled ? 0 : 1 })} className="w-full h-full border-0" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen title="YouTube video"/>
@@ -813,7 +813,7 @@ export default function Stage() {
                                            <video ref={mediaRef} src={question.mediaUrl} autoPlay loop muted={!gameState.isSoundEnabled} playsInline className="h-full w-full object-contain" />
                                          )
                                       )}
-                                      {question.mediaType === 'image' && <img src={question.mediaUrl} alt="media" className="max-h-full max-w-full object-contain drop-shadow-2xl" />}
+                                      {question.mediaType === 'image' && <img src={question.mediaUrl} alt="media" className="max-h-full max-w-full object-contain rounded-lg shadow-lg" />}
                                       {question.mediaType === 'audio' && (
                                         <div className="flex flex-col items-center gap-4">
                                           <div className="p-8 bg-slate-900 rounded-full border-4 border-slate-700 animate-pulse"><span className="text-6xl">🎵</span></div>
