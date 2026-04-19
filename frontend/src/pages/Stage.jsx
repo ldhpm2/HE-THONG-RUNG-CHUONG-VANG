@@ -795,69 +795,69 @@ export default function Stage() {
                            </span>
                         </div>
 
-                        {/* PHẦN NỘI DUNG CHÍNH (CÂU HỎI + ẢNH + ĐÁP ÁN) */}
-                        <div className={`flex-1 flex ${question?.mediaType !== 'none' && question?.mediaUrl ? 'flex-row' : 'flex-col'} items-center justify-center min-h-0 w-full mt-4 px-2 gap-6`}>
-                            
-                            {/* CỘT TRÁI: CÂU HỎI + ĐÁP ÁN */}
-                            <div className={`flex flex-col ${question?.mediaType !== 'none' && question?.mediaUrl ? 'flex-[1.4] items-start' : 'items-center w-full'}`}>
-                                <div className={`font-semibold text-slate-100 flex-shrink-0 whitespace-pre-wrap ${question?.mediaType !== 'none' && question?.mediaUrl ? 'text-left' : 'text-justify [text-align-last:center]'} max-w-full px-6 w-full transition-all duration-300 mb-6`} style={unifiedStyle}>
-                                    {renderMixedText(question?.content)}
-                                </div>
+                       {/* PHẦN NỘI DUNG CHÍNH (CÂU HỎI + ẢNH + ĐÁP ÁN) */}
+                       <div className="flex-1 flex flex-col items-center justify-center min-h-0 w-full mt-2 md:mt-4 px-2">
+                           
+                           {/* HÀNG 1: CÂU HỎI & MEDIA (NẾU CÓ) */}
+                           <div className={`flex ${question?.mediaType !== 'none' && question?.mediaUrl ? 'flex-row items-center' : 'flex-col items-center'} w-full gap-6 mb-4 md:mb-6`}>
+                               <div className={`flex-1 font-semibold text-slate-100 flex-shrink-0 whitespace-pre-wrap ${question?.mediaType !== 'none' && question?.mediaUrl ? 'text-left' : 'text-justify [text-align-last:center]'} px-6 transition-all duration-300`} style={unifiedStyle}>
+                                   {renderMixedText(question?.content)}
+                               </div>
 
-                                {question?.type === 'mcq' && (
-                                  <div className={`flex-shrink-0 grid ${(isLongOption || (question?.mediaType !== 'none' && question?.mediaUrl)) ? 'grid-cols-1 gap-2 md:gap-3' : 'grid-cols-2 gap-4'} w-full max-w-full px-6`}>
-                                     {['A', 'B', 'C', 'D'].map(opt => {
-                                        const isCorrect = phase === 'answer_revealed' && question.correct === opt;
-                                        const isRevealed = phase === 'answer_revealed';
+                               {question?.mediaType !== 'none' && question?.mediaUrl && (
+                                   <div className="flex-1 w-full flex items-center justify-center max-h-[35vh] md:max-h-[45vh] rounded-3xl overflow-hidden border-2 border-slate-700/50 bg-black/20 p-2 shadow-xl">
+                                      {question.mediaType === 'video' && (
+                                         isYouTubeURL(question.mediaUrl) ? (
+                                           <iframe ref={mediaRef} src={getYouTubeEmbedURL(question.mediaUrl, { mute: gameState.isSoundEnabled ? 0 : 1 })} className="w-full h-full border-0" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen title="YouTube video"/>
+                                         ) : (
+                                           <video ref={mediaRef} src={question.mediaUrl} autoPlay loop muted={!gameState.isSoundEnabled} playsInline className="h-full w-full object-contain" />
+                                         )
+                                      )}
+                                      {question.mediaType === 'image' && <img src={question.mediaUrl} alt="media" className="max-h-full max-w-full object-contain drop-shadow-2xl" />}
+                                      {question.mediaType === 'audio' && (
+                                        <div className="flex flex-col items-center gap-4">
+                                          <div className="p-8 bg-slate-900 rounded-full border-4 border-slate-700 animate-pulse"><span className="text-6xl">🎵</span></div>
+                                          <audio src={question.mediaUrl} autoPlay controls muted={!gameState.isSoundEnabled} className="opacity-50 hover:opacity-100 transition-opacity" />
+                                        </div>
+                                      )}
+                                   </div>
+                               )}
+                           </div>
+
+                           {/* HÀNG 2: ĐÁP ÁN */}
+                           {question?.type === 'mcq' && (
+                             <div className={`flex-shrink-0 grid ${isLongOption ? 'grid-cols-1 gap-2 md:gap-3' : 'grid-cols-2 gap-4 md:gap-6'} w-full max-w-[98%] px-4`}>
+                                {['A', 'B', 'C', 'D'].map(opt => {
+                                   const isCorrect = phase === 'answer_revealed' && question.correct === opt;
+                                   const isRevealed = phase === 'answer_revealed';
+                                   
+                                   return (
+                                     <div 
+                                        key={opt} 
+                                        className={`${isLongOption ? 'p-2 md:p-3' : 'p-3 md:p-4'} rounded-2xl border-4 flex flex-row items-center transition-all duration-500 overflow-hidden ${
+                                          isCorrect ? 'bg-green-500 border-green-400 text-white shadow-[0_0_40px_rgba(34,197,94,0.6)] scale-[1.02]' :
+                                          isRevealed ? 'bg-slate-800 border-slate-700 text-slate-600 opacity-40 font-black' :
+                                          'bg-slate-700/50 border-slate-600 text-slate-300 hover:bg-slate-700/70'
+                                        }`}
+                                     >
+                                        <div className={`flex-shrink-0 mr-3 md:mr-4 rounded-xl font-black shadow-md flex items-center justify-center ${isLongOption ? 'px-3 py-1' : 'px-4 py-2'} border-2 transition-all duration-300 ${isCorrect ? 'bg-white border-transparent text-green-600' : 'bg-slate-800 border-slate-600 text-yellow-400'}`} style={{ fontSize: `calc(clamp(1.2rem, 3.2vh, 2.2rem) + ${fontSizeModifier * 0.25}rem)` }}>{opt}</div>
                                         
-                                        return (
-                                          <div 
-                                             key={opt} 
-                                             className={`${(isLongOption || (question?.mediaType !== 'none' && question?.mediaUrl)) ? 'p-2 md:p-3' : 'p-3 md:p-4'} rounded-2xl border-4 flex flex-row items-center transition-all duration-500 overflow-hidden ${
-                                               isCorrect ? 'bg-green-500 border-green-400 text-white shadow-[0_0_40px_rgba(34,197,94,0.6)] scale-[1.02]' :
-                                               isRevealed ? 'bg-slate-800 border-slate-700 text-slate-600 opacity-40 font-black' :
-                                               'bg-slate-700/50 border-slate-600 text-slate-300'
-                                             }`}
-                                          >
-                                             <div className={`flex-shrink-0 mr-3 md:mr-4 rounded-xl font-black shadow-md flex items-center justify-center ${(isLongOption || (question?.mediaType !== 'none' && question?.mediaUrl)) ? 'px-3 py-1' : 'px-4 py-2'} border-2 transition-all duration-300 ${isCorrect ? 'bg-white border-transparent text-green-600' : 'bg-slate-800 border-slate-600 text-yellow-400'}`} style={{ fontSize: `calc(clamp(1.2rem, 3vh, 2.2rem) + ${fontSizeModifier * 0.25}rem)` }}>{opt}</div>
-                                             
-                                             <div className={`text-left transition-all duration-300 flex-1 overflow-x-auto hide-scrollbar min-w-0 ${isCorrect ? 'text-white' : 'text-slate-100'}`} style={unifiedStyle}>
-                                                 {renderMixedText(question[`option${opt}`])}
-                                             </div>
-                                          </div>
-                                        );
-                                     })}
-                                  </div>
-                                )}
-
-                                {question?.type === 'short' && phase === 'answer_revealed' && (
-                                  <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className={`flex-shrink-0 mt-6 px-12 py-4 bg-green-500 rounded-full border-4 border-green-400 shadow-[0_0_50px_rgba(34,197,94,0.6)] text-center ${question?.mediaType !== 'none' && question?.mediaUrl ? 'ml-6' : 'self-center'}`}>
-                                     <span className="text-green-900 font-bold uppercase tracking-widest block mb-1 text-sm">Đáp án chính xác</span>
-                                     <span className="leading-none font-black text-white text-6xl">{question.correct}</span>
-                                  </motion.div>
-                                )}
-                            </div>
-
-                            {/* CỘT PHẢI: MEDIA (ẢNH/VIDEO) */}
-                            {question?.mediaType !== 'none' && question?.mediaUrl && (
-                                <div className="flex-1 w-full h-full max-h-[60vh] rounded-3xl overflow-hidden border-2 border-slate-700/50 bg-black/40 flex items-center justify-center relative shadow-2xl">
-                                   {question.mediaType === 'video' && (
-                                      isYouTubeURL(question.mediaUrl) ? (
-                                        <iframe ref={mediaRef} src={getYouTubeEmbedURL(question.mediaUrl, { mute: gameState.isSoundEnabled ? 0 : 1 })} className="w-full h-full border-0" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen title="YouTube video"/>
-                                      ) : (
-                                        <video ref={mediaRef} src={question.mediaUrl} autoPlay loop muted={!gameState.isSoundEnabled} playsInline className="h-full w-full object-contain" />
-                                      )
-                                   )}
-                                   {question.mediaType === 'image' && <img src={question.mediaUrl} alt="media" className="h-full w-full object-contain shadow-2xl" />}
-                                   {question.mediaType === 'audio' && (
-                                     <div className="flex flex-col items-center gap-4">
-                                       <div className="p-8 bg-slate-900 rounded-full border-4 border-slate-700 animate-pulse"><span className="text-6xl">🎵</span></div>
-                                       <audio src={question.mediaUrl} autoPlay controls muted={!gameState.isSoundEnabled} className="opacity-50 hover:opacity-100 transition-opacity" />
+                                        <div className={`text-left transition-all duration-300 flex-1 overflow-x-auto hide-scrollbar min-w-0 ${isCorrect ? 'text-white font-bold' : 'text-slate-100'}`} style={unifiedStyle}>
+                                            {renderMixedText(question[`option${opt}`])}
+                                        </div>
                                      </div>
-                                   )}
-                                </div>
-                            )}
-                        </div>
+                                   );
+                                })}
+                             </div>
+                           )}
+
+                           {question?.type === 'short' && phase === 'answer_revealed' && (
+                             <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex-shrink-0 self-center mt-4 px-12 py-4 bg-green-500 rounded-full border-4 border-green-400 shadow-[0_0_50px_rgba(34,197,94,0.6)] text-center">
+                                <span className="text-green-900 font-bold uppercase tracking-widest block mb-1 text-sm">Đáp án chính xác</span>
+                                <span className="leading-none font-black text-white text-6xl">{question.correct}</span>
+                             </motion.div>
+                           )}
+                       </div>
                     </motion.div>
                 )}
              </AnimatePresence>
