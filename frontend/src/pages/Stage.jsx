@@ -504,20 +504,35 @@ export default function Stage() {
     );
   };
 
+  // Hàm ước lượng độ dài hiển thị thực tế (loại bỏ mã LaTeX để tính toán chính xác hơn)
+  const estimateVisualWidth = (text) => {
+    if (!text) return 0;
+    // Chia theo các dòng LaTeX (\\) hoặc xuống dòng thường
+    const lines = text.split(/\\\\|\n/);
+    let maxWidth = 0;
+    lines.forEach(line => {
+      // Loại bỏ các lệnh LaTeX phổ biến và ký tự điều khiển
+      const clean = line
+        .replace(/\\(begin|end)\{.*?\}/g, '')
+        .replace(/\\(frac|sqrt|mathbf|mathrm|text|left|right|color|style|vec|alpha|beta|gamma|delta|phi|psi|omega|sigma|lambda|theta|hspace|vspace|quad|qquad|displaystyle|bold|italic|underline)\b\{?/g, '')
+        .replace(/[\\\{\}\$\^_\&]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (clean.length > maxWidth) maxWidth = clean.length;
+    });
+    return maxWidth;
+  };
+
   let maxOptLengthForGrid = 0;
-  let hasComplexMath = false;
   if (question) {
       ['A', 'B', 'C', 'D'].forEach(opt => {
           const optText = question[`option${opt}`] || '';
-          if (optText.length > maxOptLengthForGrid) maxOptLengthForGrid = optText.length;
-          // Phát hiện các ký tự toán học phức tạp cần nhiều không gian hoặc biểu thức dài
-          if (optText.includes('\\int') || optText.includes('\\sum') || optText.includes('\\frac') || optText.includes('\\lim') || optText.includes('\\sqrt')) {
-              hasComplexMath = true;
-          }
+          const visualWidth = estimateVisualWidth(optText);
+          if (visualWidth > maxOptLengthForGrid) maxOptLengthForGrid = visualWidth;
       });
   }
-  // Ngưỡng 40 ký tự: dưới 40 là ngắn (2x2), trên 40 là dài (1x4)
-  const isLongOption = maxOptLengthForGrid > 40 || hasComplexMath;
+  // Ngưỡng 50 ký tự hiển thị thực tế: dưới 50 là ngắn (2x2), trên 50 là dài (1x4)
+  const isLongOption = maxOptLengthForGrid > 50;
 
   const getUnifiedSizeStyle = (questionObj, modifier) => {
     let clampStr = 'clamp(1.8rem,4.5vh,3rem)';
