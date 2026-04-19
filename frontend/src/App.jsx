@@ -16,7 +16,11 @@ const mathjaxConfig = {
 
 function App() {
   return (
-    <MathJaxContext config={mathjaxConfig}>
+    <MathJaxContext 
+      version={3} 
+      config={mathjaxConfig}
+      src="MathJax/es5/tex-chtml.js" 
+    >
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Client />} />

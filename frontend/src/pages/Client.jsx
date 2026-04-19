@@ -136,7 +136,7 @@ export default function Client() {
     }
     return (
       <MathJax dynamic>
-        <span className="whitespace-pre-wrap">{processedText}</span>
+        <span className="whitespace-pre-wrap math-wrap">{processedText}</span>
       </MathJax>
     );
   };

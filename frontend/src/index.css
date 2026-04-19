@@ -14,3 +14,24 @@ body {
   background-color: #0f172a; /* Slate 900 */
   color: white;
 }
+
+/* MathJax Wrapping Fix */
+mjx-container[jax="CHTML"] {
+  display: inline-block !important;
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+  max-width: 100% !important;
+  line-break: anywhere !important;
+}
+
+mjx-math {
+  white-space: normal !important;
+}
+
+.math-wrap {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+  white-space: pre-wrap !important;
+}

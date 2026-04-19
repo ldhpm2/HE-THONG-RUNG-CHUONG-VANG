@@ -485,7 +485,7 @@ export default function Stage() {
         if (!restPart.includes('$') && restPart.includes('\\')) restPart = `$${restPart}$`;
         return (
           <MathJax dynamic>
-            <span className="whitespace-pre-wrap break-words"><span className="text-cyan-400 font-extrabold drop-shadow-md">{match[1]} </span>{restPart}</span>
+            <span className="whitespace-pre-wrap break-words math-wrap"><span className="text-cyan-400 font-extrabold drop-shadow-md">{match[1]} </span>{restPart}</span>
           </MathJax>
         );
     }
@@ -497,7 +497,7 @@ export default function Stage() {
     
     return (
       <MathJax dynamic>
-          <span className="whitespace-pre-wrap break-words">
+          <span className="whitespace-pre-wrap break-words math-wrap">
               {processedText}
           </span>
       </MathJax>
@@ -507,18 +507,22 @@ export default function Stage() {
   // Hàm ước lượng độ dài hiển thị thực tế (loại bỏ mã LaTeX để tính toán chính xác hơn)
   const estimateVisualWidth = (text) => {
     if (!text) return 0;
-    // Chia theo các dòng LaTeX (\\) hoặc xuống dòng thường
     const lines = text.split(/\\\\|\n/);
     let maxWidth = 0;
     lines.forEach(line => {
-      // Loại bỏ các lệnh LaTeX phổ biến và ký tự điều khiển
       const clean = line
         .replace(/\\(begin|end)\{.*?\}/g, '')
         .replace(/\\(frac|sqrt|mathbf|mathrm|text|left|right|color|style|vec|alpha|beta|gamma|delta|phi|psi|omega|sigma|lambda|theta|hspace|vspace|quad|qquad|displaystyle|bold|italic|underline)\b\{?/g, '')
         .replace(/[\\\{\}\$\^_\&]/g, '')
         .replace(/\s+/g, ' ')
         .trim();
-      if (clean.length > maxWidth) maxWidth = clean.length;
+      
+      // Math content usually takes ~1.5x space of regular text
+      let width = clean.length;
+      if (line.includes('$') || line.includes('\\')) {
+          width = width * 1.5;
+      }
+      if (width > maxWidth) maxWidth = width;
     });
     return maxWidth;
   };
@@ -531,8 +535,8 @@ export default function Stage() {
           if (visualWidth > maxOptLengthForGrid) maxOptLengthForGrid = visualWidth;
       });
   }
-  // Ngưỡng 50 ký tự hiển thị thực tế: dưới 50 là ngắn (2x2), trên 50 là dài (1x4)
-  const isLongOption = maxOptLengthForGrid > 50;
+  // Ngưỡng 30 ký tự hiển thị thực tế: dưới 30 là ngắn (2x2), trên 30 là dài (1x4)
+  const isLongOption = maxOptLengthForGrid > 30;
 
   const getUnifiedSizeStyle = (questionObj, modifier) => {
     let clampStr = 'clamp(1.8rem,4.5vh,3rem)';
@@ -551,18 +555,18 @@ export default function Stage() {
 
       if (hasMedia) {
           lh = 1.4;
-          if (score < 150) clampStr = 'clamp(1.4rem,3.5vh,2.3rem)';
-          else if (score < 300) clampStr = 'clamp(1.2rem,3vh,1.9rem)';
-          else clampStr = 'clamp(1rem,2.5vh,1.6rem)';
+          if (score < 150) clampStr = 'clamp(1.2rem,3vh,2rem)';
+          else if (score < 300) clampStr = 'clamp(1rem,2.5vh,1.7rem)';
+          else clampStr = 'clamp(0.9rem,2.2vh,1.4rem)';
       } else if (isLongOption) {
-          clampStr = 'clamp(1.2rem, 3.2vh, 2.2rem)';
+          clampStr = 'clamp(1.1rem, 3vh, 2.1rem)';
           lh = 1.3;
       } else {
-          if (score < 120) { clampStr = 'clamp(2.1rem,5vh,4rem)'; lh = 1.3; }
-          else if (score < 250) { clampStr = 'clamp(1.8rem,4.5vh,3.2rem)'; lh = 1.4; }
-          else if (score < 400) { clampStr = 'clamp(1.5rem,3.8vh,2.6rem)'; lh = 1.5; }
-          else if (score < 600) { clampStr = 'clamp(1.3rem,3.2vh,2.1rem)'; lh = 1.5; }
-          else { clampStr = 'clamp(1.1rem,2.8vh,1.8rem)'; lh = 1.5; }
+          if (score < 100) { clampStr = 'clamp(1.8rem,4.5vh,3.5rem)'; lh = 1.3; }
+          else if (score < 200) { clampStr = 'clamp(1.5rem,3.8vh,2.8rem)'; lh = 1.4; }
+          else if (score < 350) { clampStr = 'clamp(1.3rem,3.2vh,2.3rem)'; lh = 1.5; }
+          else if (score < 550) { clampStr = 'clamp(1.1rem,2.8vh,1.9rem)'; lh = 1.5; }
+          else { clampStr = 'clamp(0.9rem,2.4vh,1.6rem)'; lh = 1.5; }
       }
     }
 
@@ -588,8 +592,18 @@ export default function Stage() {
       </button>
 
       <style>{`
-        .math-nowrap, .math-nowrap * {
-            white-space: nowrap !important;
+        mjx-container[jax="CHTML"] {
+            display: inline-block !important;
+            white-space: normal !important;
+            word-wrap: break-word !important;
+            overflow-wrap: break-word !important;
+            max-width: 100% !important;
+        }
+        .math-wrap {
+            overflow-wrap: break-word;
+            word-wrap: break-word;
+            word-break: break-word;
+            white-space: pre-wrap !important;
         }
         .hide-scrollbar::-webkit-scrollbar {
             display: none;
@@ -834,7 +848,7 @@ export default function Stage() {
                                    return (
                                      <div 
                                         key={opt} 
-                                        className={`${isLongOption ? 'p-2 md:p-3' : 'p-3 md:p-4'} rounded-2xl border-4 flex flex-row items-center transition-all duration-500 overflow-hidden ${
+                                        className={`${isLongOption ? 'p-2 md:p-3' : 'p-3 md:p-4'} rounded-2xl border-4 flex flex-row items-center transition-all duration-500 ${
                                           isCorrect ? 'bg-green-500 border-green-400 text-white shadow-[0_0_40px_rgba(34,197,94,0.6)] scale-[1.02]' :
                                           isRevealed ? 'bg-slate-800 border-slate-700 text-slate-600 opacity-40 font-black' :
                                           'bg-slate-700/50 border-slate-600 text-slate-300 hover:bg-slate-700/70'
@@ -842,7 +856,7 @@ export default function Stage() {
                                      >
                                         <div className={`flex-shrink-0 mr-3 md:mr-4 rounded-xl font-black shadow-md flex items-center justify-center ${isLongOption ? 'px-3 py-1' : 'px-4 py-2'} border-2 transition-all duration-300 ${isCorrect ? 'bg-white border-transparent text-green-600' : 'bg-slate-800 border-slate-600 text-yellow-400'}`} style={{ fontSize: `calc(clamp(1.2rem, 3.2vh, 2.2rem) + ${fontSizeModifier * 0.25}rem)` }}>{opt}</div>
                                         
-                                        <div className={`text-left transition-all duration-300 flex-1 overflow-x-auto hide-scrollbar min-w-0 ${isCorrect ? 'text-white font-bold' : 'text-slate-100'}`} style={unifiedStyle}>
+                                        <div className={`text-left transition-all duration-300 flex-1 min-w-0 ${isCorrect ? 'text-white font-bold' : 'text-slate-100'}`} style={unifiedStyle}>
                                             {renderMixedText(question[`option${opt}`])}
                                         </div>
                                      </div>
