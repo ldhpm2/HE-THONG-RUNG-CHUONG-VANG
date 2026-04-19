@@ -432,7 +432,6 @@ export default function Stage() {
   const studentsList = Object.values(gameState.students).sort((a,b) => parseInt(a.sbd) - parseInt(b.sbd));
   const { phase, question } = gameState;
 
-  // Cấu hình các bộ luật chơi riêng biệt cho 2 chế độ
   const rulesElimination = [
     { icon: "📜", title: "Lấy câu hỏi", desc: "Hệ thống sẽ lần lượt đưa ra các câu hỏi trắc nghiệm hoặc tự luận ngắn." },
     { icon: "⏱️", title: "Trả lời", desc: "Thí sinh có từ 15 đến 60 giây (tùy câu) để nhập đáp án lên điện thoại." },
@@ -482,6 +481,22 @@ export default function Stage() {
     );
   };
 
+  // THUẬT TOÁN QUÉT ĐỘ DÀI ĐỂ ÉP VỀ 1 CỘT NẾU ĐÁP ÁN QUÁ DÀI
+  let maxOptLengthForGrid = 0;
+  let hasComplexMath = false;
+  if (question) {
+      ['A', 'B', 'C', 'D'].forEach(opt => {
+          const optText = question[`option${opt}`] || '';
+          if (optText.length > maxOptLengthForGrid) maxOptLengthForGrid = optText.length;
+          // Phát hiện các lệnh LaTeX bành trướng chiều ngang
+          if (optText.includes('\\int') || optText.includes('\\sum') || optText.includes('\\frac') || optText.includes('\\lim')) {
+              hasComplexMath = true;
+          }
+      });
+  }
+  // Ngưỡng bẻ cột: Dài hơn 25 ký tự HOẶC chứa các ký hiệu toán học lớn
+  const isLongOption = maxOptLengthForGrid > 25 || hasComplexMath;
+
   const getUnifiedSizeStyle = (questionObj, modifier) => {
     let clampStr = 'clamp(1.8rem,4.5vh,3rem)';
     let lh = 1.5;
@@ -502,6 +517,10 @@ export default function Stage() {
           if (score < 150) clampStr = 'clamp(1.4rem,3.5vh,2.3rem)';
           else if (score < 300) clampStr = 'clamp(1.2rem,3vh,1.9rem)';
           else clampStr = 'clamp(1rem,2.5vh,1.6rem)';
+      } else if (isLongOption) {
+          // Khi chuyển về 1 cột dọc, chữ tự động thu nhỏ lại để không tràn chiều cao màn hình
+          clampStr = 'clamp(1.2rem, 3.2vh, 2.2rem)';
+          lh = 1.3;
       } else {
           if (score < 120) { clampStr = 'clamp(2.1rem,5vh,4rem)'; lh = 1.3; }
           else if (score < 250) { clampStr = 'clamp(1.8rem,4.5vh,3.2rem)'; lh = 1.4; }
@@ -635,7 +654,6 @@ export default function Stage() {
                             <div className="h-1 w-32 bg-gradient-to-r from-transparent via-indigo-500 to-transparent rounded-full mt-3"></div>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                           {/* DÙNG BIẾN currentRules ĐỂ HIỂN THỊ ĐỘNG THEO CHẾ ĐỘ THI */}
                            {currentRules.map((rule, i) => (
                              <motion.div key={i} initial={{ x: i % 2 === 0 ? -50 : 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.4 + (i * 0.1) }} className="flex items-start gap-4 p-4 bg-slate-900/60 border border-slate-800 rounded-2xl hover:border-indigo-500/50 transition-colors group">
                                <span className="text-4xl filter grayscale group-hover:grayscale-0 transition-all">{rule.icon}</span>
@@ -757,7 +775,8 @@ export default function Stage() {
                            )}
   
                            {question?.type === 'mcq' && (
-                             <div className="flex-shrink-0 grid grid-cols-2 gap-4 mt-6 w-full max-w-[95%]">
+                             // CHUYỂN ĐỔI GRID 1 CỘT (XẾP DỌC) NẾU LÀ CÔNG THỨC DÀI
+                             <div className={`flex-shrink-0 grid ${isLongOption ? 'grid-cols-1 gap-2 md:gap-3' : 'grid-cols-2 gap-4'} mt-4 md:mt-6 w-full max-w-[95%]`}>
                                 {['A', 'B', 'C', 'D'].map(opt => {
                                    const isCorrect = phase === 'answer_revealed' && question.correct === opt;
                                    const isRevealed = phase === 'answer_revealed';
@@ -765,19 +784,17 @@ export default function Stage() {
                                    return (
                                      <div 
                                         key={opt} 
-                                        className={`p-4 md:p-5 rounded-2xl border-4 flex flex-row items-start transition-all duration-500 ${
-                                          isCorrect ? 'bg-green-500 border-green-400 text-white shadow-[0_0_40px_rgba(34,197,94,0.6)] scale-[1.03]' :
+                                        className={`${isLongOption ? 'p-2 md:p-3' : 'p-3 md:p-4'} rounded-2xl border-4 flex flex-row items-center transition-all duration-500 overflow-hidden ${
+                                          isCorrect ? 'bg-green-500 border-green-400 text-white shadow-[0_0_40px_rgba(34,197,94,0.6)] scale-[1.02]' :
                                           isRevealed ? 'bg-slate-800 border-slate-700 text-slate-600 opacity-40 font-black' :
                                           'bg-slate-700/50 border-slate-600 text-slate-300'
                                         }`}
                                      >
-                                        <div className={`flex-shrink-0 mr-4 rounded-xl font-black shadow-md flex items-center justify-center px-4 py-2 border-2 transition-all duration-300 ${isCorrect ? 'bg-white border-transparent text-green-600' : 'bg-slate-800 border-slate-600 text-yellow-400'}`} style={{ fontSize: `calc(clamp(1.5rem, 3.5vh, 2.5rem) + ${fontSizeModifier * 0.25}rem)` }}>{opt}</div>
+                                        <div className={`flex-shrink-0 mr-3 md:mr-4 rounded-xl font-black shadow-md flex items-center justify-center ${isLongOption ? 'px-3 py-1' : 'px-4 py-2'} border-2 transition-all duration-300 ${isCorrect ? 'bg-white border-transparent text-green-600' : 'bg-slate-800 border-slate-600 text-yellow-400'}`} style={{ fontSize: `calc(clamp(1.5rem, 3.5vh, 2.5rem) + ${fontSizeModifier * 0.25}rem)` }}>{opt}</div>
                                         
-                                        {question[`option${opt}`] && (
-                                            <div className={`text-left transition-all duration-300 flex-1 pt-1 ${isCorrect ? 'text-white' : 'text-slate-100'}`} style={unifiedStyle}>
-                                                {renderMixedText(question[`option${opt}`])}
-                                            </div>
-                                        )}
+                                        <div className={`text-left transition-all duration-300 flex-1 overflow-x-auto hide-scrollbar min-w-0 ${isCorrect ? 'text-white' : 'text-slate-100'}`} style={unifiedStyle}>
+                                            {renderMixedText(question[`option${opt}`])}
+                                        </div>
                                      </div>
                                    );
                                 })}
