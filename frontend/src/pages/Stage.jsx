@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MathJax } from 'better-react-mathjax';
 import logoBell from '../assets/logo_bell.png';
 import { QRCodeSVG } from 'qrcode.react';
-import { Volume2, VolumeX, Camera, ScrollText, MessageSquare } from 'lucide-react';
+import { Volume2, VolumeX, Camera, ScrollText, MessageSquare, Maximize, Minimize } from 'lucide-react';
 import { isYouTubeURL, getYouTubeEmbedURL } from '../utils/videoUtils';
 
 export default function Stage() {
@@ -31,6 +31,8 @@ export default function Stage() {
     return sessionStorage.getItem('stage_audio_unlocked') === 'true';
   });
   
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
   const audioCtxRef = useRef(null);
   const scheduledTicksRef = useRef([]);
   const timerEndRef = useRef(null);   
@@ -43,6 +45,27 @@ export default function Stage() {
   const introMediaRef = useRef(null); 
   const [victoryMediaData, setVictoryMediaData] = useState(null); 
   const victoryMediaRef = useRef(null);
+
+  // Xử lý sự kiện thay đổi trạng thái Fullscreen bằng phím ESC
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  const toggleFullScreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(err => {
+        console.error(`Lỗi khi mở toàn màn hình: ${err.message}`);
+      });
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  };
 
   useEffect(() => {
     socket.on('stage:change_font_size', (data) => {
@@ -481,20 +504,17 @@ export default function Stage() {
     );
   };
 
-  // THUẬT TOÁN QUÉT ĐỘ DÀI ĐỂ ÉP VỀ 1 CỘT NẾU ĐÁP ÁN QUÁ DÀI
   let maxOptLengthForGrid = 0;
   let hasComplexMath = false;
   if (question) {
       ['A', 'B', 'C', 'D'].forEach(opt => {
           const optText = question[`option${opt}`] || '';
           if (optText.length > maxOptLengthForGrid) maxOptLengthForGrid = optText.length;
-          // Phát hiện các lệnh LaTeX bành trướng chiều ngang
           if (optText.includes('\\int') || optText.includes('\\sum') || optText.includes('\\frac') || optText.includes('\\lim')) {
               hasComplexMath = true;
           }
       });
   }
-  // Ngưỡng bẻ cột: Dài hơn 25 ký tự HOẶC chứa các ký hiệu toán học lớn
   const isLongOption = maxOptLengthForGrid > 25 || hasComplexMath;
 
   const getUnifiedSizeStyle = (questionObj, modifier) => {
@@ -518,7 +538,6 @@ export default function Stage() {
           else if (score < 300) clampStr = 'clamp(1.2rem,3vh,1.9rem)';
           else clampStr = 'clamp(1rem,2.5vh,1.6rem)';
       } else if (isLongOption) {
-          // Khi chuyển về 1 cột dọc, chữ tự động thu nhỏ lại để không tràn chiều cao màn hình
           clampStr = 'clamp(1.2rem, 3.2vh, 2.2rem)';
           lh = 1.3;
       } else {
@@ -540,8 +559,17 @@ export default function Stage() {
   const unifiedStyle = getUnifiedSizeStyle(question, fontSizeModifier);
 
   return (
-    <div className="h-screen bg-[#020617] text-white flex flex-col font-sans overflow-hidden">
+    <div className="h-screen bg-[#020617] text-white flex flex-col font-sans overflow-hidden relative">
       
+      {/* NÚT FULLSCREEN GÓC TRÊN TRÁI */}
+      <button 
+        onClick={toggleFullScreen}
+        className="fixed top-4 left-4 md:top-6 md:left-6 z-[200] p-2 md:p-3 bg-slate-800/50 hover:bg-slate-700/80 text-slate-300 hover:text-white rounded-full backdrop-blur-md border border-slate-600/50 transition-all duration-300 shadow-lg group"
+        title="Toàn màn hình (Nhấn ESC để thoát)"
+      >
+        {isFullscreen ? <Minimize size={24} className="group-hover:scale-110 transition-transform" /> : <Maximize size={24} className="group-hover:scale-110 transition-transform" />}
+      </button>
+
       <style>{`
         .math-nowrap, .math-nowrap * {
             white-space: nowrap !important;
@@ -556,7 +584,7 @@ export default function Stage() {
       `}</style>
 
       <div className="hidden">
-         {introMediaData && (introMediaData.type.startsWith('video') ? <video ref={introMediaRef} src={introMediaData.dataUrl} playsInline /> : <audio ref={introMediaRef} src={introMediaData.dataUrl} />)}
+         {introMediaData && (introMediaData.type.startsWith('video') ? <video ref={introMediaRef} src={introMediaData.dataUrl} loop playsInline /> : <audio ref={introMediaRef} src={introMediaData.dataUrl} loop />)}
          {victoryMediaData && (victoryMediaData.type.startsWith('video') ? <video ref={victoryMediaRef} src={victoryMediaData.dataUrl} playsInline /> : <audio ref={victoryMediaRef} src={victoryMediaData.dataUrl} />)}
       </div>
 
@@ -775,7 +803,6 @@ export default function Stage() {
                            )}
   
                            {question?.type === 'mcq' && (
-                             // CHUYỂN ĐỔI GRID 1 CỘT (XẾP DỌC) NẾU LÀ CÔNG THỨC DÀI
                              <div className={`flex-shrink-0 grid ${isLongOption ? 'grid-cols-1 gap-2 md:gap-3' : 'grid-cols-2 gap-4'} mt-4 md:mt-6 w-full max-w-[95%]`}>
                                 {['A', 'B', 'C', 'D'].map(opt => {
                                    const isCorrect = phase === 'answer_revealed' && question.correct === opt;
