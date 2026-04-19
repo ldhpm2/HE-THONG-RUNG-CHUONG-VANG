@@ -510,12 +510,14 @@ export default function Stage() {
       ['A', 'B', 'C', 'D'].forEach(opt => {
           const optText = question[`option${opt}`] || '';
           if (optText.length > maxOptLengthForGrid) maxOptLengthForGrid = optText.length;
-          if (optText.includes('\\int') || optText.includes('\\sum') || optText.includes('\\frac') || optText.includes('\\lim')) {
+          // Phát hiện các ký tự toán học phức tạp cần nhiều không gian hoặc biểu thức dài
+          if (optText.includes('\\int') || optText.includes('\\sum') || optText.includes('\\frac') || optText.includes('\\lim') || optText.includes('\\sqrt')) {
               hasComplexMath = true;
           }
       });
   }
-  const isLongOption = maxOptLengthForGrid > 25 || hasComplexMath;
+  // Ngưỡng 40 ký tự: dưới 40 là ngắn (2x2), trên 40 là dài (1x4)
+  const isLongOption = maxOptLengthForGrid > 40 || hasComplexMath;
 
   const getUnifiedSizeStyle = (questionObj, modifier) => {
     let clampStr = 'clamp(1.8rem,4.5vh,3rem)';
@@ -802,8 +804,8 @@ export default function Stage() {
                               </div>
                            )}
   
-                           {question?.type === 'mcq' && (
-                             <div className={`flex-shrink-0 grid ${isLongOption ? 'grid-cols-1 gap-2 md:gap-3' : 'grid-cols-2 gap-4'} mt-4 md:mt-6 w-full max-w-[95%]`}>
+                            {question?.type === 'mcq' && (
+                              <div className={`flex-shrink-0 grid ${isLongOption ? 'grid-cols-1 gap-2 md:gap-3' : 'grid-cols-2 gap-4'} mt-4 md:mt-6 w-full max-w-[95%]`}>
                                 {['A', 'B', 'C', 'D'].map(opt => {
                                    const isCorrect = phase === 'answer_revealed' && question.correct === opt;
                                    const isRevealed = phase === 'answer_revealed';
